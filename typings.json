@@ -1,0 +1,6 @@
+{
+  "dependencies": {},
+  "globalDependencies": {
+    "systemjs": "registry:dt/systemjs"
+  }
+}
