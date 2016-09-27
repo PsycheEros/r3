@@ -1,4 +1,4 @@
-(function () {
+(() => {
     System.config({
         paths: {
             app: 'js'
