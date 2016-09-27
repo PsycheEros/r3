@@ -1,6 +1,7 @@
 import Canvas2D from './canvas2d';
 import Canvas3D from './canvas3d';
 import Board from './board';
+import Square from './square';
 
 function createCanvas( width: number, height: number ) {
 	return document.querySelector( 'body' ).appendChild(
@@ -18,27 +19,25 @@ const body = document.querySelector( 'body' ),
 
 ( () => {
 	const board = new Board( 8, 8 );
-	const squareSize = 64;
 	const { c2d } = canvas[ '2d' ];
-	for( const { x, y } of board ) {
-		c2d.fillStyle = ( x + y ) % 2 === 0 ? 'black' : 'white';
-		c2d.fillRect( x * squareSize, y * squareSize, squareSize, squareSize );
+
+	let selectedSquare: Square|null = null;
+	function render( time: number ) {
+		canvas[ '2d' ].clear();
+		for( const { position: { x, y }, bounds } of board ) {
+			c2d.fillStyle = ( x + y ) % 2 === 0 ? 'black' : 'white';
+			c2d.fillRect( bounds.left, bounds.top, bounds.width, bounds.height );
+		}
+		if( selectedSquare ) {
+			c2d.strokeStyle = '#f00';
+			c2d.strokeRect( selectedSquare.bounds.left, selectedSquare.bounds.top, selectedSquare.bounds.width, selectedSquare.bounds.height );
+		}
+		requestAnimationFrame( render );
 	}
-	const info = body.appendChild( document.createElement( 'div' ) ) as HTMLElement;
-	Object.assign( info.style, {
-		whiteSpace: 'pre',
-		position: 'fixed',
-		bottom: 0,
-		left: 0,
-		right: 0
-	} );
+	requestAnimationFrame( render );
+
 	document.addEventListener( 'mousemove', ( { clientX, clientY } ) => {
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } );
-		const { x: roundX, y: roundY } = canvas[ '2d' ].canvasToScreen( { x, y } );
-		info.textContent = `
-Client: (${clientX}, ${clientY}
-Screen: (${x}, ${y})
-Round: (${roundX}, ${roundY})
-`;
+		selectedSquare = board.hitTest( { x, y } );
 	}, false );
 } )();
