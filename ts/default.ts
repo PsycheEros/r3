@@ -4,7 +4,7 @@ import Board from './board';
 import Square from './square';
 
 function createCanvas( width: number, height: number ) {
-	return document.querySelector( 'body' ).appendChild(
+	return document.querySelector( 'body' )!.appendChild(
 		Object.assign( document.createElement( 'canvas' ), { width, height } )
 	) as HTMLCanvasElement;
 }

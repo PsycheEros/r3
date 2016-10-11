@@ -1,5 +1,5 @@
 ( () => {
-	System.config( {
+	SystemJS.config( {
 		paths: {
 			app: 'js'
 		},
