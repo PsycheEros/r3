@@ -1,6 +1,6 @@
 const gulp = require( 'gulp' ),
 	gulpIf = require( 'gulp-if' ),
-	clean = require( 'gulp-clean' ),
+	del = require( 'del' ),
 	sass = require( 'gulp-sass' ),
 	typings = require( 'gulp-typings' ),
 	typescript = require( 'gulp-typescript' ),
@@ -17,23 +17,19 @@ const gulp = require( 'gulp' ),
 	} );
 
 gulp.task( 'clean:lib', () =>
-	gulp.src( [ 'lib' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'lib' ] )
 );
 
 gulp.task( 'clean:js', () =>
-	gulp.src( [ 'js' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'js' ] )
 );
 
 gulp.task( 'clean:css', () =>
-	gulp.src( [ 'css' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'css' ] )
 );
 
 gulp.task( 'clean:typings', () =>
-	gulp.src( [ 'typings' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'typings' ] )
 );
 
 gulp.task( 'clean', gulp.parallel( 'clean:css', 'clean:lib', 'clean:js', 'clean:typings' ) );
