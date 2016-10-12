@@ -107,13 +107,13 @@ const width = 960,
 	}
 	requestAnimationFrame( render );
 
-	document.addEventListener( 'mousemove', ( { clientX, clientY } ) => {
+	function onMouseMove( { clientX, clientY }: MouseEvent ) {
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } );
 		selectedSquare = board.hitTest( { x, y } );
 		document.documentElement.style.cursor = selectedSquare && rules.isValid( board.grid, selectedSquare.position, turn ) ? 'pointer' : null;
-	}, false );
+	}
 
-	document.addEventListener( 'click', ( { clientX, clientY } ) => {
+	function onClick( { clientX, clientY }: MouseEvent ) {
 		if( rules.isGameOver( board.grid, [ 0, 1 ] ) ) {
 			newGame();
 			return;
@@ -126,5 +126,9 @@ const width = 960,
 				nextTurn();
 			}
 		}
-	}, false );
+	}
+
+	document.addEventListener( 'mousemove', onMouseMove, false );
+	document.addEventListener( 'click', onClick, false );
+	document.addEventListener( 'touchstart', onClick, false );
 } )();
