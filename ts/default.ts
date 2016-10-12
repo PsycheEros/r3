@@ -109,13 +109,13 @@ const width = 960,
 	}
 	requestAnimationFrame( render );
 
-	function onMouseMove( { clientX, clientY }: MouseEvent ) {
+	function onMouseMove( { clientX, clientY }: { clientX: number, clientY: number } ) {
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } );
 		selectedSquare = board.hitTest( { x, y } );
 		document.documentElement.style.cursor = selectedSquare && rules.isValid( board.grid, selectedSquare.position, turn ) ? 'pointer' : null;
 	}
 
-	function onClick( { clientX, clientY }: MouseEvent ) {
+	function onClick( { clientX, clientY }: { clientX: number, clientY: number } ) {
 		if( rules.isGameOver( board.grid, [ 0, 1 ] ) ) {
 			newGame();
 			return;
@@ -132,5 +132,9 @@ const width = 960,
 
 	document.addEventListener( 'mousemove', onMouseMove, false );
 	document.addEventListener( 'click', onClick, false );
-	document.addEventListener( 'touchstart', onClick, false );
+	document.addEventListener( 'touchstart', e => {
+		for( const touch of Array.from( e.touches ) ) {
+			onClick( touch );
+		}
+	}, false );
 } )();
