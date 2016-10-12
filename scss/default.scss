@@ -1,2 +1,2 @@
 @import "reset";
-canvas { margin: 0 auto; max-width: 100%; position: absolute; left: 0; top: 0; }
+canvas { max-width: 100%; position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
