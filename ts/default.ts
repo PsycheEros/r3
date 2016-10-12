@@ -43,14 +43,16 @@ const width = 960,
 	let selectedSquare: Square|null = null;
 	function render( time: number ) {
 		c2d.save();
-
-		c2d.strokeStyle = 'black';
 		canvas[ '2d' ].clear();
+
+		c2d.fillStyle = '#6c6';
+		c2d.fillRect( board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height );
+		c2d.strokeStyle = 'black';
 		for( const { enabled, color, position: { x, y }, bounds: { left, top, width, height, center } } of board ) {
 			if( !enabled ) { continue; }
 			c2d.save();
 			c2d.lineWidth = 1;
-			c2d.fillStyle = ( x + y ) % 2 === 0 ? '#000' : '#fff';
+			c2d.fillStyle = '#8c8';
 			c2d.fillRect( left, top, width, height );
 			c2d.strokeRect( left, top, width, height );
 
