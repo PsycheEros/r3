@@ -11,7 +11,7 @@ const gulp = require( 'gulp' ),
 	webserver = require( 'gulp-webserver' ),
 	minimist = require( 'minimist' ),
 	options = minimist( process.argv.slice( 2 ), {
-		boolean: [ 'uglify', 'fix', 'load', 'livereload', 'watch' ],
+		boolean: [ 'uglify', 'fix', 'open', 'livereload', 'watch' ],
 		default: { uglify: true, livereload: true, watch: true }
 	} );
 
