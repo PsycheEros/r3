@@ -1,4 +1,6 @@
 .*
 !.gitignore
 !.eslintrc.json
+*.orig
+*.log
 node_modules/
