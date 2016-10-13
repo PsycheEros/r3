@@ -26,13 +26,13 @@ abstract class Canvas {
 	public screenToCanvas( { x, y }: Point ): Point {
 		const { canvas, width, height } = this,
 			rect = canvas.getBoundingClientRect();
-		return { x: ( x - rect.left ) * ( width / rect.width ), y: ( y - rect.top ) * ( height / rect.height ) }; 
+		return { x: ( x - rect.left ) * ( width / rect.width ), y: ( y - rect.top ) * ( height / rect.height ) };
 	}
 
 	public canvasToScreen( { x, y }: Point ): Point {
 		const { canvas, width, height } = this,
 			rect = canvas.getBoundingClientRect();
-		return { x: ( x * ( rect.width / width ) ) + rect.left, y: ( y * ( rect.height / height ) ) + rect.top }; 
+		return { x: ( x * ( rect.width / width ) ) + rect.left, y: ( y * ( rect.height / height ) ) + rect.top };
 	}
 }
 

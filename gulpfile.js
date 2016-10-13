@@ -1,8 +1,7 @@
 const gulp = require( 'gulp' ),
 	gulpIf = require( 'gulp-if' ),
-	clean = require( 'gulp-clean' ),
+	del = require( 'del' ),
 	sass = require( 'gulp-sass' ),
-	typings = require( 'gulp-typings' ),
 	typescript = require( 'gulp-typescript' ),
 	concat = require( 'gulp-concat' ),
 	uglify = require( 'gulp-uglify' ),
@@ -12,31 +11,23 @@ const gulp = require( 'gulp' ),
 	webserver = require( 'gulp-webserver' ),
 	minimist = require( 'minimist' ),
 	options = minimist( process.argv.slice( 2 ), {
-		boolean: [ 'uglify', 'fix', 'load', 'livereload', 'watch' ],
+		boolean: [ 'uglify', 'fix', 'open', 'livereload', 'watch' ],
 		default: { uglify: true, livereload: true, watch: true }
 	} );
 
 gulp.task( 'clean:lib', () =>
-	gulp.src( [ 'lib' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'lib' ] )
 );
 
 gulp.task( 'clean:js', () =>
-	gulp.src( [ 'js' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'js' ] )
 );
 
 gulp.task( 'clean:css', () =>
-	gulp.src( [ 'css' ], { allowEmpty: true } )
-	.pipe( clean() )
+	del( [ 'css' ] )
 );
 
-gulp.task( 'clean:typings', () =>
-	gulp.src( [ 'typings' ], { allowEmpty: true } )
-	.pipe( clean() )
-);
-
-gulp.task( 'clean', gulp.parallel( 'clean:css', 'clean:lib', 'clean:js', 'clean:typings' ) );
+gulp.task( 'clean', gulp.parallel( 'clean:css', 'clean:lib', 'clean:js' ) );
 
 gulp.task( 'build:scss', () =>
 	gulp.src( [ 'scss/**/*.scss' ] )
@@ -66,16 +57,8 @@ gulp.task( 'build:lib:base', () =>
 
 gulp.task( 'build:lib', gulp.series( 'clean:lib', 'build:lib:base' ) );
 
-gulp.task( 'build:typings', () =>
-	gulp.src( 'typings.json' )
-	.pipe( typings() )
-);
-
 gulp.task( 'build:ts', () => {
-	const tsproj =
-		typescript.createProject( 'tsconfig.json', {
-			typescript: require( 'typescript' )
-		} );
+	const tsproj = typescript.createProject( 'tsconfig.json');
 	return tsproj.src()
 		.pipe( sourcemaps.init() )
 		.pipe( tsproj() )
@@ -83,7 +66,7 @@ gulp.task( 'build:ts', () => {
 		.pipe( gulp.dest( tsproj.options.outDir ) );
 } );
 
-gulp.task( 'build', gulp.series( 'clean', gulp.parallel( 'build:lib', 'build:typings' ), gulp.parallel( 'build:scss', 'build:ts' ) ) );
+gulp.task( 'build', gulp.series( 'clean', gulp.parallel( 'build:lib', 'build:scss', 'build:ts' ) ) );
 
 gulp.task( 'lint:tslint', () =>
 	gulp.src( [ 'ts/**/*.ts' ] )
@@ -122,18 +105,11 @@ gulp.task( 'watch:scss', () =>
 gulp.task( 'watch:ts', () =>
 	gulp.watch( [
 		'tsconfig.json',
-		'typings.json',
 		'ts/**/*'
 	], gulp.parallel( 'build:ts' ) )
 );
 
-gulp.task( 'watch:typings', () =>
-	gulp.watch( [
-		'typings.json'
-	], gulp.parallel( 'build:typings' ) )
-);
-
-gulp.task( 'watch', gulp.parallel( 'watch:scss', 'watch:typings', 'watch:ts' ) );
+gulp.task( 'watch', gulp.parallel( 'watch:scss', 'watch:ts' ) );
 
 gulp.task( 'default', gulp.parallel( 'build' ) );
 
