@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"target": "es2015",
+		"rootDir": "ts",
+		"outDir": "server/js",
+		"module": "commonjs",
+		"lib": [ "es2017" ],
+		"strictNullChecks": true
+	},
+	"files": [
+		"ts/{server,shared}/**/*.ts"
+	]
+}

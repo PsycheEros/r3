@@ -1,0 +1,4 @@
+client/js/**
+client/lib/**
+server/js/shared/**
+node_modules/**

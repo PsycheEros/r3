@@ -1,7 +1,9 @@
 .*
 !.gitignore
 !.editorconfig
+!.eslintignore
 !.eslintrc.json
 *.orig
 *.log
+!.openshift/
 node_modules/
