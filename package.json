@@ -38,8 +38,7 @@
   "scripts": {
     "clean": "gulp clean",
     "build": "gulp build",
-    "server": "node server/js/start.js",
-    "start": "npm run build && npm run server",
+    "start": "node server/js/start.js",
     "watch": "gulp watch",
     "webserver": "gulp webserver"
   },
