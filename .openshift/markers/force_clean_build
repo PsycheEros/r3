@@ -1,0 +1,2 @@
+#!/bin/bash
+# Will remove all previous dependencies and start installing required dependencies from scratch
