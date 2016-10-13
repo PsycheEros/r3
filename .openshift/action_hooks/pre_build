@@ -1,2 +1,2 @@
-echo 'dev = true' >> $OPENSHIFT_REPO_DIR/.npmrc
+echo 'only = dev' >> $OPENSHIFT_REPO_DIR/.npmrc
 echo 'production = false' >> $OPENSHIFT_REPO_DIR/.npmrc
