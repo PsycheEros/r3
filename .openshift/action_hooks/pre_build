@@ -1,0 +1,1 @@
+echo 'production = false' >> $OPENSHIFT_REPO_DIR/.npmrc
