@@ -8,11 +8,11 @@ const gulp = require( 'gulp' ),
 	sourcemaps = require( 'gulp-sourcemaps' ),
 	tslint = require( 'gulp-tslint' ),
 	eslint = require( 'gulp-eslint' ),
-	webserver = require( 'gulp-webserver' ),
+	nodemon = require( 'nodemon' ),
 	minimist = require( 'minimist' ),
 	options = minimist( process.argv.slice( 2 ), {
-		boolean: [ 'uglify', 'fix', 'open', 'livereload', 'watch' ],
-		default: { uglify: true, livereload: true, watch: true }
+		boolean: [ 'uglify', 'fix', 'watch' ],
+		default: { uglify: true, watch: true }
 	} );
 
 gulp.task( 'clean:lib', () =>
@@ -145,16 +145,12 @@ gulp.task( 'watch', gulp.parallel( 'watch:client', 'watch:server' ) );
 
 gulp.task( 'default', gulp.parallel( 'build' ) );
 
-gulp.task( 'webserver:webserver', () =>
-	gulp.src( 'client' )
-	.pipe( webserver( {
-		livereload: options.livereload,
-		directoryListing: {
-			path: 'client',
-			enable: true
-		},
-		open: options.open
-	} ) )
-);
+gulp.task( 'server:server', () => {
+	nodemon( {
+		script: './server/js/app',
+		watch: [ 'server/**/*' ],
+		ext: 'js'
+	} );
+} );
 
-gulp.task( 'webserver', gulp.parallel( 'watch:client', 'webserver:webserver' ) );
+gulp.task( 'server', gulp.parallel( 'watch', 'server:server' ) );
