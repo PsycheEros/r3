@@ -22,10 +22,10 @@ const width = 960,
 
 	function newGame() {
 		board.reset();
-		board.grid.get( { x: 3, y: 3 } )!.color = 0;
-		board.grid.get( { x: 4, y: 3 } )!.color = 1;
-		board.grid.get( { x: 3, y: 4 } )!.color = 1;
-		board.grid.get( { x: 4, y: 4 } )!.color = 0;
+		board.get( { x: 3, y: 3 } )!.color = 0;
+		board.get( { x: 4, y: 3 } )!.color = 1;
+		board.get( { x: 3, y: 4 } )!.color = 1;
+		board.get( { x: 4, y: 4 } )!.color = 0;
 	}
 	newGame();
 
@@ -33,9 +33,9 @@ const width = 960,
 	const { c2d } = canvas[ '2d' ];
 	let turn = 0;
 	function nextTurn() {
-		if( rules.isGameOver( board.grid, [ 0, 1 ] ) ) { return; }
+		if( rules.isGameOver( board, [ 0, 1 ] ) ) { return; }
 		turn = ( turn + 1 ) % 2;
-		if( rules.getValidMoves( board.grid, turn ).length === 0 ) {
+		if( rules.getValidMoves( board, turn ).length === 0 ) {
 			nextTurn();
 		}
 	}
@@ -65,7 +65,7 @@ const width = 960,
 				c2d.stroke();
 			}
 
-			if( rules.isValid( board.grid, { x, y }, turn ) ) {
+			if( rules.isValid( board, { x, y }, turn ) ) {
 				c2d.lineWidth = 8;
 				c2d.strokeStyle = turn === 0 ? '#222' : '#ddd';
 				c2d.beginPath();
@@ -81,14 +81,14 @@ const width = 960,
 
 		const lineHeight = 16,
 			lines = [] as string[];
-		if( rules.isGameOver( board.grid, [ 0, 1 ] ) ) {
+		if( rules.isGameOver( board, [ 0, 1 ] ) ) {
 			lines.push( 'Game Over' );
 		} else {
 			lines.push( `${turn === 0 ? 'Black' : 'White'}'s turn` );
 		}
 
-		lines.push( `Black: ${rules.getScore(board.grid,0)}` );
-		lines.push( `White: ${rules.getScore(board.grid,1)}` );
+		lines.push( `Black: ${rules.getScore(board,0)}` );
+		lines.push( `White: ${rules.getScore(board,1)}` );
 
 		c2d.save();
 		c2d.font = 'bold 16px sans-serif';
@@ -112,11 +112,11 @@ const width = 960,
 	function onMouseMove( { clientX, clientY }: { clientX: number, clientY: number } ) {
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } );
 		selectedSquare = board.hitTest( { x, y } );
-		document.documentElement.style.cursor = selectedSquare && rules.isValid( board.grid, selectedSquare.position, turn ) ? 'pointer' : null;
+		document.documentElement.style.cursor = selectedSquare && rules.isValid( board, selectedSquare.position, turn ) ? 'pointer' : null;
 	}
 
 	function onClick( { clientX, clientY }: { clientX: number, clientY: number } ) {
-		if( rules.isGameOver( board.grid, [ 0, 1 ] ) ) {
+		if( rules.isGameOver( board, [ 0, 1 ] ) ) {
 			newGame();
 			return;
 		}
@@ -124,7 +124,7 @@ const width = 960,
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } ),
 			square = board.hitTest( { x, y } );
 		if( square ) {
-			if( rules.makeMove( board.grid, square.position, turn ) ) {
+			if( rules.makeMove( board, square.position, turn ) ) {
 				nextTurn();
 			}
 		}

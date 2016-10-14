@@ -1,4 +1,4 @@
-import Grid from './grid';
+import Board from './board';
 import Square from './square';
 
 const directions: Point[] = [
@@ -12,17 +12,17 @@ const directions: Point[] = [
 	{ x: -1, y: -1 }
 ];
 
-function getAffectedSquares( grid: Grid<Square>, position: Point, color: number ): Square[] {
-	if( !grid.boundsCheck( position ) ) { return []; }
-	const square = grid.get( position );
+function getAffectedSquares( board: Board, position: Point, color: number ): Square[] {
+	if( !board.boundsCheck( position ) ) { return []; }
+	const square = board.get( position );
 	if( !square || !square.empty || !square.enabled ) { return []; }
 	function direction( { x, y }: Point, delta: Point ): Square[] {
 		const squares = [] as Square[];
 		for( ; ; ) {
 			x += delta.x;
 			y += delta.y;
-			if( !grid.boundsCheck( { x, y } ) ) { return []; }
-			const square = grid.get( { x, y } );
+			if( !board.boundsCheck( { x, y } ) ) { return []; }
+			const square = board.get( { x, y } );
 			if( !square || square.empty || !square.enabled ) { return []; }
 			if( square.color === color ) { return squares; }
 			squares.push( square );
@@ -37,36 +37,36 @@ function getAffectedSquares( grid: Grid<Square>, position: Point, color: number 
 }
 
 export default class Rules {
-	public isValid( grid: Grid<Square>, position: Point, color: number ) {
-		return getAffectedSquares( grid, position, color ).length > 0;
+	public isValid( board: Board, position: Point, color: number ) {
+		return getAffectedSquares( board, position, color ).length > 0;
 	}
 
-	public getValidMoves( grid: Grid<Square>, color: number ) {
+	public getValidMoves( board: Board, color: number ) {
 		const squares = [] as Square[];
-		for( const square of grid ) {
-			if( square && this.isValid( grid, square.position, color ) ) { squares.push( square ); }
+		for( const square of board ) {
+			if( this.isValid( board, square.position, color ) ) { squares.push( square ); }
 		}
 		return squares;
 	}
 
-	public isGameOver( grid: Grid<Square>, colors: number[] ) {
+	public isGameOver( board: Board, colors: number[] ) {
 		for( const color of colors ) {
-			if( this.getValidMoves( grid, color ).length > 0 ) { return false; }
+			if( this.getValidMoves( board, color ).length > 0 ) { return false; }
 		}
 		return true;
 	}
 
-	public makeMove( grid: Grid<Square>, position: Point, color: number ) {
-		const squares = getAffectedSquares( grid, position, color );
+	public makeMove( board: Board, position: Point, color: number ) {
+		const squares = getAffectedSquares( board, position, color );
 		for( const square of squares ) {
 			square.color = color;
 		}
 		return squares.length;
 	}
 
-	public getScore( grid: Grid<Square>, color: number ) {
+	public getScore( board: Board, color: number ) {
 		let score = 0;
-		for( const square of grid ) {
+		for( const square of board ) {
 			if( square && square.enabled && square.color === color ) {
 				++score;
 			}

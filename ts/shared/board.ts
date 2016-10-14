@@ -27,6 +27,16 @@ export default class Board {
 		Object.assign( this, { grid, bounds } );
 	}
 
+	public get( { x, y }: Point ) {
+		const { grid } = this;
+		return grid.get( { x, y } )!;
+	}
+
+	public boundsCheck( { x, y }: Point ) {
+		const { grid } = this;
+		return grid.boundsCheck( { x, y } )!;
+	}
+
 	public reset() {
 		for( const square of this ) {
 			square.enabled = true;
@@ -49,5 +59,5 @@ export default class Board {
 	}
 
 	public bounds: Bounds;
-	public grid: Grid<Square>;
+	private grid: Grid<Square>;
 }
