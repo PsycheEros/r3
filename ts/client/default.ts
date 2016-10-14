@@ -18,26 +18,33 @@ const width = 960,
 	};
 
 ( () => {
-	const board = new Board( 8, 8 );
-
-	function newGame() {
-		board.reset();
-		board.get( { x: 3, y: 3 } )!.color = 0;
-		board.get( { x: 4, y: 3 } )!.color = 1;
-		board.get( { x: 3, y: 4 } )!.color = 1;
-		board.get( { x: 4, y: 4 } )!.color = 0;
-	}
-	newGame();
-
+	let board = new Board( 0, 0 );
+	let turn = 0;
+	let isGameOver = true;
 	const rules = new Rules;
 	const { c2d } = canvas[ '2d' ];
-	let turn = 0;
-	function nextTurn() {
-		if( rules.isGameOver( board, [ 0, 1 ] ) ) { return; }
-		turn = ( turn + 1 ) % 2;
-		if( rules.getValidMoves( board, turn ).length === 0 ) {
-			nextTurn();
-		}
+	const isSSL = location.protocol === 'https:';
+	const ws = new WebSocket( `${isSSL?'wss':'ws'}://${location.host}/ws/game` );
+	ws.onerror = console.error.bind( console );
+	ws.onmessage = ( { data: json }: { data: string } ) => {
+		const data = JSON.parse( json );
+		board = Board.deserialize( data.board );
+		turn = data.turn;
+		isGameOver = data.isGameOver;
+	};
+	ws.onopen = () => { newGame(); };
+
+	function makeMove( position: Point ) {
+		ws.send( JSON.stringify( {
+			type: 'move',
+			position
+		} ) );
+	}
+
+	function newGame() {
+		ws.send( JSON.stringify( {
+			type: 'newgame'
+		} ) );
 	}
 
 	let selectedSquare: Square|null = null;
@@ -81,14 +88,15 @@ const width = 960,
 
 		const lineHeight = 16,
 			lines = [] as string[];
-		if( rules.isGameOver( board, [ 0, 1 ] ) ) {
+		if( isGameOver ) {
 			lines.push( 'Game Over' );
 		} else {
 			lines.push( `${turn === 0 ? 'Black' : 'White'}'s turn` );
 		}
-
-		lines.push( `Black: ${rules.getScore(board,0)}` );
-		lines.push( `White: ${rules.getScore(board,1)}` );
+		if( board ) {
+			lines.push( `Black: ${rules.getScore(board,0)}` );
+			lines.push( `White: ${rules.getScore(board,1)}` );
+		}
 
 		c2d.save();
 		c2d.font = 'bold 16px sans-serif';
@@ -116,7 +124,7 @@ const width = 960,
 	}
 
 	function onClick( { clientX, clientY }: { clientX: number, clientY: number } ) {
-		if( rules.isGameOver( board, [ 0, 1 ] ) ) {
+		if( isGameOver ) {
 			newGame();
 			return;
 		}
@@ -124,9 +132,7 @@ const width = 960,
 		const { x, y } = canvas[ '2d' ].screenToCanvas( { x: clientX, y: clientY } ),
 			square = board.hitTest( { x, y } );
 		if( square ) {
-			if( rules.makeMove( board, square.position, turn ) ) {
-				nextTurn();
-			}
+			makeMove( square.position );
 		}
 	}
 

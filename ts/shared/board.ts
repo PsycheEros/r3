@@ -60,4 +60,36 @@ export default class Board {
 
 	public bounds: Bounds;
 	private grid: Grid<Square>;
+
+	public serialize() {
+		const { width, height } = this;
+		let data = '';
+		for( const { enabled, empty, color } of this ) {
+			data +=
+				!enabled ? 'x'
+			:	empty ? ' '
+			:	color;
+		}
+		return JSON.stringify( { width, height, data } );
+	}
+
+	public static deserialize( serialized: string ) {
+		const { width, height, data } = JSON.parse( serialized ) as { width: number, height: number, data: string },
+			board = new Board( width, height );
+		let i = 0;
+		for( const square of board ) {
+			const char = data[ i++ ];
+			switch( char ) {
+			case 'x':
+				square.enabled = false;
+				break;
+			case ' ':
+				break;
+			default:
+				square.color = parseInt( char, 10 );
+				break;
+			}
+		}
+		return board;
+	}
 }
