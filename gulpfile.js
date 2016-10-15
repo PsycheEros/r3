@@ -35,7 +35,7 @@ gulp.task( 'clean:css', () =>
 	del( [ 'client/css' ] )
 );
 
-gulp.task( 'clean', gulp.parallel( 'clean:css', 'clean:lib', 'clean:js' ) );
+gulp.task( 'clean', gulp.parallel( 'clean:css', 'clean:js' ) );
 
 gulp.task( 'build:scss', () =>
 	gulp.src( [ 'client/scss/**/*.scss' ] )
