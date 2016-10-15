@@ -3,10 +3,13 @@ const express = require( 'express' ),
 	server = require( 'http' ).Server( app ),
 	io = require('socket.io')( server ),
 	{ NODE_PORT = 3000, NODE_IP = 'localhost',
-	OPENSHIFT_REDIS_PASSWORD = null, OPENSHIFT_REDIS_PORT = null } = process.env;
+		OPENSHIFT_REDIS_HOST,
+		OPENSHIFT_REDIS_PASSWORD,
+		OPENSHIFT_REDIS_PORT
+	} = process.env;
 
-if( OPENSHIFT_REDIS_PASSWORD ) {
-	io.adapter( require( 'socket.io-redis' )( { host: NODE_IP, port: OPENSHIFT_REDIS_PORT } ) );
+if( OPENSHIFT_REDIS_HOST ) {
+	io.adapter( require( 'socket.io-redis' )( { host: OPENSHIFT_REDIS_HOST, port: OPENSHIFT_REDIS_PORT, password: OPENSHIFT_REDIS_PASSWORD } ) );
 }
 
 app.get( '/health', ( req, res ) => {
