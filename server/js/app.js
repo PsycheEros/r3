@@ -23,10 +23,10 @@ app.get( '/health', ( req, res ) => {
 } );
 
 const { default: Board } = require( './shared/board' ),
-	{ default: Rules } = require( './shared/rules' )
-	board = new Board( 8, 8 ),
+	{ default: Rules } = require( './shared/rules' ),
 	rules = new Rules;
-let turn;
+let board = new Board( 8, 8 ),
+	turn;
 
 function flushUpdate( target = io ) {
 	target.emit( 'update', {
@@ -75,6 +75,11 @@ io.on( 'connection', socket => {
 	} );
 
 	flushUpdate( socket );
+} );
+
+io.on( 'update', data => {
+	board = Board.deserialize( data.board ),
+	turn = data.turn;
 } );
 
 app.use( express.static( 'client' ) );
