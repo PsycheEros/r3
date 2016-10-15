@@ -9,7 +9,7 @@ const express = require( 'express' ),
 	} = process.env;
 
 if( OPENSHIFT_REDIS_HOST ) {
-	io.adapter( require( 'socket.io-redis' )( { host: OPENSHIFT_REDIS_HOST, port: OPENSHIFT_REDIS_PORT, password: OPENSHIFT_REDIS_PASSWORD } ) );
+	io.adapter( require( 'socket.io-redis' )( { host: OPENSHIFT_REDIS_HOST, port: OPENSHIFT_REDIS_PORT, auth_pass: OPENSHIFT_REDIS_PASSWORD } ) );
 }
 
 app.get( '/health', ( req, res ) => {
