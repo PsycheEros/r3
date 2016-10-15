@@ -9,9 +9,9 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 	io = require( 'socket.io' )( server );
 
 if( OPENSHIFT_REDIS_HOST ) {
-	const redis = require( 'redis' ),
+	const redis = require( 'redis' ).createClient,
 		adapter = require( 'socket.io-redis' ),
-		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD });
+		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD } );
 		sub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { return_buffers: true, auth_pass: OPENSHIFT_REDIS_PASSWORD } );
 
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
