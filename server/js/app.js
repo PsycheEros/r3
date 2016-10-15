@@ -33,7 +33,7 @@ function flushUpdate( target = io ) {
 		board: board.serialize(),
 		turn,
 		isGameOver: rules.isGameOver( board, [ 0, 1 ] )
-	} );	
+	} );
 }
 
 function newGame() {
@@ -48,10 +48,11 @@ function newGame() {
 newGame();
 
 function nextTurn() {
-	if( rules.isGameOver( board, [ 0, 1 ] ) ) { return; }
-	turn = ( turn + 1 ) % 2;
-	if( rules.getValidMoves( board, turn ).length === 0 ) {
-		nextTurn();
+	if( !rules.isGameOver( board, [ 0, 1 ] ) ) {
+		turn = ( turn + 1 ) % 2;
+		if( rules.getValidMoves( board, turn ).length === 0 ) {
+			nextTurn();
+		}
 	}
 	flushUpdate();
 }
