@@ -41,7 +41,7 @@
     "build": "gulp build",
     "start": "node server/js/start.js",
     "watch": "gulp watch",
-    "webserver": "gulp webserver"
+    "server": "gulp server"
   },
   "dependencies": {
     "express": "^4.14.0",

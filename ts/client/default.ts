@@ -14,8 +14,7 @@ function createCanvas( width: number, height: number ) {
 const width = 960,
 	height = 800,
 	canvas = {
-		'2d': new Canvas2D( createCanvas( width, height ) ),
-		'3d': new Canvas3D( createCanvas( width, height ) )
+		'2d': new Canvas2D( createCanvas( width, height ) )
 	};
 
 ( () => {
@@ -24,7 +23,7 @@ const width = 960,
 	let isGameOver = true;
 	const rules = new Rules;
 	const { c2d } = canvas[ '2d' ];
-	const socket = io.connect( '/' );
+	const socket = io.connect( '/', { transports: [ 'websocket', 'polling' ], upgrade: false } );
 
 	for( let evt of [ 'connect', 'update' ] ) {
 		socket.on( evt, console.log.bind( console, evt ) ); 
