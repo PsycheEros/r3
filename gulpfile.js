@@ -9,11 +9,17 @@ const gulp = require( 'gulp' ),
 	tslint = require( 'gulp-tslint' ),
 	eslint = require( 'gulp-eslint' ),
 	nodemon = require( 'nodemon' ),
+	browserSync = require( 'browser-sync' ).create(),
 	minimist = require( 'minimist' ),
 	options = minimist( process.argv.slice( 2 ), {
 		boolean: [ 'uglify', 'fix', 'watch' ],
 		default: { uglify: true, watch: true }
 	} );
+
+gulp.task( 'browsersync:reload', done => {
+	browserSync.reload();
+	done();
+} );
 
 gulp.task( 'clean:lib', () =>
 	del( [ 'client/lib' ] )
@@ -117,7 +123,7 @@ gulp.task( 'lint', gulp.parallel( 'lint:tslint', 'lint:eslint' ) );
 gulp.task( 'watch:scss', () =>
 	gulp.watch( [
 		'client/scss/**/*'
-	], gulp.parallel( 'build:scss' ) )
+	], gulp.series( 'build:scss', 'browsersync:reload' ) )
 );
 
 gulp.task( 'watch:ts:client', () =>
@@ -125,7 +131,7 @@ gulp.task( 'watch:ts:client', () =>
 		'tsconfig.client/json',
 		'ts/{client,shared}/**/*',
 		'shared/ts/**/*'
-	], gulp.parallel( 'build:ts:client' ) )
+	], gulp.parallel( 'build:ts:client', 'browsersync:reload' ) )
 );
 
 gulp.task( 'watch:ts:server', () =>
@@ -151,6 +157,17 @@ gulp.task( 'server:server', () => {
 		watch: [ 'server/**/*' ],
 		ext: 'js'
 	} );
+
+	browserSync.init( {
+		ghostMode: false,
+		proxy: {
+			target: 'http://localhost:3000',
+			ws: true
+		},
+		port: 8000
+	} );
+
+	gulp.watch( [ 'client/**/*.html' ] ).on( 'change', browserSync.reload );
 } );
 
 gulp.task( 'server', gulp.parallel( 'watch', 'server:server' ) );
