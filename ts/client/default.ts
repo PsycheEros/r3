@@ -3,6 +3,7 @@ import Canvas3D from './canvas3d';
 import Board from '../shared/board';
 import Square from '../shared/square';
 import Rules from '../shared/rules';
+import io from 'socket.io-client';
 
 function createCanvas( width: number, height: number ) {
 	return document.body.appendChild(
@@ -23,28 +24,28 @@ const width = 960,
 	let isGameOver = true;
 	const rules = new Rules;
 	const { c2d } = canvas[ '2d' ];
-	const isSSL = location.protocol === 'https:';
-	const ws = new WebSocket( `${isSSL?'wss':'ws'}://${location.host}/ws/game` );
-	ws.onerror = console.error.bind( console );
-	ws.onmessage = ( { data: json }: { data: string } ) => {
-		const data = JSON.parse( json );
+	const socket = io.connect( '/' );
+
+	for( let evt of [ 'connect', 'update' ] ) {
+		socket.on( evt, console.log.bind( console, evt ) ); 
+	}
+
+	for( let evt of [ 'error', 'connect_error', 'reconnect_error' ] ) {
+		socket.on( evt, console.error.bind( console, evt ) ); 
+	}
+
+	socket.on( 'update', data => {
 		board = Board.deserialize( data.board );
 		turn = data.turn;
 		isGameOver = data.isGameOver;
-	};
-	ws.onopen = () => { newGame(); };
+	} );
 
 	function makeMove( position: Point ) {
-		ws.send( JSON.stringify( {
-			type: 'move',
-			position
-		} ) );
+		socket.emit( 'move', { position } );
 	}
 
 	function newGame() {
-		ws.send( JSON.stringify( {
-			type: 'newgame'
-		} ) );
+		socket.emit( 'newgame' );
 	}
 
 	let selectedSquare: Square|null = null;

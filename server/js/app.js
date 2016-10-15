@@ -1,20 +1,32 @@
 const express = require( 'express' ),
-	{ NODE_PORT = 3000, NODE_IP = 'localhost' } = process.env,
 	app = express(),
-	ws = express.Router(); // eslint-disable-line new-cap
-require( 'express-ws' )( app );
+	server = require( 'http' ).Server( app ),
+	io = require('socket.io')( server ),
+	{ NODE_PORT = 3000, NODE_IP = 'localhost', OPENSHIFT_REDIS_PASSWORD = null } = process.env;
+
+if( OPENSHIFT_REDIS_PASSWORD ) {
+	io.adapter( require( 'socket.io-redis' )( { host: NODE_IP } ) );
+}
 
 app.get( '/health', ( req, res ) => {
 	res.writeHead( 200 );
 	res.end();
 } );
 
-
 const { default: Board } = require( './shared/board' ),
-	{ default: Rules } = require( './shared/rules' );
-const board = new Board( 8, 8 ),
+	{ default: Rules } = require( './shared/rules' )
+	board = new Board( 8, 8 ),
 	rules = new Rules;
 let turn;
+
+function flushUpdate( target = io ) {
+	target.emit( 'update', {
+		board: board.serialize(),
+		turn,
+		isGameOver: rules.isGameOver( board, [ 0, 1 ] )
+	} );	
+}
+
 function newGame() {
 	turn = 0;
 	board.reset();
@@ -22,6 +34,7 @@ function newGame() {
 	board.get( { x: 4, y: 3 } ).color = 1;
 	board.get( { x: 3, y: 4 } ).color = 1;
 	board.get( { x: 4, y: 4 } ).color = 0;
+	flushUpdate();
 }
 newGame();
 
@@ -31,35 +44,33 @@ function nextTurn() {
 	if( rules.getValidMoves( board, turn ).length === 0 ) {
 		nextTurn();
 	}
+	flushUpdate();
 }
 
-ws.ws( '/game', ( ws, req ) => {
+io.on( 'connection', socket => {
 	console.log( 'Client connected' );
-	ws.on( 'message', msg => {
-		const data = JSON.parse( msg );
-		switch( data.type ) {
-		case 'move':
-			if( rules.makeMove( board, data.position, turn ) ) {
-				nextTurn();
-			}
-			break;
-		case 'newgame':
-			newGame();
-			break;
-		}
-		const out = JSON.stringify( {
-			board: board.serialize(),
-			turn,
-			isGameOver: rules.isGameOver( board, [ 0, 1 ] )
-		} );
-		ws.send( out );
+
+	socket.on( 'move', data => {
+		if( !rules.makeMove( board, data.position, turn ) ) return;
+		nextTurn();
 	} );
+
+	socket.on( 'newgame', () => {
+		if( !rules.isGameOver( board, [ 0, 1 ] ) ) return;
+		newGame();
+	} );
+
+	socket.on( 'disconnect', () => {
+		console.log( 'Client disconnected' );
+	} );
+
+	flushUpdate( socket );
 } );
 
 app.use( express.static( 'client' ) );
 
-app.use( '/ws', ws );
+app.use( '/lib', express.static( 'node_modules' ) );
 
-app.listen( NODE_PORT, NODE_IP, () => {
+server.listen( NODE_PORT, NODE_IP, () => {
 	console.log( `Application worker ${process.pid} started...` );
 } );

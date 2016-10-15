@@ -1,7 +1,8 @@
 ( () => {
 	SystemJS.config( {
 		paths: {
-			app: 'js'
+			app: 'js',
+			'socket.io-client': 'lib/socket.io-client/socket.io.js'
 		},
 		packages: {
 			app: {
