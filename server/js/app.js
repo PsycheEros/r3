@@ -1,15 +1,20 @@
-const express = require( 'express' ),
-	app = express(),
-	server = require( 'http' ).Server( app ),
-	io = require('socket.io')( server ),
-	{ NODE_PORT = 3000, NODE_IP = 'localhost',
+const { NODE_PORT = 3000, NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_HOST,
 		OPENSHIFT_REDIS_PASSWORD,
 		OPENSHIFT_REDIS_PORT
-	} = process.env;
+	} = process.env,
+	express = require( 'express' ),
+	app = express(),
+	server = require( 'http' ).Server( app ),
+	io = require( 'socket.io' )( server );
 
 if( OPENSHIFT_REDIS_HOST ) {
-	io.adapter( require( 'socket.io-redis' )( { host: OPENSHIFT_REDIS_HOST, port: OPENSHIFT_REDIS_PORT, auth_pass: OPENSHIFT_REDIS_PASSWORD } ) );
+	const redis = require( 'redis' ),
+		adapter = require( 'socket.io-redis' ),
+		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD });
+		sub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { return_buffers: true, auth_pass: OPENSHIFT_REDIS_PASSWORD } );
+
+	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
 }
 
 app.get( '/health', ( req, res ) => {
