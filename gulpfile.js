@@ -21,10 +21,6 @@ gulp.task( 'browsersync:reload', done => {
 	done();
 } );
 
-gulp.task( 'clean:lib', () =>
-	del( [ 'client/lib' ] )
-);
-
 gulp.task( 'clean:js:client', () =>
 	del( [ 'client/js' ] )
 );
@@ -45,29 +41,11 @@ gulp.task( 'build:scss', () =>
 	gulp.src( [ 'client/scss/**/*.scss' ] )
 	.pipe( sourcemaps.init() )
 	.pipe( sass( {
-
+		style: 'compact'
 	} ) )
 	.pipe( sourcemaps.write( './' ) )
 	.pipe( gulp.dest( 'client/css' ) )
 );
-
-gulp.task( 'build:lib:base', () =>
-	gulp.src( [
-		'node_modules/core-js/client/shim.js',
-		'node_modules/systemjs/dist/system.src.js'
-	] )
-	.pipe( sourcemaps.init() )
-	.pipe( concat( 'lib.js' ) )
-	.pipe( gulpIf( options.uglify, uglify( {
-		mangle: false,
-		compress: true,
-		preserve: 'license'
-	} ) ) )
-	.pipe( sourcemaps.write( './' ) )
-	.pipe( gulp.dest( 'client/lib' ) )
-);
-
-gulp.task( 'build:lib', gulp.series( 'clean:lib', 'build:lib:base' ) );
 
 gulp.task( 'build:ts:client', () => {
 	const tsproj = typescript.createProject( 'tsconfig.client.json' );
@@ -89,7 +67,7 @@ gulp.task( 'build:ts:server', () => {
 
 gulp.task( 'build:ts', gulp.parallel( 'build:ts:client', 'build:ts:server' ) );
 
-gulp.task( 'build', gulp.series( 'clean', gulp.parallel( 'build:lib', 'build:scss', 'build:ts' ) ) );
+gulp.task( 'build', gulp.series( 'clean', gulp.parallel( 'build:scss', 'build:ts' ) ) );
 
 gulp.task( 'lint:tslint', () =>
 	gulp.src( [ 'ts/**/*.ts' ] )
