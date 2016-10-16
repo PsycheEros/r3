@@ -3,6 +3,7 @@ const gulp = require( 'gulp' ),
 	del = require( 'del' ),
 	sass = require( 'gulp-sass' ),
 	typescript = require( 'gulp-typescript' ),
+	babel = require( 'gulp-babel' ),
 	concat = require( 'gulp-concat' ),
 	uglify = require( 'gulp-uglify' ),
 	sourcemaps = require( 'gulp-sourcemaps' ),
@@ -53,6 +54,7 @@ gulp.task( 'build:ts:client', () => {
 	return tsproj.src()
 		.pipe( sourcemaps.init() )
 		.pipe( tsproj() )
+		.pipe( babel( { presets: [ 'es2015' ] } ) )
 		.pipe( sourcemaps.write( './', { sourceRoot: path.relative( tsproj.options.outDir, tsproj.options.rootDir ) } ) )
 		.pipe( gulp.dest( tsproj.options.outDir ) );
 } );
