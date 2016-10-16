@@ -49,8 +49,18 @@ export default class Rules {
 		return squares;
 	}
 
-	public isGameOver( board: Board, colors: number[] ) {
-		for( const color of colors ) {
+	public getColors( board: Board ) {
+		const colors = new Set<number>();
+		for( let { color } of board ) {
+			if( Number.isSafeInteger( color! ) ) {
+				colors.add( color! );
+			}
+		}
+		return colors;
+	}
+
+	public isGameOver( board: Board ) {
+		for( const color of this.getColors( board ) ) {
 			if( this.getValidMoves( board, color ).length > 0 ) { return false; }
 		}
 		return true;

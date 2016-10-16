@@ -5,19 +5,17 @@ import { SessionService } from '../services/index';
 @Component( {
 	selector: 'chat',
 	templateUrl: 'templates/chat.html',
-	providers: [ SessionService ]
+	providers: []
 } )
 export class ChatComponent {
 	constructor( private session: SessionService ) {}
 
 	protected ngOnInit() {
 		const { session, messages } = this;
-		session.getChatMessages().subscribe( message => {
-			messages.push( message );
-		} );
+		session.getMessages().subscribe( messages.push.bind( messages ) );
 	}
 
-	public messages = [] as ChatMessage[];
+	public messages = [] as Message[];
 
 	public text = '';
 

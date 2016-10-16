@@ -32,15 +32,10 @@ export class SessionService {
 		return subject;
 	}
 
-	public getChatMessages() {
+	public getMessages() {
 		const { socket } = this,
-			subject = new ReplaySubject<ChatMessage>( 5 );
-		socket.on( 'message', ( { user, message } ) => {
-			subject.next( {
-				user,
-				message
-			} );
-		} );
+			subject = new ReplaySubject<Message>( 5 );
+		socket.on( 'message', subject.next.bind( subject ) );
 		return subject;
 	}
 

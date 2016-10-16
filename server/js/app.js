@@ -34,12 +34,13 @@ function flushUpdate( target = io ) {
 	target.emit( 'update', {
 		board: board.serialize(),
 		turn,
-		isGameOver: rules.isGameOver( board, [ 0, 1 ] )
+		isGameOver: rules.isGameOver( board )
 	} );
 }
 
 function newGame() {
-	if( !rules.isGameOver( board, [ 0, 1 ] ) ) return false;
+	if( !rules.isGameOver( board ) ) return false;
+	statusMessage( 'New game' );
 	turn = 0;
 	board.reset();
 	board.get( { x: 3, y: 3 } ).color = 0;
@@ -51,8 +52,20 @@ function newGame() {
 }
 newGame();
 
-function nextTurn() {
-	if( !rules.isGameOver( board, [ 0, 1 ] ) ) {
+function makeMove( position, color ) {
+	if( color !== turn ) return false;
+	if( !rules.makeMove( board, position, color ) ) return false;
+	if( rules.isGameOver( board ) ) {
+		const black = rules.getScore( board, 0 ),
+			white = rules.getScore( board, 1 );
+		if( black > white ) {
+			statusMessage( `Black wins ${black}:${white}` );
+		} else if( white > black ) {
+			statusMessage( `White wins ${white}:${black}` );
+		} else {
+			statusMessage( 'Draw game' );
+		}
+	} else {
 		turn = ( turn + 1 ) % 2;
 		if( rules.getValidMoves( board, turn ).length === 0 ) {
 			nextTurn();
@@ -62,23 +75,23 @@ function nextTurn() {
 	return true;
 }
 
-function makeMove( position, color ) {
-	if( color !== turn ) return false;
-	if( !rules.makeMove( board, position, color ) ) return false;
-	nextTurn();
+function statusMessage( message ) {
+	console.log( message );
+	io.emit( 'message', { message } );
 	return true;
 }
 
-function sendMessage( user, message ) {
+function chatMessage( user, message ) {
 	io.emit( 'message', { user, message } );
 	return true;
 }
 
+let connections = 0;
 io.on( 'connection', socket => {
-	console.log( 'Client connected' );
+	statusMessage( `User connected, ${++connections} connected` );
 
 	socket.on( 'disconnect', () => {
-		console.log( 'Client disconnected' );
+		statusMessage( `User disconnected, ${--connections} connected` );
 	} );
 
 	socket.on( 'move', ( { position } ) => {
@@ -90,7 +103,7 @@ io.on( 'connection', socket => {
 	} );
 
 	socket.on( 'message', ( { user, message } ) => {
-		sendMessage( user, message );
+		chatMessage( user, message );
 	} );
 
 	flushUpdate( socket );

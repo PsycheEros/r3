@@ -9,11 +9,11 @@ body { font: 14px/1.2 Arial,Verdana,sans-serif; }
 }
 
 .chat { flex: 0 1 auto; display: flex; flex-direction: column;
-	.chat-messages { border: solid 1px #eee; height: 525px; overflow-y: scroll;
-		.chat-message { padding: 2px;
+	.messages { border: solid 1px #eee; height: 525px; overflow-y: scroll;
+		.message { padding: 2px;
 			&:not(:last-child) { border-bottom: solid 1px #eee; }
 
-			.chat-message-user { font-weight: bold; }
+			.message-user { font-weight: bold; }
 		}
 	}
 }

@@ -11,7 +11,7 @@ import { SessionService } from '../services/index';
 @Component( {
 	selector: 'game',
 	templateUrl: 'templates/game.html',
-	providers: [ SessionService ]
+	providers: []
 } )
 export class GameComponent {
 	constructor( private element: ElementRef, private session: SessionService ) {}

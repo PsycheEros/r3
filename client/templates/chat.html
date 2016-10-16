@@ -1,9 +1,9 @@
 <form class="chat" (ngSubmit)="onSubmit()">
 	<input type="text" [(ngModel)]="text" name="message"/>
-	<div class="chat-messages">
-		<div class="chat-message" *ngFor="let message of messages">
-			<span class="chat-message-user">{{message.user}}</span>
-			<p class="chat-message-text">
+	<div class="messages">
+		<div class="message" *ngFor="let message of messages">
+			<span class="message-user" *ngIf="message.user">{{message.user}}</span>
+			<p class="message-text">
 				{{message.message}}
 			</p>
 		</div>
