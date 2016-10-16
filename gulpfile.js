@@ -11,6 +11,7 @@ const gulp = require( 'gulp' ),
 	nodemon = require( 'nodemon' ),
 	browserSync = require( 'browser-sync' ).create(),
 	minimist = require( 'minimist' ),
+	path = require( 'path' ),
 	options = minimist( process.argv.slice( 2 ), {
 		boolean: [ 'uglify', 'fix', 'watch' ],
 		default: { uglify: true, watch: true }
@@ -43,7 +44,7 @@ gulp.task( 'build:scss', () =>
 	.pipe( sass( {
 		style: 'compact'
 	} ) )
-	.pipe( sourcemaps.write( './' ) )
+	.pipe( sourcemaps.write( './', { sourceRoot: '../../client/scss' } ) )
 	.pipe( gulp.dest( 'client/css' ) )
 );
 
@@ -52,7 +53,7 @@ gulp.task( 'build:ts:client', () => {
 	return tsproj.src()
 		.pipe( sourcemaps.init() )
 		.pipe( tsproj() )
-		.pipe( sourcemaps.write( './' ) )
+		.pipe( sourcemaps.write( './', { sourceRoot: path.relative( tsproj.options.outDir, tsproj.options.rootDir ) } ) )
 		.pipe( gulp.dest( tsproj.options.outDir ) );
 } );
 
@@ -61,7 +62,7 @@ gulp.task( 'build:ts:server', () => {
 	return tsproj.src()
 		.pipe( sourcemaps.init() )
 		.pipe( tsproj() )
-		.pipe( sourcemaps.write( './' ) )
+		.pipe( sourcemaps.write( './', { sourceRoot: path.relative( tsproj.options.outDir, tsproj.options.rootDir ) } ) )
 		.pipe( gulp.dest( tsproj.options.outDir ) );
 } );
 
@@ -106,7 +107,7 @@ gulp.task( 'watch:scss', () =>
 
 gulp.task( 'watch:ts:client', () =>
 	gulp.watch( [
-		'tsconfig.client/json',
+		'tsconfig.client.json',
 		'ts/{client,shared}/**/*',
 		'shared/ts/**/*'
 	], gulp.parallel( 'build:ts:client', 'browsersync:reload' ) )

@@ -17,6 +17,8 @@ if( OPENSHIFT_REDIS_HOST ) {
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
 }
 
+app.use( require( 'body-parser' ).json() );
+
 app.get( '/health', ( req, res ) => {
 	res.writeHead( 200 );
 	res.end();
@@ -37,6 +39,7 @@ function flushUpdate( target = io ) {
 }
 
 function newGame() {
+	if( !rules.isGameOver( board, [ 0, 1 ] ) ) return false;
 	turn = 0;
 	board.reset();
 	board.get( { x: 3, y: 3 } ).color = 0;
@@ -44,6 +47,7 @@ function newGame() {
 	board.get( { x: 3, y: 4 } ).color = 1;
 	board.get( { x: 4, y: 4 } ).color = 0;
 	flushUpdate();
+	return true;
 }
 newGame();
 
@@ -55,31 +59,46 @@ function nextTurn() {
 		}
 	}
 	flushUpdate();
+	return true;
+}
+
+function makeMove( position, color ) {
+	if( color !== turn ) return false;
+	if( !rules.makeMove( board, position, color ) ) return false;
+	nextTurn();
+	return true;
+}
+
+function sendMessage( user, message ) {
+	io.emit( 'message', { user, message } );
+	return true;
 }
 
 io.on( 'connection', socket => {
 	console.log( 'Client connected' );
 
-	socket.on( 'move', data => {
-		if( !rules.makeMove( board, data.position, turn ) ) return;
-		nextTurn();
+	socket.on( 'disconnect', () => {
+		console.log( 'Client disconnected' );
+	} );
+
+	socket.on( 'move', ( { position } ) => {
+		makeMove( position, turn );
 	} );
 
 	socket.on( 'newgame', () => {
-		if( !rules.isGameOver( board, [ 0, 1 ] ) ) return;
 		newGame();
 	} );
 
-	socket.on( 'disconnect', () => {
-		console.log( 'Client disconnected' );
+	socket.on( 'message', ( { user, message } ) => {
+		sendMessage( user, message );
 	} );
 
 	flushUpdate( socket );
 } );
 
-io.on( 'update', data => {
-	board = Board.deserialize( data.board ),
-	turn = data.turn;
+app.use( ( req, res, next ) => {
+	console.log( req.method, req.url );
+	next();
 } );
 
 app.use( express.static( 'client' ) );

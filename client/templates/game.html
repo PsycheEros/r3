@@ -1,3 +1,14 @@
 <div class="game">
-
+	<canvas width="548" height="548" #canvasElement></canvas>
+	<div class="game-status">
+		<div class="game-over" *ngIf="gameState?.isGameOver">Game Over</div>
+		<div class="turn" *ngIf="!gameState?.isGameOver && gameState?.turn === 0">Black's Turn</div>
+		<div class="turn" *ngIf="!gameState?.isGameOver && gameState?.turn === 1">White's Turn</div>
+		<div class="score">
+			Black: {{scores[0]}}
+		</div>
+		<div class="score">
+			White: {{scores[1]}}
+		</div>
+	</div>
 </div>

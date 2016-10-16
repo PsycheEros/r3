@@ -70,12 +70,11 @@ export default class Board {
 			:	empty ? ' '
 			:	color;
 		}
-		return JSON.stringify( { width, height, data } );
+		return { width, height, data };
 	}
 
-	public static deserialize( serialized: string ) {
-		const { width, height, data } = JSON.parse( serialized ) as { width: number, height: number, data: string },
-			board = new Board( width, height );
+	public static deserialize( { width, height, data }: { width: number, height: number, data: string } ) {
+		const board = new Board( width, height );
 		let i = 0;
 		for( const square of board ) {
 			const char = data[ i++ ];

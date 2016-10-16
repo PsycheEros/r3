@@ -1,15 +1,14 @@
-import { Observable } from 'rxjs/Observable';
+import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
 import Board from '../../shared/board';
-
-import io from 'socket.io-client';
+import * as io from 'socket.io-client'
 
 @Injectable()
 export class SessionService {
 	constructor() {
-		console.dir( io );
 		const socket = io.connect( '/', { transports: [ 'websocket', 'polling' ], upgrade: false } );
-		for( let evt of [ 'connect', 'update' ] ) {
+
+		for( let evt of [ 'connect' ] ) {
 			socket.on( evt, console.log.bind( console, evt ) ); 
 		}
 
@@ -17,39 +16,37 @@ export class SessionService {
 			socket.on( evt, console.error.bind( console, evt ) ); 
 		}
 
-		const gameState = Observable.fromEvent( socket, 'update' );
-
 		Object.assign( this, { socket } );
 	}
 
-	public observable( event: string, fn: Function ) {
-		const { socket } = this;
-		return Observable.fromEvent( socket, event, fn );
+	public getGameState() {
+		const { socket } = this,
+			subject = new BehaviorSubject<GameState>( null );
+		socket.on( 'update', ( { board, turn, isGameOver } ) => {
+			subject.next( {
+				board: Board.deserialize( board ),
+				turn,
+				isGameOver
+			} );
+		} );
+		return subject;
 	}
 
-	public on( event: string, fn: Function ) {
-		const { socket } = this;
-		return socket.on( event, fn );
-	}
-
-	public once( event: string, fn: Function ) {
-		const { socket } = this;
-		return socket.once( event, fn );
-	}
-
-	public off( event: string, fn?: Function ) {
-		const { socket } = this;
-		return socket.off( event, fn );
-	}
-
-	public emit( event: string, ...args: any[] ) {
-		const { socket } = this;
-		return socket.emit( event, ...args );
+	public getChatMessages() {
+		const { socket } = this,
+			subject = new ReplaySubject<ChatMessage>( 5 );
+		socket.on( 'message', ( { user, message } ) => {
+			subject.next( {
+				user,
+				message
+			} );
+		} );
+		return subject;
 	}
 
 	public makeMove( position: Point ) {
 		const { socket } = this;
-		socket.emit( 'makemove', { Position } );
+		socket.emit( 'move', { position } );
 	}
 
 	public newGame() {
@@ -57,13 +54,10 @@ export class SessionService {
 		socket.emit( 'newgame' );
 	}
 
-	public gameState: Observable<GameState>;
+	public sendChatMessage( user: string, message: string ) {
+		const { socket } = this;
+		socket.emit( 'message', { user, message } );
+	}
 
 	private socket: SocketIOClient.Socket;
 }
-
-type GameState = {
-	board: Board;
-	turn: number;
-	isGameOver: boolean;
-};

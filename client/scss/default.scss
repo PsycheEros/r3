@@ -1,2 +1,19 @@
 @import "reset";
-canvas { max-width: 100%; position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
+
+body { font: 14px/1.2 Arial,Verdana,sans-serif; }
+
+.r3 { max-width: 960px; margin: 0 auto; position: relative; display: flex; }
+
+.game { flex: 0 1 auto; display: flex; flex-direction: column;
+	canvas { max-width: 100%; }
+}
+
+.chat { flex: 0 1 auto; display: flex; flex-direction: column;
+	.chat-messages { border: solid 1px #eee; height: 525px; overflow-y: scroll;
+		.chat-message { padding: 2px;
+			&:not(:last-child) { border-bottom: solid 1px #eee; }
+
+			.chat-message-user { font-weight: bold; }
+		}
+	}
+}
