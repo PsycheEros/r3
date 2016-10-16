@@ -3,11 +3,11 @@
 		paths: {
 			app: 'js',
 			'socket.io-client': 'lib/socket.io-client/socket.io.js',
-			'reflect-metadata': 'lib/reflect-metadata/Reflect.js'
+			'reflect-metadata': 'lib/reflect-metadata/Reflect.js',
+			'rxjs/*': 'lib/rxjs/bundles/Rx.min.js' 
 		},
 		map: {
-			'@angular': 'lib/@angular',
-			rxjs: 'lib/rxjs'
+			'@angular': 'lib/@angular'
 		},
 		packages: {
 			app: {
