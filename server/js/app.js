@@ -66,10 +66,12 @@ function makeMove( position, color ) {
 			statusMessage( 'Draw game' );
 		}
 	} else {
-		turn = ( turn + 1 ) % 2;
-		if( rules.getValidMoves( board, turn ).length === 0 ) {
-			nextTurn();
-		}
+		( function nextTurn() {
+			turn = ( turn + 1 ) % 2;
+			if( rules.getValidMoves( board, turn ).length === 0 ) {
+				nextTurn();
+			}
+		}() );
 	}
 	flushUpdate();
 	return true;
