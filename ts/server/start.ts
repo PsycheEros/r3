@@ -1,5 +1,5 @@
-const cluster = require( 'cluster' ),
-	stopSignals = [ 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' ],
+import cluster = require( 'cluster' );
+const stopSignals = [ 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' ],
 	{ NODE_ENV, NODE_CLUSTER_WORKERS = 4 } = process.env,
 	production = NODE_ENV === 'production';
 

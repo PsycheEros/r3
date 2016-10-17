@@ -2,17 +2,22 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_HOST,
 		OPENSHIFT_REDIS_PASSWORD,
 		OPENSHIFT_REDIS_PORT
-	} = process.env,
-	express = require( 'express' ),
-	app = express(),
-	index = require( 'serve-index' ),
-	server = require( 'http' ).Server( app ),
+	} = process.env;
+import express = require( 'express' );
+const app = express();
+import index = require( 'serve-index' );
+const server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server );
+import Board from '../shared/board';
+import Rules from '../shared/rules';
+const rules = new Rules;
+let board = new Board( 8, 8 ),
+	turn;
 
 if( OPENSHIFT_REDIS_HOST ) {
 	const redis = require( 'redis' ).createClient,
 		adapter = require( 'socket.io-redis' ),
-		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD } );
+		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD } ),
 		sub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { return_buffers: true, auth_pass: OPENSHIFT_REDIS_PASSWORD } );
 
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
@@ -24,12 +29,6 @@ app.get( '/health', ( req, res ) => {
 	res.writeHead( 200 );
 	res.end();
 } );
-
-const { default: Board } = require( './shared/board' ),
-	{ default: Rules } = require( './shared/rules' ),
-	rules = new Rules;
-let board = new Board( 8, 8 ),
-	turn;
 
 function flushUpdate( target = io ) {
 	target.emit( 'update', {
@@ -112,10 +111,12 @@ io.on( 'connection', socket => {
 	flushUpdate( socket );
 } );
 
+/*
 app.use( ( req, res, next ) => {
 	console.log( req.method, req.url );
 	next();
 } );
+*/
 
 app.use( express.static( 'client' ) );
 app.use( index( 'client' ) );

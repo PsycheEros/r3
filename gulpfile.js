@@ -135,7 +135,7 @@ gulp.task( 'default', gulp.parallel( 'build' ) );
 
 gulp.task( 'server:server', () => {
 	nodemon( {
-		script: './server/js/app',
+		script: './server/js/server/app',
 		watch: [ 'server/**/*' ],
 		ext: 'js'
 	} );

@@ -5,6 +5,7 @@
 		"outDir": "server/js",
 		"module": "commonjs",
 		"lib": [ "es2017" ],
+		"types": [ "express", "node", "redis", "socket.io", "serve-static" ],
 		"strictNullChecks": true
 	},
 	"files": [
