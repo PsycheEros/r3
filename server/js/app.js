@@ -5,6 +5,7 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 	} = process.env,
 	express = require( 'express' ),
 	app = express(),
+	index = require( 'serve-index' ),
 	server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server );
 
@@ -117,8 +118,10 @@ app.use( ( req, res, next ) => {
 } );
 
 app.use( express.static( 'client' ) );
+app.use( index( 'client' ) );
 
 app.use( '/lib', express.static( 'node_modules' ) );
+app.use( '/lib', index( 'node_modules' ) );
 
 server.listen( NODE_PORT, NODE_IP, () => {
 	console.log( `Application worker ${process.pid} started...` );

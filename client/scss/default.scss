@@ -1,19 +1,5 @@
-@import "reset";
+@import "bootstrap";
 
-body { font: 14px/1.2 Arial,Verdana,sans-serif; }
+canvas { max-width: 100%; }
 
-.r3 { max-width: 960px; margin: 0 auto; position: relative; display: flex; }
-
-.game { flex: 0 1 auto; display: flex; flex-direction: column;
-	canvas { max-width: 100%; }
-}
-
-.chat { flex: 0 1 auto; display: flex; flex-direction: column;
-	.messages { border: solid 1px #eee; height: 525px; overflow-y: scroll;
-		.message { padding: 2px;
-			&:not(:last-child) { border-bottom: solid 1px #eee; }
-
-			.message-user { font-weight: bold; }
-		}
-	}
-}
+chat .list-group { height: 90vh; overflow-y: auto; }

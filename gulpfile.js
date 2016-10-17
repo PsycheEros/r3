@@ -43,6 +43,7 @@ gulp.task( 'build:scss', () =>
 	gulp.src( [ 'client/scss/**/*.scss' ] )
 	.pipe( sourcemaps.init() )
 	.pipe( sass( {
+		includePaths: [ 'node_modules/bootstrap/scss' ],
 		style: 'compact'
 	} ) )
 	.pipe( sourcemaps.write( './', { sourceRoot: '../../client/scss' } ) )

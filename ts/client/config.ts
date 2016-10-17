@@ -4,10 +4,14 @@
 			app: 'js',
 			'socket.io-client': 'lib/socket.io-client/socket.io.js',
 			'reflect-metadata': 'lib/reflect-metadata/Reflect.js',
-			'rxjs/*': 'lib/rxjs/bundles/Rx.min.js' 
+			'rxjs/*': 'lib/rxjs/bundles/Rx.min.js',
+			bootstrap: 'lib/bootstrap/dist/js/bootstrap.min.js',
+			tether: 'lib/tether/dist/js/tether.min.js',
+			jquery: 'lib/jquery/dist/jquery.min.js'
 		},
 		map: {
-			'@angular': 'lib/@angular'
+			'@angular': 'lib/@angular',
+			'@ng-bootstrap/ng-bootstrap': 'lib/@ng-bootstrap/ng-bootstrap/bundles/ng-bootstrap.js',
 		},
 		packages: {
 			app: {
@@ -53,6 +57,14 @@
 			'@angular/upgrade': {
 				main: `bundles/upgrade.umd.js`,
 				defaultExtension: 'js'
+			}
+		},
+		meta: {
+			bootstrap: {
+				deps: [ 'jquery', 'tether' ]
+			},
+			tether: {
+				exports: 'Tether'
 			}
 		},
 		transpiler: false
