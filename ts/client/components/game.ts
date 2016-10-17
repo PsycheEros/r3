@@ -1,12 +1,10 @@
-import { BehaviorSubject } from 'rxjs/Rx';
-import Canvas2D from '../canvas2d';
-import Canvas3D from '../canvas3d';
-import Board from '../../shared/board';
 import Square from '../../shared/square';
 import Rules from '../../shared/rules';
 
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { SessionService } from '../services/index';
+
+import { screenToCanvas } from '../canvas';
 
 @Component( {
 	selector: 'game',
@@ -16,7 +14,7 @@ import { SessionService } from '../services/index';
 export class GameComponent {
 	constructor( private element: ElementRef, private session: SessionService ) {}
 
-	@ViewChild( "canvasElement" )
+	@ViewChild( 'canvasElement' )
 	private canvasElement: ElementRef;
 
 	protected ngOnInit() {
@@ -36,13 +34,13 @@ export class GameComponent {
 	}
 
 	protected ngAfterViewInit() {
-		const { session, canvasElement: { nativeElement: canvasElement } } = this,
-			{ width, height } = canvasElement,
-			canvas = new Canvas2D( canvasElement ),
+		const { session, canvasElement } = this,
+			canvas = canvasElement.nativeElement as HTMLCanvasElement,
+			{ width, height } = canvas,
 			rules = new Rules,
-			{ c2d } = canvas;
+			c2d = canvas.getContext( '2d' );
 		let selectedSquare: Square|null = null;
-		
+
 		const render = ( time: number ) => {
 			const { gameState } = this;
 			if( !gameState ) {
@@ -51,7 +49,7 @@ export class GameComponent {
 			}
 			const { board, turn, isGameOver } = gameState;
 
-			canvas.clear();
+			c2d.clearRect( 0, 0, width, height );
 			c2d.save();
 			c2d.fillStyle = '#6c6';
 			c2d.fillRect( board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height );
@@ -65,15 +63,32 @@ export class GameComponent {
 				c2d.strokeRect( left, top, width, height );
 
 				if( color !== null ) {
+					const radialGradient = c2d.createRadialGradient( center.x, center.y, 0, center.x, center.y - 6, 32 ),
+						rgb = color === 0 ? '255,255,255' : '0,0,0';
+					radialGradient.addColorStop( 0,   `rgba(${rgb},0)` );
+					radialGradient.addColorStop( .5,  `rgba(${rgb},.1)` );
+					radialGradient.addColorStop( .75, `rgba(${rgb},0)` );
+					radialGradient.addColorStop( 1,   `rgba(${rgb},.75)` );
+					c2d.save();
 					c2d.lineWidth = 1;
-					c2d.fillStyle = color === 0 ? '#222' : '#ddd';
 					c2d.beginPath();
 					c2d.ellipse( center.x, center.y, width * .4, height * .4, 0, 0, Math.PI * 2 );
+					c2d.fillStyle = color === 0 ? '#111' : '#fff';
+					c2d.shadowColor = 'rgba(0,0,0,.2)';
+					c2d.shadowBlur = 4;
+					c2d.shadowOffsetX = 0;
+					c2d.shadowOffsetY = -2;
+					c2d.fill();
+					c2d.shadowColor = undefined;
+					c2d.globalCompositeOperation = color === 0 ? 'screen' : 'multiply';
+					c2d.fillStyle = radialGradient;
 					c2d.fill();
 					c2d.stroke();
+					c2d.restore();
 				}
 
 				if( rules.isValid( board, { x, y }, turn ) ) {
+					c2d.save();
 					c2d.lineWidth = 8;
 					c2d.strokeStyle = turn === 0 ? '#222' : '#ddd';
 					c2d.beginPath();
@@ -82,6 +97,7 @@ export class GameComponent {
 					c2d.moveTo( center.x + width * .25, center.y - height * .25 );
 					c2d.lineTo( center.x - width * .25, center.y + height * .25 );
 					c2d.stroke();
+					c2d.restore();
 				}
 
 				c2d.restore();
@@ -120,9 +136,9 @@ export class GameComponent {
 
 		const onMouseMove = ( { clientX, clientY }: { clientX: number, clientY: number } ) => {
 			const { gameState } = this;
-			if( !gameState ) return;
+			if( !gameState ) { return; }
 			const { isGameOver, board, turn } = gameState,
-				{ x, y } = canvas.screenToCanvas( { x: clientX, y: clientY } );
+				{ x, y } = screenToCanvas( canvas, { x: clientX, y: clientY } );
 			selectedSquare = board.hitTest( { x, y } );
 			document.documentElement.style.cursor =
 				isGameOver
@@ -131,14 +147,14 @@ export class GameComponent {
 
 		const onClick = ( { clientX, clientY }: { clientX: number, clientY: number } ) => {
 			const { gameState } = this;
-			if( !gameState ) return;
+			if( !gameState ) { return; }
 			const { board, isGameOver } = gameState;
 			if( isGameOver ) {
 				session.newGame();
 				return;
 			}
 
-			const { x, y } = canvas.screenToCanvas( { x: clientX, y: clientY } ),
+			const { x, y } = screenToCanvas( canvas, { x: clientX, y: clientY } ),
 				square = board.hitTest( { x, y } );
 			if( square ) {
 				session.makeMove( square.position );
@@ -157,5 +173,4 @@ export class GameComponent {
 	public gameState: GameState = null;
 	public scores = [] as number[];
 }
-
 

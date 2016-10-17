@@ -21,7 +21,7 @@ export class ChatComponent {
 
 	public onSubmit() {
 		const { session, text } = this;
-		if( !text ) return;
+		if( !text ) { return; }
 		this.text = '';
 		session.sendChatMessage( 'Guest', text );
 	}
