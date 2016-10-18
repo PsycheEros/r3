@@ -14,8 +14,8 @@ const gulp = require( 'gulp' ),
 	minimist = require( 'minimist' ),
 	path = require( 'path' ),
 	options = minimist( process.argv.slice( 2 ), {
-		boolean: [ 'uglify', 'fix', 'watch' ],
-		default: { uglify: true, watch: true }
+		boolean: [ 'uglify', 'fix' ],
+		default: { uglify: true }
 	} );
 
 gulp.task( 'browsersync:reload', done => {
@@ -46,7 +46,7 @@ gulp.task( 'build:scss', () =>
 		includePaths: [ 'node_modules/bootstrap/scss' ],
 		style: 'compact'
 	} ) )
-	.pipe( sourcemaps.write( './', { sourceRoot: '../../client/scss' } ) )
+	.pipe( sourcemaps.write( './', { sourceRoot: '../scss' } ) )
 	.pipe( gulp.dest( 'client/css' ) )
 );
 

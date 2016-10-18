@@ -1,3 +1,4 @@
+import GameState from './game-state';
 import Board from './board';
 import Square from './square';
 
@@ -66,12 +67,19 @@ export default class Rules {
 		return true;
 	}
 
-	public makeMove( board: Board, position: Point, color: number ) {
-		const squares = getAffectedSquares( board, position, color );
+	public makeMove( gameState: GameState, position: Point ) {
+		const { board, turn: color } = gameState,
+			squares = getAffectedSquares( board, position, color );
 		for( const square of squares ) {
 			square.color = color;
 		}
-		return squares.length;
+		const { length } = squares;
+		if( length > 0 && !this.isGameOver( board ) ) {
+			do {
+				gameState.turn = ( gameState.turn + 1 ) % 2
+			} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
+		}
+		return length;
 	}
 
 	public getScore( board: Board, color: number ) {
@@ -82,5 +90,15 @@ export default class Rules {
 			}
 		}
 		return score;
+	}
+
+	public reset( gameState: GameState ) {
+		const { board } = gameState;
+		gameState.turn = 0;
+		board.reset( 8, 8 );
+		board.get( { x: 3, y: 3 } ).color = 0;
+		board.get( { x: 4, y: 3 } ).color = 1;
+		board.get( { x: 3, y: 4 } ).color = 1;
+		board.get( { x: 4, y: 4 } ).color = 0;
 	}
 }

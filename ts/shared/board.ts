@@ -3,7 +3,7 @@ import Bounds from './bounds';
 import Square from './square';
 
 export default class Board {
-	public constructor( public readonly width: number, public readonly height: number ) {
+	public reset( width: number, height: number ) {
 		const grid = new Grid<Square>( width, height ),
 			squareSize: Size = { width: 64, height: 64 },
 			gutterSize: Size = { width: 4, height: 4 },
@@ -27,6 +27,16 @@ export default class Board {
 		Object.assign( this, { grid, bounds } );
 	}
 
+	public get width() {
+		const { grid: { width } } = this;
+		return width;
+	}
+
+	public get height() {
+		const { grid: { height } } = this;
+		return height;
+	}
+
 	public get( { x, y }: Point ) {
 		const { grid } = this;
 		return grid.get( { x, y } )!;
@@ -35,13 +45,6 @@ export default class Board {
 	public boundsCheck( { x, y }: Point ) {
 		const { grid } = this;
 		return grid.boundsCheck( { x, y } )!;
-	}
-
-	public reset() {
-		for( const square of this ) {
-			square.enabled = true;
-			square.color = null;
-		}
 	}
 
 	public [Symbol.iterator]() {
@@ -58,10 +61,10 @@ export default class Board {
 		return null;
 	}
 
-	public bounds: Bounds;
-	private grid: Grid<Square>;
+	public bounds = new Bounds( 0, 0, 0, 0 );
+	private grid = new Grid<Square>( 0, 0 );
 
-	public serialize() {
+	public serialize(): SerializedBoard {
 		const { width, height } = this;
 		let data = '';
 		for( const { enabled, empty, color } of this ) {
@@ -73,10 +76,14 @@ export default class Board {
 		return { width, height, data };
 	}
 
-	public static deserialize( { width, height, data }: { width: number, height: number, data: string } ) {
-		const board = new Board( width, height );
+	public static deserialize( data: SerializedBoard ) {
+		return ( new Board ).deserialize( data );
+	}
+
+	public deserialize( { width, height, data }: SerializedBoard ) {
+		this.reset( width, height ); 
 		let i = 0;
-		for( const square of board ) {
+		for( const square of this ) {
 			const char = data[ i++ ];
 			switch( char ) {
 			case 'x':
@@ -89,6 +96,10 @@ export default class Board {
 				break;
 			}
 		}
-		return board;
+		return this;
+	}
+
+	public clone() {
+		return Board.deserialize( this.serialize() );
 	}
 }

@@ -8,7 +8,7 @@
 		"emitDecoratorMetadata": true,
 		"strictNullChecks": false
 	},
-	"files": [
-		"ts/**/*.ts"
+	"exclude": [
+		"node_modules"
 	]
 }

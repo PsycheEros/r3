@@ -1,3 +1,4 @@
+import GameState from '../../shared/game-state';
 import Square from '../../shared/square';
 import Rules from '../../shared/rules';
 
@@ -22,13 +23,9 @@ export class GameComponent {
 			rules = new Rules;
 		session.getGameState().subscribe( gameState => {
 			this.gameState = gameState;
-			if( gameState ) {
-				const { board } = gameState;
-				for( let color of [ 0, 1 ] ) {
-					this.scores[ color ] = rules.getScore( board, color ); 
-				}
-			} else {
-				this.scores = [];
+			const { board } = gameState;
+			for( let color of [ 0, 1 ] ) {
+				this.scores[ color ] = rules.getScore( board, color ); 
 			}
 		} );
 	}
@@ -40,15 +37,8 @@ export class GameComponent {
 			rules = new Rules,
 			c2d = canvas.getContext( '2d' );
 		let selectedSquare: Square|null = null;
-
 		const render = ( time: number ) => {
-			const { gameState } = this;
-			if( !gameState ) {
-				requestAnimationFrame( render );
-				return;
-			}
-			const { board, turn, isGameOver } = gameState;
-
+			const { gameState: { board, turn } } = this;
 			c2d.clearRect( 0, 0, width, height );
 			c2d.save();
 			c2d.fillStyle = '#6c6';
@@ -103,53 +93,23 @@ export class GameComponent {
 				c2d.restore();
 			}
 
-			const lineHeight = 16,
-				lines = [] as string[];
-			if( isGameOver ) {
-				lines.push( 'Game Over' );
-			} else {
-				lines.push( `${turn === 0 ? 'Black' : 'White'}'s turn` );
-			}
-			if( board ) {
-				lines.push( `Black: ${rules.getScore(board,0)}` );
-				lines.push( `White: ${rules.getScore(board,1)}` );
-			}
-
-			c2d.save();
-			c2d.font = 'bold 16px sans-serif';
-			c2d.textBaseline = 'bottom';
-			c2d.textAlign = 'left';
-			c2d.shadowBlur = 5;
-			c2d.shadowColor = 'white';
-			c2d.fillStyle = 'black';
-			let top = lineHeight;
-			for( const line of lines ) {
-				c2d.fillText( line, board.bounds.right, top );
-				top += lineHeight;
-			}
-			c2d.restore();
-
 			c2d.restore();
 			requestAnimationFrame( render );
 		};
 		requestAnimationFrame( render );
 
 		const onMouseMove = ( { clientX, clientY }: { clientX: number, clientY: number } ) => {
-			const { gameState } = this;
-			if( !gameState ) { return; }
-			const { isGameOver, board, turn } = gameState,
-				{ x, y } = screenToCanvas( canvas, { x: clientX, y: clientY } );
+			const { gameState: { board, turn } } = this;
+			const { x, y } = screenToCanvas( canvas, { x: clientX, y: clientY } );
 			selectedSquare = board.hitTest( { x, y } );
 			document.documentElement.style.cursor =
-				isGameOver
+				rules.isGameOver( board )
 			||	( selectedSquare && rules.isValid( board, selectedSquare.position, turn ) ) ? 'pointer' : null;
 		};
 
 		const onClick = ( { clientX, clientY }: { clientX: number, clientY: number } ) => {
-			const { gameState } = this;
-			if( !gameState ) { return; }
-			const { board, isGameOver } = gameState;
-			if( isGameOver ) {
+			const { gameState: { board } } = this;
+			if( rules.isGameOver( board ) ) {
 				session.newGame();
 				return;
 			}
@@ -170,7 +130,7 @@ export class GameComponent {
 		}, false );
 	}
 
-	public gameState: GameState = null;
+	public gameState = new GameState;
 	public scores = [] as number[];
 }
 

@@ -1,5 +1,6 @@
 import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
+import GameState from '../../shared/game-state';
 import Board from '../../shared/board';
 import * as io from 'socket.io-client'
 
@@ -21,13 +22,9 @@ export class SessionService {
 
 	public getGameState() {
 		const { socket } = this,
-			subject = new BehaviorSubject<GameState>( null );
-		socket.on( 'update', ( { board, turn, isGameOver } ) => {
-			subject.next( {
-				board: Board.deserialize( board ),
-				turn,
-				isGameOver
-			} );
+			subject = new BehaviorSubject<GameState>( new GameState );
+		socket.on( 'update', data => {
+			subject.next( GameState.deserialize( data ) );
 		} );
 		return subject;
 	}
