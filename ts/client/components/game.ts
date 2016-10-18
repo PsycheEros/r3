@@ -51,23 +51,24 @@ export class GameComponent {
 				c2d.fillStyle = '#8c8';
 				c2d.fillRect( left, top, width, height );
 				c2d.strokeRect( left, top, width, height );
-
+				const radius = Math.min( width, height ) * .5;
 				if( color !== null ) {
-					const radialGradient = c2d.createRadialGradient( center.x, center.y, 0, center.x, center.y - 6, 32 ),
+					const radialGradient = c2d.createRadialGradient( center.x, center.y, 0, center.x, center.y - 2, radius ),
 						rgb = color === 0 ? '255,255,255' : '0,0,0';
 					radialGradient.addColorStop( 0,   `rgba(${rgb},0)` );
 					radialGradient.addColorStop( .5,  `rgba(${rgb},.1)` );
 					radialGradient.addColorStop( .75, `rgba(${rgb},0)` );
 					radialGradient.addColorStop( 1,   `rgba(${rgb},.75)` );
+
 					c2d.save();
 					c2d.lineWidth = 1;
 					c2d.beginPath();
-					c2d.ellipse( center.x, center.y, width * .4, height * .4, 0, 0, Math.PI * 2 );
+					c2d.arc( center.x, center.y, radius * .8, 0, Math.PI * 2 );
 					c2d.fillStyle = color === 0 ? '#111' : '#fff';
-					c2d.shadowColor = 'rgba(0,0,0,.2)';
+					c2d.shadowColor = 'rgba(0,0,0,.4)';
 					c2d.shadowBlur = 4;
 					c2d.shadowOffsetX = 0;
-					c2d.shadowOffsetY = -2;
+					c2d.shadowOffsetY = 2;
 					c2d.fill();
 					c2d.shadowColor = undefined;
 					c2d.globalCompositeOperation = color === 0 ? 'screen' : 'multiply';
