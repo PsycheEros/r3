@@ -7,7 +7,8 @@
 			'rxjs/*': 'lib/rxjs/bundles/Rx.min.js',
 			bootstrap: 'lib/bootstrap/dist/js/bootstrap.min.js',
 			tether: 'lib/tether/dist/js/tether.min.js',
-			jquery: 'lib/jquery/dist/jquery.min.js'
+			jquery: 'lib/jquery/dist/jquery.min.js',
+			mathjs: 'lib/mathjs/dist/math.min.js'
 		},
 		map: {
 			'@angular': 'lib/@angular',
