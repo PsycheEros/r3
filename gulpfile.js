@@ -113,7 +113,7 @@ gulp.task( 'watch:ts:client', () =>
 		'tsconfig.client.json',
 		'ts/{client,shared}/**/*',
 		'shared/ts/**/*'
-	], gulp.parallel( 'build:ts:client', 'browsersync:reload' ) )
+	], gulp.series( 'build:ts:client', 'browsersync:reload' ) )
 );
 
 gulp.task( 'watch:ts:server', () =>
