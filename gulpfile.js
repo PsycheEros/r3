@@ -123,7 +123,7 @@ gulp.task( 'watch:ts:client', () =>
 gulp.task( 'watch:ts:server', () =>
 	gulp.watch( [
 		'tsconfig.server.json',
-		'ts/server/**/*',
+		'ts/**/*',
 		'server/ts/**/*'
 	], gulp.parallel( 'build:ts:server' ) )
 );
