@@ -1,8 +1,7 @@
-import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
+import { BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
-import GameState from '../../shared/game-state';
-import Board from '../../shared/board';
-import * as io from 'socket.io-client'
+import GameState from '../game-state';
+import * as io from 'socket.io-client';
 
 @Injectable()
 export class SessionService {

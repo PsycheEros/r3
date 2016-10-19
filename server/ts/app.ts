@@ -3,9 +3,9 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_PASSWORD,
 		OPENSHIFT_REDIS_PORT
 	} = process.env;
-import GameState from '../shared/game-state';
-import Board from '../shared/board';
-import Rules from '../shared/rules';
+import GameState from './game-state';
+import Board from './board';
+import Rules from './rules';
 import express = require( 'express' );
 const app = express();
 import index = require( 'serve-index' );

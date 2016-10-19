@@ -1,14 +1,15 @@
 {
 	"compilerOptions": {
 		"target": "es2015",
-		"rootDir": "ts",
-		"outDir": "server/js",
+		"outDir": "js",
 		"module": "commonjs",
 		"lib": [ "es2017" ],
+		"rootDirs": [ "ts", "../ts" ],
 		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs" ],
 		"strictNullChecks": true
 	},
-	"files": [
-		"ts/{server,shared}/**/*.ts"
+	"include": [
+		"ts/**/*.ts",
+		"../ts/**/*.ts"
 	]
 }

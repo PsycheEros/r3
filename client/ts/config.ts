@@ -16,7 +16,7 @@
 		},
 		packages: {
 			app: {
-				main: 'client/default',
+				main: 'default',
 				defaultExtension: 'js'
 			},
 			rxjs: {

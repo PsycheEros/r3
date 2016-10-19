@@ -4,15 +4,12 @@ const gulp = require( 'gulp' ),
 	sass = require( 'gulp-sass' ),
 	typescript = require( 'gulp-typescript' ),
 	babel = require( 'gulp-babel' ),
-	concat = require( 'gulp-concat' ),
-	uglify = require( 'gulp-uglify' ),
 	sourcemaps = require( 'gulp-sourcemaps' ),
 	tslint = require( 'gulp-tslint' ),
 	eslint = require( 'gulp-eslint' ),
 	nodemon = require( 'nodemon' ),
 	browserSync = require( 'browser-sync' ).create(),
 	minimist = require( 'minimist' ),
-	path = require( 'path' ),
 	options = minimist( process.argv.slice( 2 ), {
 		boolean: [ 'uglify', 'fix' ],
 		default: { uglify: true }
@@ -28,7 +25,7 @@ gulp.task( 'clean:js:client', () =>
 );
 
 gulp.task( 'clean:js:server', () =>
-	del( [ 'server/js/shared' ] )
+	del( [ 'server/js' ] )
 );
 
 gulp.task( 'clean:js', gulp.parallel( 'clean:js:client', 'clean:js:server' ) );
@@ -46,27 +43,33 @@ gulp.task( 'build:scss', () =>
 		includePaths: [ 'node_modules/bootstrap/scss' ],
 		style: 'compact'
 	} ) )
-	.pipe( sourcemaps.write( './', { sourceRoot: '../scss' } ) )
+	.pipe( sourcemaps.write( './' ) )
 	.pipe( gulp.dest( 'client/css' ) )
 );
 
 gulp.task( 'build:ts:client', () => {
-	const tsproj = typescript.createProject( 'tsconfig.client.json' );
-	return tsproj.src()
-		.pipe( sourcemaps.init() )
-		.pipe( tsproj() )
-		.pipe( babel( { presets: [ 'es2015' ] } ) )
-		.pipe( sourcemaps.write( './', { sourceRoot: path.relative( tsproj.options.outDir, tsproj.options.rootDir ) } ) )
-		.pipe( gulp.dest( tsproj.options.outDir ) );
+	const tsproj = typescript.createProject( 'client/tsconfig.json' );
+	return gulp.src( [
+		'ts/**/*.ts',
+		'client/ts/**/*.ts'
+	] )
+	.pipe( sourcemaps.init() )
+	.pipe( tsproj() )
+	.pipe( babel( { presets: [ 'es2015' ] } ) )
+	.pipe( sourcemaps.write( './' ) )
+	.pipe( gulp.dest( 'client/js' ) );
 } );
 
 gulp.task( 'build:ts:server', () => {
-	const tsproj = typescript.createProject( 'tsconfig.server.json' );
-	return tsproj.src()
-		.pipe( sourcemaps.init() )
-		.pipe( tsproj() )
-		.pipe( sourcemaps.write( './', { sourceRoot: path.relative( tsproj.options.outDir, tsproj.options.rootDir ) } ) )
-		.pipe( gulp.dest( tsproj.options.outDir ) );
+	const tsproj = typescript.createProject( 'server/tsconfig.json' );
+	return gulp.src( [
+		'ts/**/*.ts',
+		'server/ts/**/*.ts'
+	] )
+	.pipe( sourcemaps.init() )
+	.pipe( tsproj() )
+	.pipe( sourcemaps.write( './' ) )
+	.pipe( gulp.dest( 'server/js' ) );
 } );
 
 gulp.task( 'build:ts', gulp.parallel( 'build:ts:client', 'build:ts:server' ) );
@@ -74,7 +77,10 @@ gulp.task( 'build:ts', gulp.parallel( 'build:ts:client', 'build:ts:server' ) );
 gulp.task( 'build', gulp.series( 'clean', gulp.parallel( 'build:scss', 'build:ts' ) ) );
 
 gulp.task( 'lint:tslint', () =>
-	gulp.src( [ 'ts/**/*.ts' ] )
+	gulp.src( [
+		'ts/**/*.ts',
+		'{client,server}/ts/**/*.ts'
+	] )
 	.pipe( tslint( {
 		formatter: 'verbose'
 	} ) )
@@ -88,9 +94,7 @@ gulp.task( 'lint:tslint', () =>
 gulp.task( 'lint:eslint', () =>
 	gulp.src( [
 		'*.{js,json}',
-		'{client,server}/**/*.json',
-		'server/js/**/*.js',
-		'!server/js/shared/**/*'
+		'{client,server}/**/*.json'
 	], { base: '.' } )
 	.pipe( eslint( {
 		fix: options.fix
@@ -111,15 +115,16 @@ gulp.task( 'watch:scss', () =>
 gulp.task( 'watch:ts:client', () =>
 	gulp.watch( [
 		'tsconfig.client.json',
-		'ts/{client,shared}/**/*',
-		'shared/ts/**/*'
+		'ts/**/*',
+		'client/ts/**/*'
 	], gulp.series( 'build:ts:client', 'browsersync:reload' ) )
 );
 
 gulp.task( 'watch:ts:server', () =>
 	gulp.watch( [
 		'tsconfig.server.json',
-		'ts/{server,shared}/**/*'
+		'ts/server/**/*',
+		'server/ts/**/*'
 	], gulp.parallel( 'build:ts:server' ) )
 );
 
@@ -135,7 +140,7 @@ gulp.task( 'default', gulp.parallel( 'build' ) );
 
 gulp.task( 'server:server', () => {
 	nodemon( {
-		script: './server/js/server/app',
+		script: './server/js/app',
 		watch: [ 'server/**/*' ],
 		ext: 'js'
 	} );

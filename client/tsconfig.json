@@ -1,17 +1,18 @@
 {
 	"compilerOptions": {
 		"target": "es2015",
-		"rootDir": "ts",
-		"outDir": "client/js",
+		"outDir": "js",
 		"module": "commonjs",
 		"lib": [ "dom", "es2017" ],
+		"rootDirs": [ "ts", "../ts" ],
 		"types": [ "systemjs", "mathjs" ],
 		"allowSyntheticDefaultImports": false,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
 		"strictNullChecks": false
 	},
-	"files": [
-		"ts/{client,shared}/**/*.ts"
+	"include": [
+		"ts/**/*",
+		"../ts/**/*"
 	]
 }

@@ -1,6 +1,6 @@
 <div class="row">
 	<div class="col-xs-12">
-		<canvas [width]="gameState.board.bounds.width" [height]="gameState.board.bounds.height" #canvasElement></canvas>
+		<board [board]="gameState?.board" (click1)="onClick($event)" (mousemove1)="onMouseMove($event)"></board>
 	</div>
 	<div class="col-xs-12">
 		<div class="card">
