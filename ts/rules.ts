@@ -68,6 +68,7 @@ export default class Rules {
 	}
 
 	public makeMove( gameState: GameState, position: Point ) {
+		gameState = gameState.clone();
 		const { board, turn: color } = gameState,
 			squares = getAffectedSquares( board, position, color );
 		for( const square of squares ) {
@@ -79,7 +80,7 @@ export default class Rules {
 				gameState.turn = ( gameState.turn + 1 ) % 2
 			} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
 		}
-		return length;
+		return gameState;
 	}
 
 	public getScore( board: Board, color: number ) {
@@ -92,13 +93,15 @@ export default class Rules {
 		return score;
 	}
 
-	public reset( gameState: GameState ) {
-		const { board } = gameState;
+	public reset() {
+		const gameState = new GameState,
+			{ board } = gameState;
 		gameState.turn = 0;
 		board.reset( 8, 8 );
 		board.get( { x: 3, y: 3 } ).color = 0;
 		board.get( { x: 4, y: 3 } ).color = 1;
 		board.get( { x: 3, y: 4 } ).color = 1;
 		board.get( { x: 4, y: 4 } ).color = 0;
+		return gameState;
 	}
 }

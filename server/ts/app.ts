@@ -11,8 +11,8 @@ const app = express();
 import index = require( 'serve-index' );
 const server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server ),
-	rules = new Rules,
-	gameState = new GameState;
+	rules = new Rules;
+let gameState = new GameState;
 
 if( OPENSHIFT_REDIS_HOST ) {
 	const redis = require( 'redis' ).createClient,
@@ -38,16 +38,16 @@ function newGame() {
 	const { board } = gameState;
 	if( !rules.isGameOver( board ) ) return false;
 	statusMessage( 'New game' );
-	rules.reset( gameState );
+	gameState = rules.reset();
 	flushUpdate();
 	return true;
 }
 newGame();
 
 function makeMove( position, color ) {
-	const { board, turn } = gameState;
-	if( color !== turn ) return false;
-	if( !rules.makeMove( gameState, position ) ) return false;
+	if( color !== gameState.turn ) return false;
+	gameState = rules.makeMove( gameState, position );
+	const { board } = gameState;
 	if( rules.isGameOver( board ) ) {
 		const black = rules.getScore( board, 0 ),
 			white = rules.getScore( board, 1 );

@@ -1,7 +1,7 @@
 <canvas
 	[width]="board.bounds.width" [height]="board.bounds.height"
-	(mousemove)="handleEvent(mousemove1,$event)"
-	(click)="handleEvent(click1,$event)"
-	(touch)="handleEvent(click1,$event.touches[0])"
+	(mousemove)="handleEvent(mousemove,$event)"
+	(click)="handleEvent(click,$event)"
+	(touch)="handleEvent(click,$event.touches[0])"
 	#canvasElement>
 </canvas>
