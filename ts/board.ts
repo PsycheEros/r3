@@ -6,7 +6,7 @@ export default class Board {
 	public reset( width: number, height: number ) {
 		const grid = new Grid<Square>( width, height ),
 			squareSize: Size = { width: 64, height: 64 },
-			gutterSize: Size = { width: 4, height: 4 },
+			gutterSize: Size = { width: 6, height: 6 },
 			bounds = new Bounds(
 				0,
 				0,
