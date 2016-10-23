@@ -8,19 +8,19 @@ export default class Board {
 			squareSize: Size = { width: 64, height: 64 },
 			gutterSize: Size = { width: 6, height: 6 },
 			bounds = new Bounds(
-				0,
-				0,
-				width * ( squareSize.width + gutterSize.width ) + gutterSize.width,
-				height * ( squareSize.height + gutterSize.height ) + gutterSize.height
+				0.5,
+				0.5,
+				1 + width * ( squareSize.width + gutterSize.width ) + gutterSize.width,
+				1 + height * ( squareSize.height + gutterSize.height ) + gutterSize.height
 			);
 		for( let x = 0; x < width; ++x )
 		for( let y = 0; y < height; ++y ) {
 			const position = { x, y },
 				bounds = new Bounds(
-					x * ( squareSize.width + gutterSize.width ) + gutterSize.width,
-					y * ( squareSize.height + gutterSize.height ) + gutterSize.height,
-					squareSize.width,
-					squareSize.height
+					0.5 + x * ( squareSize.width + gutterSize.width ) + gutterSize.width,
+					0.5 + y * ( squareSize.height + gutterSize.height ) + gutterSize.height,
+					0.5 + squareSize.width,
+					0.5 + squareSize.height
 				);
 			grid.set( { x, y }, new Square( position, bounds ) );
 		}

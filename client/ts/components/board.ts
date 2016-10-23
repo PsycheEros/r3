@@ -95,7 +95,7 @@ export class BoardComponent {
 
 				c2d.save();
 				Object.assign( c2d, {
-					fillStyle: '#6c6'
+					fillStyle: '#3a3'
 				} );
 				c2d.fill();
 				c2d.restore();
@@ -122,10 +122,10 @@ export class BoardComponent {
 							}, center ),
 						path = ccw => {
 							drawRect( c2d, left, top, width, height,
-								x === board.width - 1 && y === 0                ? 16 : 0,
-								x === board.width - 1 && y === board.height - 1 ? 16 : 0,
-								x === 0               && y === board.height - 1 ? 16 : 0,
-								x === 0               && y === 0                ? 16 : 0,
+								x === board.width - 1 && y === 0                ? 16 : 4,
+								x === board.width - 1 && y === board.height - 1 ? 16 : 4,
+								x === 0               && y === board.height - 1 ? 16 : 4,
+								x === 0               && y === 0                ? 16 : 4,
 								ccw
 							);
 						};
@@ -137,7 +137,7 @@ export class BoardComponent {
 					c2d.save();
 					Object.assign( c2d, {
 						fillStyle: '#6c6',
-						strokeStyle: 'rgba(0,0,0,.4)'
+						strokeStyle: '#363'
 					} );
 					c2d.fill();
 					c2d.stroke();
