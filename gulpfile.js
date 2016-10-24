@@ -142,6 +142,7 @@ gulp.task( 'server:server', () => {
 	nodemon( {
 		script: './server/js/app',
 		watch: [ 'server/**/*' ],
+		nodeArgs: [ '--debug' ],
 		ext: 'js'
 	} );
 
