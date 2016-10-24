@@ -25,13 +25,6 @@ if( OPENSHIFT_REDIS_HOST ) {
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
 }
 
-function peek<T>( arr: T[] ): T|null {
-	if( !arr ) return null;
-	const { length } = arr;
-	if( length > 0 ) return arr[ arr.length - 1];
-	else return null;
-}
-
 app.use( require( 'body-parser' ).json() );
 
 app.get( '/health', ( req, res ) => {
@@ -40,16 +33,12 @@ app.get( '/health', ( req, res ) => {
 } );
 
 function flushUpdate( target = io ) {
-	const { gameStates } = game,
-		gameState = peek( gameStates );
-	if( !gameState ) return;
-	target.emit( 'update', gameState.serialize() );
+	target.emit( 'update', game.serialize() );
 }
 
 function newGame() {
 	if( game ) {
-		const { gameStates } = game,
-			gameState = peek( gameStates ),
+		const { currentGameState: gameState } = game,
 			{ board } = gameState!;
 		if( !rules.isGameOver( board ) ) return false;
 	}
@@ -62,8 +51,7 @@ newGame();
 
 function makeMove( position ) {
 	if( !rules.makeMove( game, position ) ) return;
-	const { gameStates } = game,
-		gameState = peek( gameStates ),
+	const { currentGameState: gameState } = game,
 		{ board } = gameState!;
 	if( rules.isGameOver( board ) ) {
 		const black = rules.getScore( board, 0 ),

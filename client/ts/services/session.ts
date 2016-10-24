@@ -1,5 +1,6 @@
-import { BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
+import { Observable, ReplaySubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
+import Game from '../game';
 import GameState from '../game-state';
 import * as io from 'socket.io-client';
 
@@ -16,23 +17,29 @@ export class SessionService {
 			socket.on( evt, console.error.bind( console, evt ) ); 
 		}
 
+		socket.on( 'message', data => {
+			this.messageSubject.next( data );
+		} );
+
+		socket.on( 'update', data => {
+			this.gameSubject.next( Game.deserialize( data ) );
+		} );
+
 		Object.assign( this, { socket } );
 	}
 
+	private gameSubject = new ReplaySubject<Game>();
+	private gameStateSubject = this.gameSubject.map( game => game.currentGameState );
+	private messageSubject = new ReplaySubject<Message>();
+
 	public getGameState() {
-		const { socket } = this,
-			subject = new BehaviorSubject<GameState>( new GameState );
-		socket.on( 'update', data => {
-			subject.next( GameState.deserialize( data ) );
-		} );
-		return subject;
+		const { gameStateSubject } = this;
+		return gameStateSubject as Observable<GameState>;
 	}
 
 	public getMessages() {
-		const { socket } = this,
-			subject = new ReplaySubject<Message>( 5 );
-		socket.on( 'message', subject.next.bind( subject ) );
-		return subject;
+		const { messageSubject } = this;
+		return messageSubject as Observable<Message>;
 	}
 
 	public makeMove( position: Point ) {
