@@ -1,3 +1,4 @@
+import 'source-map-support/register';
 const { NODE_PORT = 3000, NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_HOST,
 		OPENSHIFT_REDIS_PASSWORD,
