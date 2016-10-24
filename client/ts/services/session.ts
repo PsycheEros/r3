@@ -32,6 +32,11 @@ export class SessionService {
 	private gameStateSubject = this.gameSubject.map( game => game.currentGameState );
 	private messageSubject = new ReplaySubject<Message>();
 
+	public getGame() {
+		const { gameSubject } = this;
+		return gameSubject as Observable<Game>;
+	}
+
 	public getGameState() {
 		const { gameStateSubject } = this;
 		return gameStateSubject as Observable<GameState>;
