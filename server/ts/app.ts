@@ -4,6 +4,7 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_PASSWORD,
 		OPENSHIFT_REDIS_PORT
 	} = process.env;
+import Game from './game';
 import GameState from './game-state';
 import Board from './board';
 import Rules from './rules';
@@ -13,7 +14,7 @@ import index = require( 'serve-index' );
 const server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server ),
 	rules = new Rules;
-let gameState = new GameState;
+let game: Game;
 
 if( OPENSHIFT_REDIS_HOST ) {
 	const redis = require( 'redis' ).createClient,
@@ -24,6 +25,13 @@ if( OPENSHIFT_REDIS_HOST ) {
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
 }
 
+function peek<T>( arr: T[] ): T|null {
+	if( !arr ) return null;
+	const { length } = arr;
+	if( length > 0 ) return arr[ arr.length - 1];
+	else return null;
+}
+
 app.use( require( 'body-parser' ).json() );
 
 app.get( '/health', ( req, res ) => {
@@ -32,23 +40,31 @@ app.get( '/health', ( req, res ) => {
 } );
 
 function flushUpdate( target = io ) {
+	const { gameStates } = game,
+		gameState = peek( gameStates );
+	if( !gameState ) return;
 	target.emit( 'update', gameState.serialize() );
 }
 
 function newGame() {
-	const { board } = gameState;
-	if( !rules.isGameOver( board ) ) return false;
+	if( game ) {
+		const { gameStates } = game,
+			gameState = peek( gameStates ),
+			{ board } = gameState!;
+		if( !rules.isGameOver( board ) ) return false;
+	}
 	statusMessage( 'New game' );
-	gameState = rules.reset();
+	game = rules.newGame();
 	flushUpdate();
 	return true;
 }
 newGame();
 
-function makeMove( position, color ) {
-	if( color !== gameState.turn ) return false;
-	gameState = rules.makeMove( gameState, position );
-	const { board } = gameState;
+function makeMove( position ) {
+	if( !rules.makeMove( game, position ) ) return;
+	const { gameStates } = game,
+		gameState = peek( gameStates ),
+		{ board } = gameState!;
 	if( rules.isGameOver( board ) ) {
 		const black = rules.getScore( board, 0 ),
 			white = rules.getScore( board, 1 );
@@ -84,7 +100,7 @@ io.on( 'connection', socket => {
 	} );
 
 	socket.on( 'move', ( { position } ) => {
-		makeMove( position, gameState.turn );
+		makeMove( position );
 	} );
 
 	socket.on( 'newgame', () => {

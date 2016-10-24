@@ -1,3 +1,4 @@
+import Game from './game';
 import GameState from './game-state';
 import Board from './board';
 import Square from './square';
@@ -53,8 +54,8 @@ export default class Rules {
 	public getColors( board: Board ) {
 		const colors = new Set<number>();
 		for( let { color } of board ) {
-			if( Number.isSafeInteger( color! ) ) {
-				colors.add( color! );
+			if( Number.isSafeInteger( color ) ) {
+				colors.add( color );
 			}
 		}
 		return colors;
@@ -67,20 +68,26 @@ export default class Rules {
 		return true;
 	}
 
-	public makeMove( gameState: GameState, position: Point ) {
-		gameState = gameState.clone();
+	public makeMove( game: Game, position: Point ) {
+		const { gameStates } = game;
+		let gameState = gameStates[ gameStates.length - 1 ].clone();
 		const { board, turn: color } = gameState,
 			squares = getAffectedSquares( board, position, color );
 		for( const square of squares ) {
 			square.color = color;
 		}
 		const { length } = squares;
-		if( length > 0 && !this.isGameOver( board ) ) {
-			do {
-				gameState.turn = ( gameState.turn + 1 ) % 2
-			} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
+		if( length > 0 ) {
+			if( !this.isGameOver( board ) ) {
+				do {
+					gameState.turn = ( gameState.turn + 1 ) % 2
+				} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
+			}
+			gameStates.push( gameState );
+			return true;
+		} else {
+			return false;
 		}
-		return gameState;
 	}
 
 	public getScore( board: Board, color: number ) {
@@ -93,15 +100,18 @@ export default class Rules {
 		return score;
 	}
 
-	public reset() {
-		const gameState = new GameState,
+	public newGame() {
+		const game = new Game,
+			gameState = new GameState,
 			{ board } = gameState;
+		game.colors.splice( 0, 0, 0, 1 );
 		gameState.turn = 0;
 		board.reset( 8, 8 );
 		board.get( { x: 3, y: 3 } ).color = 0;
 		board.get( { x: 4, y: 3 } ).color = 1;
 		board.get( { x: 3, y: 4 } ).color = 1;
 		board.get( { x: 4, y: 4 } ).color = 0;
-		return gameState;
+		game.gameStates.push( gameState );
+		return game;
 	}
 }
