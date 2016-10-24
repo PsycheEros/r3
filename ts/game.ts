@@ -2,6 +2,8 @@ import GameState from './game-state';
 import Rules from './rules';
 
 export default class Game {
+	public constructor( public readonly gameId: number ) {}
+
 	public readonly colors = [] as number[];
 
 	public get currentGameState() {
@@ -14,22 +16,19 @@ export default class Game {
 	public readonly gameStates = [] as GameState[];
 
 	public serialize(): SerializedGame {
-		const { colors, gameStates } = this;
+		const { gameId, colors, gameStates } = this;
 		return {
+			gameId,
 			colors: Array.from( colors ),
 			gameStates: Array.from( gameStates, gameState => gameState.serialize() )
 		};
 	}
 
-	public deserialize( game: SerializedGame ) {
-		const { colors, gameStates } = this;
-		colors.splice( 0, colors.length, ...game.colors );
-		gameStates.splice( 0, gameStates.length, ...game.gameStates.map( gameState => GameState.deserialize( gameState ) ) );
-		return this;
-	}
-
-	public static deserialize( game: SerializedGame ) {
-		return ( new Game ).deserialize( game );
+	public static deserialize( { gameId, colors, gameStates }: SerializedGame ) {
+		const game = new Game( gameId );
+		game.colors.splice( 0, game.colors.length, ...colors );
+		game.gameStates.splice( 0, game.gameStates.length, ...gameStates.map( gameState => GameState.deserialize( gameState ) ) );
+		return game;
 	}
 
 	public clone() {

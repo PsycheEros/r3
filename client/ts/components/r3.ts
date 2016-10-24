@@ -11,10 +11,12 @@ export class R3Component {
 
 	protected ngOnInit() {
 		const { sessionService } = this;
-		sessionService.getGame().subscribe( game => {
-			console.log( game );
-		} );
+		for( let gameId of [ 0, 1 ] ) {
+			sessionService.getGame( gameId ).subscribe( game => {
+				this.games[ gameId ] = game;
+			} );
+		}
 	}
 
-	public games = [ new Game, new Game, new Game ] as Game[];
+	public games = [ new Game( 0 ), new Game( 1 ) ] as Game[];
 }

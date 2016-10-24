@@ -36,6 +36,7 @@ function flushUpdate( target = io ) {
 	target.emit( 'update', game.serialize() );
 }
 
+let nextGameId = 0;
 function newGame() {
 	if( game ) {
 		const { currentGameState: gameState } = game,
@@ -43,7 +44,7 @@ function newGame() {
 		if( !rules.isGameOver( board ) ) return false;
 	}
 	statusMessage( 'New game' );
-	game = rules.newGame();
+	game = rules.newGame( nextGameId++ );
 	flushUpdate();
 	return true;
 }

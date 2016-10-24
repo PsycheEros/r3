@@ -8,7 +8,7 @@
 </nav>
 <div class="container-fluid">
 	<div class="row" *ngFor="let game of games">
-		<game class="col-sm-6 col-xs-12"></game>
+		<game class="col-sm-6 col-xs-12" [game]="game"></game>
 		<chat class="col-sm-6 col-xs-12"></chat>
 	</div>
 </div>

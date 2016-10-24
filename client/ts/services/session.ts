@@ -32,7 +32,7 @@ export class SessionService {
 	private gameStateSubject = this.gameSubject.map( game => game.currentGameState );
 	private messageSubject = new ReplaySubject<Message>();
 
-	public getGame() {
+	public getGame( gameId: number ) {
 		const { gameSubject } = this;
 		return gameSubject as Observable<Game>;
 	}

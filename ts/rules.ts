@@ -100,8 +100,8 @@ export default class Rules {
 		return score;
 	}
 
-	public newGame() {
-		const game = new Game,
+	public newGame( gameId: number ) {
+		const game = new Game( gameId ),
 			gameState = new GameState,
 			{ board } = gameState;
 		game.colors.splice( 0, 0, 0, 1 );

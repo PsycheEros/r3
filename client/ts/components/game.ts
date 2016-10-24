@@ -38,6 +38,4 @@ export class GameComponent {
 		*/
 	}
 
-	public gameState = new GameState;
-}
 

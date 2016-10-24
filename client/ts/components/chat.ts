@@ -3,8 +3,7 @@ import { SessionService } from '../services/index';
 
 @Component( {
 	selector: 'chat',
-	templateUrl: 'templates/chat.html',
-	providers: []
+	templateUrl: 'templates/chat.html'
 } )
 export class ChatComponent {
 	constructor( private session: SessionService ) {}
