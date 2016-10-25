@@ -8,11 +8,12 @@
 			bootstrap: 'lib/bootstrap/dist/js/bootstrap.min.js',
 			tether: 'lib/tether/dist/js/tether.min.js',
 			jquery: 'lib/jquery/dist/jquery.min.js',
-			mathjs: 'lib/mathjs/dist/math.min.js'
+			mathjs: 'lib/mathjs/dist/math.min.js',
+			moment: 'lib/moment/moment.js',
+			'ng2-bootstrap': 'lib/ng2-bootstrap/bundles/ng2-bootstrap.umd.js'
 		},
 		map: {
-			'@angular': 'lib/@angular',
-			'@ng-bootstrap/ng-bootstrap': 'lib/@ng-bootstrap/ng-bootstrap/bundles/ng-bootstrap.js',
+			'@angular': 'lib/@angular'
 		},
 		packages: {
 			app: {

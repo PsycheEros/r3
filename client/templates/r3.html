@@ -1,14 +1,11 @@
-<nav class="navbar navbar-light">
-	<h1 class="navbar-brand">r³</h1>
-	<ul class="nav nav-tabs">
-		<li class="nav-item" *ngFor="let game of games">
-			<a class="nav-link" data-toggle="tab" href="#">Game 1</a>
-		</li>
-	</ul>
-</nav>
-<div class="container-fluid">
-	<div class="row" *ngFor="let game of games">
-		<game class="col-sm-6 col-xs-12" [game]="game"></game>
-		<chat class="col-sm-6 col-xs-12"></chat>
-	</div>
+<div class="container">
+	<tabset>
+		<tab heading="Lobby">
+			<lobby></lobby>
+		</tab>
+		<tab [removable]="true" (removed)="closeRoom(room)" *ngFor="let room of rooms">
+			<template tabHeading>Room {{room.name}}</template>
+			<room [room]="room"></room>
+		</tab>
+	</tabset>
 </div>

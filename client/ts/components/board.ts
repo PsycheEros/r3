@@ -59,7 +59,7 @@ export class BoardComponent {
 	private canvasElement: ElementRef;
 
 	@Input()
-	public board: Observable<Board>;
+	public board: Board;
 
 	@Output()
 	public click = new EventEmitter<BoardMouseEvent>();

@@ -1,8 +1,8 @@
 <div class="row">
 	<div class="col-xs-12">
-		<form (ngSubmit)="onSubmit()">
+		<form (ngSubmit)="sendMessage(text)">
 			<div class="form-group">
-				<input type="text" class="form-control" [(ngModel)]="text" placeholder="Enter message" name="message"/>
+				<input type="text" class="form-control" placeholder="Enter message" #text/>
 			</div>
 		</form>
 	</div>

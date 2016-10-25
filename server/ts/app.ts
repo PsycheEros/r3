@@ -32,25 +32,47 @@ app.get( '/health', ( req, res ) => {
 	res.end();
 } );
 
-function flushUpdate( target = io ) {
+const rooms = [] as Room[];
+const roomsById = new Map<number, Room>();
+const gamesById = new Map<number, Game>();
+
+function flushUpdate( roomId: number, target = io ) {
+	const room = roomsById.get( roomId );
+	if( !room ) return;
+	const game = gamesById.get( room.gameId );
+	if( !game ) return;
 	target.emit( 'update', game.serialize() );
 }
 
 let nextGameId = 0;
-function newGame() {
+function newGame( room: Room ) {
+	let game = gamesById.get( room.gameId );
 	if( game ) {
 		const { currentGameState: gameState } = game,
 			{ board } = gameState!;
-		if( !rules.isGameOver( board ) ) return false;
+		if( !rules.isGameOver( board ) ) return null;
 	}
-	statusMessage( 'New game' );
-	game = rules.newGame( nextGameId++ );
-	flushUpdate();
-	return true;
+	statusMessage( room.roomId, 'New game' );
+	const gameId = nextGameId++;
+	game = rules.newGame( gameId );
+	gamesById.set( gameId, game );
+	flushUpdate( room.roomId );
+	return gameId;
 }
-newGame();
 
-function makeMove( position ) {
+let nextRoomId = 0;
+function newRoom( name: string ) {
+	const roomId = nextRoomId++,
+		room = { roomId, gameId: null as any, name } as Room;
+	room.gameId = newGame( room )!;
+	rooms.push( room );
+}
+
+function makeMove( roomId: number, position: Point ) {
+	const room = roomsById.get( roomId );
+	if( !room ) return;
+	const game = gamesById.get( room.gameId );
+	if( !game ) return;
 	if( !rules.makeMove( game, position ) ) return;
 	const { currentGameState: gameState } = game,
 		{ board } = gameState!;
@@ -58,46 +80,46 @@ function makeMove( position ) {
 		const black = rules.getScore( board, 0 ),
 			white = rules.getScore( board, 1 );
 		if( black > white ) {
-			statusMessage( `Black wins ${black}:${white}` );
+			statusMessage( roomId, `Black wins ${black}:${white}` );
 		} else if( white > black ) {
-			statusMessage( `White wins ${white}:${black}` );
+			statusMessage( roomId, `White wins ${white}:${black}` );
 		} else {
-			statusMessage( 'Draw game' );
+			statusMessage( roomId, 'Draw game' );
 		}
 	}
-	flushUpdate();
+	flushUpdate( roomId );
 	return true;
 }
 
-function statusMessage( message ) {
+function statusMessage( roomId: number, message ) {
 	console.log( message );
-	io.emit( 'message', { message } );
+	io.emit( 'message', { roomId, message } );
 	return true;
 }
 
-function chatMessage( user, message ) {
-	io.emit( 'message', { user, message } );
+function chatMessage( roomId: number, user: string, message: string ) {
+	io.emit( 'message', { roomId, user, message } );
 	return true;
 }
 
 let connections = 0;
 io.on( 'connection', socket => {
-	statusMessage( `User connected, ${++connections} connected` );
+	console.log( `User connected, ${++connections} connected` );
 
 	socket.on( 'disconnect', () => {
-		statusMessage( `User disconnected, ${--connections} connected` );
+		console.log( `User disconnected, ${--connections} connected` );
 	} );
 
-	socket.on( 'move', ( { position } ) => {
-		makeMove( position );
+	socket.on( 'makeMove', ( { gameId, position } ) => {
+		makeMove( gameId, position );
 	} );
 
-	socket.on( 'newgame', () => {
-		newGame();
+	socket.on( 'newGame', ( { roomId } ) => {
+		newGame( roomId );
 	} );
 
-	socket.on( 'message', ( { user, message } ) => {
-		chatMessage( user, message );
+	socket.on( 'sendMessage', ( { roomId, user, message } ) => {
+		chatMessage( roomId, user, message );
 	} );
 
 	flushUpdate( socket );

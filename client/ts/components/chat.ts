@@ -1,26 +1,21 @@
-import { Component } from '@angular/core';
-import { SessionService } from '../services/index';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component( {
 	selector: 'chat',
 	templateUrl: 'templates/chat.html'
 } )
 export class ChatComponent {
-	constructor( private session: SessionService ) {}
-
-	protected ngOnInit() {
-		const { session, messages } = this;
-		session.getMessages().subscribe( messages.push.bind( messages ) );
-	}
-
+	@Input()
 	public messages = [] as Message[];
 
-	public text = '';
+	@Output()
+	public sendMessage = new EventEmitter<SendMessageEvent>();
 
-	public onSubmit() {
-		const { session, text } = this;
-		if( !text ) { return; }
-		this.text = '';
-		session.sendChatMessage( 'Guest', text );
+	public onSendMessage( input: HTMLInputElement ) {
+		const { sendMessage } = this,
+			{ value: message } = input;
+		if( !message ) { return; }
+		input.value = '';
+		sendMessage.next( { message } );
 	}
 }

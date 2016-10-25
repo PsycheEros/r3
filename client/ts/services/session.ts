@@ -1,5 +1,6 @@
 import { Observable, ReplaySubject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
+import Rules from '../rules';
 import Game from '../game';
 import GameState from '../game-state';
 import * as io from 'socket.io-client';
@@ -42,11 +43,6 @@ export class SessionService {
 		return gameStateSubject as Observable<GameState>;
 	}
 
-	public getMessages() {
-		const { messageSubject } = this;
-		return messageSubject as Observable<Message>;
-	}
-
 	public makeMove( position: Point ) {
 		const { socket } = this;
 		socket.emit( 'move', { position } );
@@ -57,9 +53,14 @@ export class SessionService {
 		socket.emit( 'newgame' );
 	}
 
-	public sendChatMessage( user: string, message: string ) {
+	public getEvents<T>( message: string ) {
 		const { socket } = this;
-		socket.emit( 'message', { user, message } );
+		return Observable.fromEvent( socket, message ) as Observable<T>;
+	}
+
+	public emit( message: string, ...args: any[] ) {
+		const { socket } = this;
+		socket.emit( message, ...args );
 	}
 
 	private socket: SocketIOClient.Socket;
