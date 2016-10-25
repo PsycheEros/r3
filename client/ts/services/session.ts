@@ -15,7 +15,7 @@ export class SessionService {
 		}
 
 		for( let evt of [ 'error', 'connect_error', 'reconnect_error' ] ) {
-			socket.on( evt, console.error.bind( console, evt ) ); 
+			socket.on( evt, console.error.bind( console, evt ) );
 		}
 
 		socket.on( 'message', data => {
@@ -41,16 +41,6 @@ export class SessionService {
 	public getGameState() {
 		const { gameStateSubject } = this;
 		return gameStateSubject as Observable<GameState>;
-	}
-
-	public makeMove( position: Point ) {
-		const { socket } = this;
-		socket.emit( 'move', { position } );
-	}
-
-	public newGame() {
-		const { socket } = this;
-		socket.emit( 'newgame' );
 	}
 
 	public getEvents<T>( message: string ) {

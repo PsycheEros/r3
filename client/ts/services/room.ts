@@ -25,6 +25,16 @@ export class RoomService {
 		return allRooms as Observable<Room[]>;
 	}
 
+	public newGame( roomId: number ) {
+		const { sessionService } = this;
+		sessionService.emit( 'newGame', { roomId } );
+	}
+
+	public makeMove( roomId: number, position: Point ) {
+		const { sessionService } = this;
+		sessionService.emit( 'move', { position } );
+	}
+
 	public sendMessage( roomId: number, user: string, message: string ) {
 		const { sessionService } = this;
 		sessionService.emit( 'sendMessage', { roomId, user, message } );

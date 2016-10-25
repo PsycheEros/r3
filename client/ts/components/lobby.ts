@@ -10,7 +10,9 @@ export class LobbyComponent {
 
 	protected ngOnInit() {
 		const { roomService } = this;
-		roomService.getRooms()
+		roomService.getRooms().subscribe( rooms => {
+			this.rooms = rooms;
+		} );
 	}
 
 	public rooms = [] as Room[];
