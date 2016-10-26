@@ -1,4 +1,4 @@
-import { Observable, ReplaySubject } from 'rxjs/Rx';
+import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
 import { Inject, Injectable } from '@angular/core';
 import Rules from '../rules';
 import Game from '../game';
@@ -9,6 +9,18 @@ import * as io from 'socket.io-client';
 @Injectable()
 export class RoomService {
 	constructor( @Inject(SessionService) private sessionService: SessionService ) {
+		sessionService.getEvents<SerializedGame>( 'game' ).subscribe( gameSerialized => {
+			const allGames = this.allGames.getValue(),
+				game = Game.deserialize( gameSerialized ),
+				index = allGames.findIndex( g => g.gameId === game.gameId );
+			if( index >= 0 ) {
+				allGames.splice( index, 1, game );
+			} else {
+				allGames.push( game );
+			}
+			this.allGames.next( allGames );
+		} );
+
 		sessionService.getEvents<Room[]>( 'rooms' ).subscribe( rooms => {
 			const { allRooms } = this;
 			allRooms.next( rooms );
@@ -25,6 +37,11 @@ export class RoomService {
 		return allRooms as Observable<Room[]>;
 	}
 
+	public getGames( roomId: number ) {
+		const { allGames } = this;
+		return allGames;
+	}
+
 	public newGame( roomId: number ) {
 		const { sessionService } = this;
 		sessionService.emit( 'newGame', { roomId } );
@@ -32,12 +49,12 @@ export class RoomService {
 
 	public makeMove( roomId: number, position: Point ) {
 		const { sessionService } = this;
-		sessionService.emit( 'move', { position } );
+		return sessionService.emit( 'makeMove', { roomId, position } );
 	}
 
 	public sendMessage( roomId: number, user: string, message: string ) {
 		const { sessionService } = this;
-		sessionService.emit( 'sendMessage', { roomId, user, message } );
+		return sessionService.emit( 'sendMessage', { roomId, user, message } );
 	}
 
 	public getMessages( roomId: number ) {
@@ -46,26 +63,36 @@ export class RoomService {
 	}
 
 	public getJoinedRooms() {
-		const { allRooms, joinedRooms } = this;
-		return allRooms.filter( r => joinedRooms.has( r.roomId ) ) as Observable<Room[]>;
+		const { joinedRooms } = this;
+		return joinedRooms as Observable<Room[]>;
 	}
 
 	public joinRoom( roomId: number ) {
-		const { joinedRooms } = this;
-		joinedRooms.add( roomId );
+		const { sessionService, joinedRoomIds } = this;
+		const set = new Set( joinedRoomIds.getValue() );
+		set.add( roomId );
+		joinedRoomIds.next( Array.from( set ) );
+		return Promise.resolve<void>( null );
 	}
 
 	public quitRoom( roomId: number ) {
-		const { joinedRooms } = this;
-		joinedRooms.delete( roomId );
+		const { joinedRoomIds } = this;
+		const set = new Set( joinedRoomIds.getValue() );
+		set.delete( roomId );
+		joinedRoomIds.next( Array.from( set ) );
+		return Promise.resolve<void>( null );
 	}
 
 	public createRoom( name: string ) {
 		const { sessionService } = this;
-		sessionService.emit( 'createRoom', { name } );
+		return sessionService.emit<Room>( 'createRoom', { name } );
 	}
 
 	private allMessages = new ReplaySubject<Message>( 1 );
-	private allRooms = new ReplaySubject<Room[]>( 1 );
-	private joinedRooms = new Set<number>();
+	private allGames = new BehaviorSubject<Game[]>( [] );
+	private allRooms = new BehaviorSubject<Room[]>( [] );
+	private joinedRoomIds = new BehaviorSubject<number[]>( [] );
+	private joinedRooms = Observable.combineLatest( this.allRooms, this.joinedRoomIds, ( allRooms, joinedRoomIds ) =>
+		allRooms.filter( room => joinedRoomIds.includes( room.roomId ) )
+	);
 }

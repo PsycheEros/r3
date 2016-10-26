@@ -1,7 +1,11 @@
-<canvas
-	[width]="board?.bounds.width" [height]="board?.bounds.height"
-	(mousemove)="handleEvent(mousemove,$event)"
-	(click)="handleEvent(click,$event)"
-	(touch)="handleEvent(click,$event.touches[0])"
-	#canvasElement>
-</canvas>
+<div class="row">
+	<div class="col-xs-12">
+		<canvas
+			[width]="board?.bounds.width" [height]="board?.bounds.height"
+			(mousemove)="handleEvent(mousemove,$event)"
+			(click)="handleEvent(click,$event)"
+			(touch)="handleEvent(click,$event.touches[0])"
+			#canvasElement>
+		</canvas>
+	</div>
+</div>

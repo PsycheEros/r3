@@ -20,8 +20,13 @@ export class R3Component {
 
 	public rooms = [] as Room[];
 
-	public closeRoom( roomId: number ) {
-		const { roomService } = this;
+	public currentRoom = null as Room|null;
+
+	public closeRoom( { roomId }: Room ) {
+		const { roomService, currentRoom } = this;
+		if( currentRoom && currentRoom.roomId === roomId ) {
+			this.currentRoom = null;
+		}
 		roomService.quitRoom( roomId );
 	}
 }

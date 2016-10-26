@@ -48,9 +48,15 @@ export class SessionService {
 		return Observable.fromEvent( socket, message ) as Observable<T>;
 	}
 
-	public emit( message: string, ...args: any[] ) {
+	public emit<T>( message: string, data?: any ) {
 		const { socket } = this;
-		socket.emit( message, ...args );
+		return new Promise<T>( ( resolve, reject ) => {
+			socket.emit( message, data, ( error, result ) => {
+				if( error ) reject( error );
+				else resolve( result );
+			} );
+		} );
+		
 	}
 
 	private socket: SocketIOClient.Socket;

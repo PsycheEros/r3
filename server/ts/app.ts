@@ -36,6 +36,10 @@ const rooms = [] as Room[];
 const roomsById = new Map<number, Room>();
 const gamesById = new Map<number, Game>();
 
+function flushRooms( target = io ) {
+	target.emit( 'rooms', rooms );
+}
+
 function flushUpdate( roomId: number, target = io ) {
 	const room = roomsById.get( roomId );
 	if( !room ) return;
@@ -57,15 +61,16 @@ function newGame( room: Room ) {
 	game = rules.newGame( gameId );
 	gamesById.set( gameId, game );
 	flushUpdate( room.roomId );
-	return gameId;
+	return game;
 }
 
 let nextRoomId = 0;
-function newRoom( name: string ) {
+function createRoom( name: string ) {
 	const roomId = nextRoomId++,
 		room = { roomId, gameId: null as any, name } as Room;
-	room.gameId = newGame( room )!;
+	room.gameId = newGame( room )!.gameId;
 	rooms.push( room );
+	return room;
 }
 
 function makeMove( roomId: number, position: Point ) {
@@ -110,19 +115,43 @@ io.on( 'connection', socket => {
 		console.log( `User disconnected, ${--connections} connected` );
 	} );
 
-	socket.on( 'makeMove', ( { gameId, position } ) => {
-		makeMove( gameId, position );
+	socket.on( 'makeMove', ( { roomId, position }, callback ) => {
+		if( makeMove( roomId, position ) ) {
+			flushUpdate( roomId );
+			callback( null, null );
+		} else {
+			callback( 'Failed to make move.', null );
+		}
 	} );
 
-	socket.on( 'newGame', ( { roomId } ) => {
-		newGame( roomId );
+	socket.on( 'newGame', ( { roomId }, callback ) => {
+		const game = newGame( roomId );
+		if( game ) {
+			callback( null, game );
+			flushRooms();
+			flushUpdate( roomId );
+		} else {
+			callback( 'Failed to create game.', null );
+		}
 	} );
 
-	socket.on( 'sendMessage', ( { roomId, user, message } ) => {
-		chatMessage( roomId, user, message );
+	socket.on( 'sendMessage', ( { roomId, user, message }, callback ) => {
+		if( chatMessage( roomId, user, message ) ) {
+			callback( null, null );
+		}
 	} );
 
-	flushUpdate( socket );
+	socket.on( 'createRoom', ( { name }, callback ) => {
+		const game = createRoom( name );
+		if( game ) {
+			callback( null, game );
+			flushRooms();
+		} else {
+			callback( 'Failed to create room.', null );
+		}
+	} );
+
+	flushRooms( socket );
 } );
 
 /*

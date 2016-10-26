@@ -11,8 +11,8 @@ const gulp = require( 'gulp' ),
 	browserSync = require( 'browser-sync' ).create(),
 	minimist = require( 'minimist' ),
 	options = minimist( process.argv.slice( 2 ), {
-		boolean: [ 'uglify', 'fix' ],
-		default: { uglify: true }
+		boolean: [ 'babel', 'uglify', 'fix' ],
+		default: { babel: true, uglify: true }
 	} );
 
 gulp.task( 'browsersync:reload', done => {
@@ -55,7 +55,7 @@ gulp.task( 'build:ts:client', () => {
 	] )
 	.pipe( sourcemaps.init() )
 	.pipe( tsproj() )
-	.pipe( babel( { presets: [ 'es2015' ] } ) )
+	.pipe( gulpIf( options.babel, babel( { presets: [ 'es2015' ] } ) ) )
 	.pipe( sourcemaps.write( './' ) )
 	.pipe( gulp.dest( 'client/js' ) );
 } );

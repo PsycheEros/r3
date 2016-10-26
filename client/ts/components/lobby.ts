@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { RoomService } from '../services/index';
+import { ModalDirective } from 'ng2-bootstrap';
 
 @Component( {
 	selector: 'lobby',
@@ -7,6 +8,9 @@ import { RoomService } from '../services/index';
 } )
 export class LobbyComponent {
 	constructor( private roomService: RoomService ) {}
+
+	@ViewChild( 'createRoomModal' )
+	public createRoomModal: ModalDirective;
 
 	protected ngOnInit() {
 		const { roomService } = this;
@@ -17,13 +21,17 @@ export class LobbyComponent {
 
 	public rooms = [] as Room[];
 
-	public joinRoom( roomId: number ) {
+	public joinRoom( room: Room ) {
 		const { roomService } = this;
-		roomService.joinRoom( roomId );
+		roomService.joinRoom( room.roomId );
 	}
 
 	public createRoom( name: string ) {
-		const { roomService } = this;
-		roomService.createRoom( name );
+		const { createRoomModal, roomService } = this;
+		if( !name ) { return };
+		createRoomModal.hide();		
+		roomService.createRoom( name ).then( room =>
+			roomService.joinRoom( room.roomId )
+		);
 	}
 }

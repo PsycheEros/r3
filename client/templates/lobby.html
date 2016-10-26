@@ -1,4 +1,4 @@
-<div class="row mt-1 mb-1">
+<div class="row">
 	<div class="col-xs-12">
 		<div class="list-group">
 			<div class="list-group-item" *ngIf="rooms.length === 0">
@@ -6,7 +6,7 @@
 			</div>
 			<div class="list-group-item clearfix" *ngFor="let room of rooms">
 				<h4>{{room.name}}</h4>
-				<button class="btn float-xs-right" (click)="join(room.roomId)">
+				<button class="btn float-xs-right" (click)="joinRoom(room)">
 					Join
 				</button>
 			</div>
@@ -18,7 +18,7 @@
 		</button>
 	</div>
 </div>
-<div bsModal #createRoomModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+<div bsModal #createRoomModal="bs-modal" (onHidden)="roomName.value = '';" (onShown)="roomName.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
@@ -30,7 +30,7 @@
 				</h4>
 			</div>
 			<div class="modal-body">
-				<form (ngSubmit)="createRoom(roomName)" class="clearfix">
+				<form (ngSubmit)="createRoom(roomName.value)" class="clearfix">
 					<div class="form-group">
 						<input type="text" class="form-control" placeholder="Game Room" #roomName/>
 					</div>
