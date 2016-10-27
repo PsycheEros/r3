@@ -16,8 +16,8 @@ export class RoomComponent {
 			messages.push( message );
 		} );
 
-		roomService.getGames( room.roomId ).subscribe( game => {
-			this.game = game;
+		roomService.getGames( room.roomId ).subscribe( games => {
+			this.game = games[ games.length - 1 ];
 		} );
 	}
 

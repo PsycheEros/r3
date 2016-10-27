@@ -100,7 +100,7 @@ export default class Rules {
 		return score;
 	}
 
-	public newGame( gameId: number ) {
+	public newGame( gameId: string ) {
 		const game = new Game( gameId ),
 			gameState = new GameState,
 			{ board } = gameState;

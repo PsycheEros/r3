@@ -1,5 +1,5 @@
 declare interface ChatMessage {
-	roomId: number;
+	roomId: string;
 	user: string;
 	message: string;
 }

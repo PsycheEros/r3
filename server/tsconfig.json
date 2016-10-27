@@ -5,7 +5,7 @@
 		"module": "commonjs",
 		"lib": [ "es2017" ],
 		"rootDirs": [ "ts", "../ts" ],
-		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs" ],
+		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs", "uuid" ],
 		"strictNullChecks": true
 	},
 	"include": [

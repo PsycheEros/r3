@@ -26,6 +26,15 @@ export class RoomService {
 			allRooms.next( rooms );
 		} );
 
+		sessionService.getEvents<Room[]>( 'joinedRooms' ).subscribe( rooms => {
+			const { joinedRooms } = this,
+				currentRoom = this.currentRoom.getValue();
+			if( currentRoom && !rooms.some( room => room.roomId === currentRoom.roomId ) ) {
+				this.currentRoom.next( null );
+			}
+			joinedRooms.next( rooms );
+		} );
+
 		sessionService.getEvents<Message>( 'message' ).subscribe( message => {
 			const { allMessages } = this;
 			allMessages.next( message );
@@ -37,27 +46,27 @@ export class RoomService {
 		return allRooms as Observable<Room[]>;
 	}
 
-	public getGames( roomId: number ) {
+	public getGames( roomId: string ) {
 		const { allGames } = this;
 		return allGames;
 	}
 
-	public newGame( roomId: number ) {
+	public async newGame( roomId: string ) {
 		const { sessionService } = this;
-		sessionService.emit( 'newGame', { roomId } );
+		return await sessionService.emit<Game>( 'newGame', { roomId } );
 	}
 
-	public makeMove( roomId: number, position: Point ) {
+	public async makeMove( roomId: string, position: Point ) {
 		const { sessionService } = this;
-		return sessionService.emit( 'makeMove', { roomId, position } );
+		await sessionService.emit( 'makeMove', { roomId, position } );
 	}
 
-	public sendMessage( roomId: number, user: string, message: string ) {
+	public async sendMessage( roomId: string, user: string, message: string ) {
 		const { sessionService } = this;
-		return sessionService.emit( 'sendMessage', { roomId, user, message } );
+		await sessionService.emit( 'sendMessage', { roomId, user, message } );
 	}
 
-	public getMessages( roomId: number ) {
+	public getMessages( roomId: string ) {
 		const { allMessages } = this;
 		return allMessages.filter( m => m.roomId === roomId ) as Observable<Message>;
 	}
@@ -67,32 +76,45 @@ export class RoomService {
 		return joinedRooms as Observable<Room[]>;
 	}
 
-	public joinRoom( roomId: number ) {
-		const { sessionService, joinedRoomIds } = this;
-		const set = new Set( joinedRoomIds.getValue() );
-		set.add( roomId );
-		joinedRoomIds.next( Array.from( set ) );
-		return Promise.resolve<void>( null );
+	public async joinRoom( room: Room ) {
+		const { sessionService, currentRoom } = this,
+			{ roomId } = room;
+		await sessionService.emit<Room>( 'joinRoom', { roomId } );
+		currentRoom.next( room );
 	}
 
-	public quitRoom( roomId: number ) {
-		const { joinedRoomIds } = this;
-		const set = new Set( joinedRoomIds.getValue() );
-		set.delete( roomId );
-		joinedRoomIds.next( Array.from( set ) );
-		return Promise.resolve<void>( null );
-	}
-
-	public createRoom( name: string ) {
+	public async leaveRoom( roomId: string ) {
 		const { sessionService } = this;
-		return sessionService.emit<Room>( 'createRoom', { name } );
+		await sessionService.emit( 'leaveRoom', { roomId } );
+	}
+
+	public async createRoom( name: string ) {
+		const { sessionService, currentRoom } = this;
+		return await sessionService.emit<Room>( 'createRoom', { name } );
+	}
+
+	public async setRoom( room: Room|void ) {
+		const { currentRoom } = this;
+		if( room ) {
+			const { roomId } = room,
+				joinedRooms = this.joinedRooms.getValue();
+			if( !joinedRooms.some( r => r.roomId === roomId ) ) {
+				throw new Error( 'Room is not joined.' );
+			}
+			currentRoom.next( room );
+		} else {
+			currentRoom.next( null );
+		}
+	}
+
+	public getCurrentRoom() {
+		const { currentRoom } = this;
+		return currentRoom as Observable<Room>;
 	}
 
 	private allMessages = new ReplaySubject<Message>( 1 );
 	private allGames = new BehaviorSubject<Game[]>( [] );
 	private allRooms = new BehaviorSubject<Room[]>( [] );
-	private joinedRoomIds = new BehaviorSubject<number[]>( [] );
-	private joinedRooms = Observable.combineLatest( this.allRooms, this.joinedRoomIds, ( allRooms, joinedRoomIds ) =>
-		allRooms.filter( room => joinedRoomIds.includes( room.roomId ) )
-	);
+	private joinedRooms = new BehaviorSubject<Room[]>( [] );
+	private currentRoom = new BehaviorSubject<Room|null>( null );
 }

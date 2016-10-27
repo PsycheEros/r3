@@ -21,17 +21,16 @@ export class LobbyComponent {
 
 	public rooms = [] as Room[];
 
-	public joinRoom( room: Room ) {
+	public async joinRoom( room: Room ) {
 		const { roomService } = this;
-		roomService.joinRoom( room.roomId );
+		await roomService.joinRoom( room );
 	}
 
-	public createRoom( name: string ) {
+	public async createRoom( name: string ) {
 		const { createRoomModal, roomService } = this;
 		if( !name ) { return };
-		createRoomModal.hide();		
-		roomService.createRoom( name ).then( room =>
-			roomService.joinRoom( room.roomId )
-		);
+		createRoomModal.hide();
+		const room = await roomService.createRoom( name );
+		await roomService.joinRoom( room );
 	}
 }

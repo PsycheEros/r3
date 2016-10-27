@@ -48,7 +48,7 @@ export class SessionService {
 		return Observable.fromEvent( socket, message ) as Observable<T>;
 	}
 
-	public emit<T>( message: string, data?: any ) {
+	public emit<T>( message: string, data: Object = {} ) {
 		const { socket } = this;
 		return new Promise<T>( ( resolve, reject ) => {
 			socket.emit( message, data, ( error, result ) => {
@@ -56,7 +56,6 @@ export class SessionService {
 				else resolve( result );
 			} );
 		} );
-		
 	}
 
 	private socket: SocketIOClient.Socket;

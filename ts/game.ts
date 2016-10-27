@@ -2,7 +2,7 @@ import GameState from './game-state';
 import Rules from './rules';
 
 export default class Game {
-	public constructor( public readonly gameId: number ) {}
+	public constructor( public readonly gameId: string ) {}
 
 	public readonly colors = [] as number[];
 

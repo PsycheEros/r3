@@ -1,5 +1,5 @@
 declare interface Room {
-	roomId: number;
-	gameId: number;
+	roomId: string;
+	gameId: string;
 	name: string;
 }

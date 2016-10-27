@@ -3,22 +3,22 @@
 	<ul class="nav nav-tabs">
 		<li class="nav-item">
 			<a class="nav-link" href="javascript:"
-				(click)="currentRoom=null"
+				(click)="setRoom(null)"
 				[class.active]="!currentRoom"
 			>Lobby</a>
 		</li>
 		<li class="nav-item" *ngFor="let room of rooms">
 			<a class="nav-link" href="javascript:"
-				(click)="currentRoom=room"
+				(click)="setRoom(room)"
 				[class.active]="currentRoom?.roomId===room.roomId"
 			>
 			{{room.name}}
-			<button class="close pull-xs-right ml-1" (click)="closeRoom(room)">×</button>
+			<button class="close pull-xs-right ml-1" (click)="leaveRoom(room)">×</button>
 			</a>
 		</li>
 	</ul>
 </nav>
 <div class="container-fluid">
 	<lobby [hidden]="currentRoom"></lobby>
-	<room [room]="room" [hidden]="currentRoom?.roomId!==room.roomId" *ngFor="let room of rooms"></room>
+	<room [room]="currentRoom" *ngIf="currentRoom"></room>
 </div>

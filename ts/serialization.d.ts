@@ -10,7 +10,7 @@ declare interface SerializedGameState {
 }
 
 declare interface SerializedGame {
-	gameId: number;
+	gameId: string;
 	colors: number[];
 	gameStates: SerializedGameState[];
 }
