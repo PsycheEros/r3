@@ -19,6 +19,6 @@
 	</ul>
 </nav>
 <div class="container-fluid">
-	<lobby [hidden]="currentRoom"></lobby>
-	<room [room]="currentRoom" *ngIf="currentRoom"></room>
+	<lobby *ngIf="!currentRoom"></lobby>
+	<room *ngIf="currentRoom"></room>
 </div>

@@ -9,13 +9,13 @@ export class ChatComponent {
 	public messages = [] as Message[];
 
 	@Output()
-	public sendMessage = new EventEmitter<SendMessageEvent>();
+	public onSendMessage = new EventEmitter<SendMessageEvent>();
 
-	public onSendMessage( input: HTMLInputElement ) {
-		const { sendMessage } = this,
+	public sendMessage( input: HTMLInputElement ) {
+		const { onSendMessage } = this,
 			{ value: message } = input;
 		if( !message ) { return; }
 		input.value = '';
-		sendMessage.next( { message } );
+		onSendMessage.next( { message } );
 	}
 }

@@ -30,11 +30,11 @@
 				</h4>
 			</div>
 			<div class="modal-body">
-				<form (ngSubmit)="createRoom(roomName.value)" class="clearfix">
+				<form (ngSubmit)="createRoom(roomName.value)" class="clearfix" #createRoomForm="ngForm">
 					<div class="form-group">
-						<input type="text" class="form-control" placeholder="Game Room" #roomName/>
+						<input type="text" class="form-control" placeholder="Game Room" required="required" #roomName/>
 					</div>
-					<button class="btn float-xs-right">
+					<button class="btn float-xs-right" [disabled]="!createRoomForm.form.valid">
 						Create
 					</button>
 				</form>

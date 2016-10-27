@@ -66,9 +66,9 @@ export class RoomService {
 		await sessionService.emit( 'sendMessage', { roomId, user, message } );
 	}
 
-	public getMessages( roomId: string ) {
+	public getMessages() {
 		const { allMessages } = this;
-		return allMessages.filter( m => m.roomId === roomId ) as Observable<Message>;
+		return allMessages as Observable<Message>;
 	}
 
 	public getJoinedRooms() {

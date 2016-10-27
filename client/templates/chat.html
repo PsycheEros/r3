@@ -1,14 +1,17 @@
 <div class="row">
 	<div class="col-xs-12">
-		<form (ngSubmit)="sendMessage(text)">
+		<form (ngSubmit)="sendMessage(text)" #messageForm="ngForm">
 			<div class="form-group">
-				<input type="text" class="form-control" placeholder="Enter message" #text/>
+				<input type="text" class="form-control" required="required" placeholder="Enter message"/>
+				<button class="sr-only" [disabled]="!messageForm.form.valid">
+					Send
+				</button>
 			</div>
 		</form>
 	</div>
 	<div class="col-xs-12">
 		<div class="list-group">
-			<div class="list-group-item" *ngFor="let message of messages">
+			<div class="list-group-item" *ngFor="let message of messages | async">
 				<h4 class="list-group-item-heading text-muted" *ngIf="message.user">{{message.user}}</h4>
 				<p class="list-group-item-text">
 					{{message.message}}
