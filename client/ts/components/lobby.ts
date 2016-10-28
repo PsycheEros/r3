@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { RoomService } from '../services/index';
-import { ModalDirective } from 'ng2-bootstrap';
+import { ModalCreateRoomComponent } from './modal/create-room';
 
 @Component( {
 	selector: 'lobby',
@@ -10,7 +10,7 @@ export class LobbyComponent {
 	constructor( private roomService: RoomService ) {}
 
 	@ViewChild( 'createRoomModal' )
-	public createRoomModal: ModalDirective;
+	public createRoomModal: ModalCreateRoomComponent;
 
 	protected ngOnInit() {
 		const { roomService } = this;

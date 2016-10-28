@@ -9,7 +9,7 @@ import * as io from 'socket.io-client';
 @Injectable()
 export class RoomService {
 	constructor( @Inject(SessionService) private sessionService: SessionService ) {
-		sessionService.getEvents<SerializedGame>( 'game' ).subscribe( gameSerialized => {
+		sessionService.getEvents<SerializedGame>( 'update' ).subscribe( gameSerialized => {
 			const allGames = this.allGames.getValue(),
 				game = Game.deserialize( gameSerialized ),
 				index = allGames.findIndex( g => g.gameId === game.gameId );
@@ -46,7 +46,7 @@ export class RoomService {
 		return allRooms as Observable<Room[]>;
 	}
 
-	public getGames( roomId: string ) {
+	public getGames() {
 		const { allGames } = this;
 		return allGames;
 	}

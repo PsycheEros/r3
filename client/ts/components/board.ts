@@ -55,8 +55,17 @@ function drawRect(
 export class BoardComponent {
 	constructor( private element: ElementRef ) {}
 
+	protected ngAfterViewInit() {
+		const canvas = this.canvas = this.canvasElementRef.nativeElement;
+		this.c2d = canvas.getContext( '2d' );
+	}
+
 	@ViewChild( 'canvasElement' )
-	private canvasElement: ElementRef;
+	private canvasElementRef: ElementRef;
+
+	private canvas: HTMLCanvasElement;
+
+	private c2d: CanvasRenderingContext2D;
 
 	@Input()
 	public board: Board;
@@ -67,19 +76,11 @@ export class BoardComponent {
 	@Output()
 	public mousemove = new EventEmitter<BoardMouseEvent>();
 
-	protected ngAfterViewInit() {
-		this.render();
-	}
-
-	private render() {
-		const { canvasElement } = this,
-			canvas = canvasElement.nativeElement as HTMLCanvasElement,
-			{ board } = this;
+	private render( board: Board ) {
+		if( !board ) { return; }
 		requestAnimationFrame( () => {
-			this.render();
-			if( !board ) return;
-			const { width, height } = canvas,
-				c2d = canvas.getContext( '2d' ),
+			const { canvas, c2d } = this,
+				{ width, height } = canvas,
 				lightSource: Point = {
 					x: board.bounds.left + board.bounds.width * .25,
 					y: board.bounds.top + board.bounds.height * .25
@@ -230,9 +231,9 @@ export class BoardComponent {
 	}
 
 	private handleEvent( emitter: EventEmitter<BoardMouseEvent>, { clientX, clientY }: MouseEvent ) {
-		const { board, mousemove, canvasElement } = this,
+		const { board, mousemove, canvas } = this,
 			screenPosition = { x: clientX, y: clientY },
-			canvasPosition = screenToCanvas( canvasElement.nativeElement, { x: clientX, y: clientY } ),
+			canvasPosition = screenToCanvas( canvas, { x: clientX, y: clientY } ),
 			square = board.hitTest( canvasPosition ),
 			boardPosition = square && square.position || null;
 		emitter.emit( {

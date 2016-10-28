@@ -43,16 +43,39 @@ const rooms = [] as Room[];
 const roomsById = new Map<string, Room>();
 const gamesById = new Map<string, Game>();
 
+function usersInRoom( roomId: string ): number {
+	const room = io.nsps[ '/' ].adapter.rooms[ roomId ];
+	if( !room ) return 0;
+	return Object.keys( room.sockets ).length;
+}
+
+function cleanupRooms() {
+	let removed = 0;
+	for( let i = 0; i < rooms.length; ++i ) {
+		const { roomId } = rooms[ i ];
+		if( usersInRoom( roomId ) > 0 ) {
+			rooms.splice( i--, 1 );
+			roomsById.delete( roomId );
+			++removed;
+		}
+	}
+	if( removed ) {
+		flushRooms();
+	}
+}
+
 async function flushRooms( target: SocketIO.Socket|SocketIO.Server = io ) {
 	target.emit( 'rooms', rooms );
 }
 
-async function flushUpdate( roomId: string, target = io ) {
-	const room = roomsById.get( roomId );
-	if( !room ) return;
+async function flushUpdate( room: Room, socket?: SocketIO.Socket ) {
 	const game = gamesById.get( room.gameId );
 	if( !game ) return;
-	target.to( roomId ).emit( 'update', game.serialize() );
+	if( socket ) {
+		socket.emit( 'update', game.serialize() );
+	} else {
+		io.to( room.roomId ).emit( 'update', game.serialize() );
+	}
 }
 
 function newGame( room: Room ) {
@@ -66,7 +89,7 @@ function newGame( room: Room ) {
 	const gameId = uuid.v4();
 	game = rules.newGame( gameId );
 	gamesById.set( gameId, game );
-	flushUpdate( room.roomId );
+	flushUpdate( room );
 	return game;
 }
 
@@ -86,13 +109,12 @@ function destroyRoom( roomId: string ) {
 	flushRooms();
 }
 
-function makeMove( roomId: string, position: Point ) {
-	const room = roomsById.get( roomId );
-	if( !room ) return;
+function makeMove( room: Room, position: Point ) {
 	const game = gamesById.get( room.gameId );
 	if( !game ) return;
 	if( !rules.makeMove( game, position ) ) return;
-	const { currentGameState: gameState } = game,
+	const { roomId } = room,
+		{ currentGameState: gameState } = game,
 		{ board } = gameState!;
 	if( rules.isGameOver( board ) ) {
 		const black = rules.getScore( board, 0 ),
@@ -105,7 +127,7 @@ function makeMove( roomId: string, position: Point ) {
 			statusMessage( roomId, 'Draw game' );
 		}
 	}
-	flushUpdate( roomId );
+	flushUpdate( room );
 	return true;
 }
 
@@ -132,15 +154,23 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 	console.log( `User connected, ${++connections} connected` );
 
 	socket.on( 'disconnect', () => {
+		for( const roomId of Object.values( socket.rooms ) ) {
+			statusMessage( roomId, 'User has disconnected.' );
+		}
+		setTimeout( () => { cleanupRooms(); }, 0 );
 		console.log( `User disconnected, ${--connections} connected` );
 	} );
 
 	socket.on( 'makeMove', async ( { roomId, position }, callback ) => {
 		try {
-			if( !makeMove( roomId, position ) ) {
+			const room = roomsById.get( roomId );
+			if( !room ) {
+				throw new Error( 'Room not found.' );
+			}
+			if( !makeMove( room, position ) ) {
 				throw new Error( 'Failed to make move.' );
 			}
-			await flushUpdate( roomId ); 
+			await flushUpdate( room ); 
 			callback( null, {} );
 		} catch( ex ) {
 			callback( ex.message || ex, null );
@@ -178,6 +208,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			if( !room ) {
 				throw new Error( 'Failed to create room.' );
 			}
+
 			await flushRooms();
 			callback( null, room );
 		} catch( ex ) {
@@ -198,6 +229,8 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 				} );
 			} );
 			await flushJoinedRooms();
+			await flushUpdate( room, socket );
+			await statusMessage( roomId, 'User has joined the room.' );
 			callback( null, { room } );
 		} catch( ex ) {
 			callback( ex.message || ex, null );
@@ -216,10 +249,12 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 				} );
 			} );
 			await flushJoinedRooms();
+			await statusMessage( roomId, 'User has left the room.' );
 			callback( null, {} );
 		} catch( ex ) {
 			callback( ex.message || ex, null );
 		}
+		setTimeout( () => { cleanupRooms(); }, 0 );
 	} );
 
 	flushRooms( socket );
