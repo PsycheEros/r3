@@ -68,7 +68,7 @@ export class RoomService {
 
 	public getMessages() {
 		const { allMessages } = this;
-		return allMessages as Observable<Message>;
+		return allMessages.toArray() as Observable<Message[]>;
 	}
 
 	public getJoinedRooms() {
@@ -112,7 +112,7 @@ export class RoomService {
 		return currentRoom as Observable<Room>;
 	}
 
-	private allMessages = new ReplaySubject<Message>( 1 );
+	private allMessages = new ReplaySubject<Message>( 10 );
 	private allGames = new BehaviorSubject<Game[]>( [] );
 	private allRooms = new BehaviorSubject<Room[]>( [] );
 	private joinedRooms = new BehaviorSubject<Room[]>( [] );

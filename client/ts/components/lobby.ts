@@ -26,11 +26,13 @@ export class LobbyComponent {
 		await roomService.joinRoom( room );
 	}
 
-	public async createRoom( name: string ) {
-		const { createRoomModal, roomService } = this;
-		if( !name ) { return };
+	public roomName = '';
+
+	public async createRoom() {
+		const { createRoomModal, roomService, roomName } = this;
+		if( !roomName ) { return };
 		createRoomModal.hide();
-		const room = await roomService.createRoom( name );
+		const room = await roomService.createRoom( roomName );
 		await roomService.joinRoom( room );
 	}
 }

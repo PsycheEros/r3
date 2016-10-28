@@ -1,0 +1,33 @@
+<div bsModal #chooseModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" (click)="dismiss()" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+				<h4 class="modal-title" *ngIf="title">
+					{{title}}
+				</h4>
+			</div>
+			<div class="modal-body clearfix">
+				<div class="row">
+					<div class="col-xs-12" *ngIf="prompt">
+						{{prompt}}
+					</div>
+					<div class="col-xs-12 clearfix">
+						<div class="btn-group float-xs-right" role="group">
+							<button class="btn"
+								role="button"
+								[class.btn-primary]="button === defaultButton"
+								(click)="choose(button)"
+								*ngFor="let button of buttons"
+							>
+								{{button}}
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

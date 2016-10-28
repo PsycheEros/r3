@@ -18,34 +18,12 @@ export class SessionService {
 			socket.on( evt, console.error.bind( console, evt ) );
 		}
 
-		socket.on( 'message', data => {
-			this.messageSubject.next( data );
-		} );
-
-		socket.on( 'update', data => {
-			this.gameSubject.next( Game.deserialize( data ) );
-		} );
-
 		Object.assign( this, { socket } );
 	}
 
-	private gameSubject = new ReplaySubject<Game>();
-	private gameStateSubject = this.gameSubject.map( game => game.currentGameState );
-	private messageSubject = new ReplaySubject<Message>();
-
-	public getGame( gameId: number ) {
-		const { gameSubject } = this;
-		return gameSubject as Observable<Game>;
-	}
-
-	public getGameState() {
-		const { gameStateSubject } = this;
-		return gameStateSubject as Observable<GameState>;
-	}
-
-	public getEvents<T>( message: string ) {
+	public getEvents<T>( message: string ): Observable<T> {
 		const { socket } = this;
-		return Observable.fromEvent( socket, message ) as Observable<T>;
+		return Observable.fromEvent<T>( socket, message );
 	}
 
 	public emit<T>( message: string, data: Object = {} ) {

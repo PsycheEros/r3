@@ -2,7 +2,8 @@
 	"compilerOptions": {
 		"target": "es2015",
 		"outDir": "js",
-		"module": "commonjs",
+		"module": "system",
+		"moduleResolution": "node",
 		"lib": [ "dom", "es2017" ],
 		"rootDirs": [ "ts", "../ts" ],
 		"types": [ "systemjs", "mathjs" ],
