@@ -18,7 +18,6 @@ export class ChatComponent {
 			this.room = room;
 		} );
 		Observable.combineLatest( currentRoom, allMessages, ( room, messages ) => {
-			debugger;
 			if( room ) {
 				return messages.filter( message => message.roomId === room.roomId );
 			} else {

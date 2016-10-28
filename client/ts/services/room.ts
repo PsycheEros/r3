@@ -68,7 +68,7 @@ export class RoomService {
 
 	public getMessages() {
 		const { allMessages } = this;
-		return allMessages.toArray() as Observable<Message[]>;
+		return allMessages.scan( ( arr, val ) => arr.concat( val ), [] ) as Observable<Message[]>;
 	}
 
 	public getJoinedRooms() {
