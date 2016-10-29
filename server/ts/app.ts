@@ -17,7 +17,6 @@ import index = require( 'serve-index' );
 const server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server ) as SocketIO.Server,
 	rules = new Rules;
-let game: Game;
 
 if( OPENSHIFT_REDIS_HOST ) {
 	const redis = require( 'redis' ).createClient,
@@ -53,7 +52,8 @@ function cleanupRooms() {
 	let removed = 0;
 	for( let i = 0; i < rooms.length; ++i ) {
 		const { roomId } = rooms[ i ];
-		if( usersInRoom( roomId ) > 0 ) {
+		if( usersInRoom( roomId ) <= 0 ) {
+			console.log( `Deleting room ${roomId}...` );
 			rooms.splice( i--, 1 );
 			roomsById.delete( roomId );
 			++removed;
@@ -185,7 +185,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			}
 			await flushRooms();
 			await flushUpdate( roomId );
-			callback( null, { game } );
+			callback( null, { game: game.serialize() } );
 		} catch( ex ) {
 			callback( ex.message || ex, null );
 		}

@@ -114,7 +114,7 @@ gulp.task( 'watch:scss', () =>
 
 gulp.task( 'watch:ts:client', () =>
 	gulp.watch( [
-		'tsconfig.client.json',
+		'client/tsconfig.json',
 		'ts/**/*',
 		'client/ts/**/*'
 	], gulp.series( 'build:ts:client', 'browsersync:reload' ) )
@@ -122,7 +122,7 @@ gulp.task( 'watch:ts:client', () =>
 
 gulp.task( 'watch:ts:server', () =>
 	gulp.watch( [
-		'tsconfig.server.json',
+		'server/tsconfig.json',
 		'ts/**/*',
 		'server/ts/**/*'
 	], gulp.parallel( 'build:ts:server' ) )

@@ -58,6 +58,7 @@ export class BoardComponent {
 	protected ngAfterViewInit() {
 		const canvas = this.canvas = this.canvasElementRef.nativeElement;
 		this.c2d = canvas.getContext( '2d' );
+		this.render();
 	}
 
 	@ViewChild( 'canvasElement' )
@@ -76,9 +77,11 @@ export class BoardComponent {
 	@Output()
 	public mousemove = new EventEmitter<BoardMouseEvent>();
 
-	private render( board: Board ) {
-		if( !board ) { return; }
-		requestAnimationFrame( () => {
+	private render() {
+		requestAnimationFrame( time => {
+			requestAnimationFrame( () => { this.render(); } );
+			const { board } = this;
+			if( !board ) { return; }
 			const { canvas, c2d } = this,
 				{ width, height } = canvas,
 				lightSource: Point = {
