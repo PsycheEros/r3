@@ -22,7 +22,7 @@ export class ModalChooseComponent {
 	public buttons = [] as string[];
 
 	@Input( 'default-button' )
-	public defaultButton: string|undefined;
+	public defaultButton: string;
 
 	protected dismiss() {
 		const { defaultButton } = this;
