@@ -2,4 +2,8 @@
 
 canvas { max-width: 100%; }
 
+.nav-link { overflow: hidden; height: 42px;
+	.text-truncate { display: inline-block; max-width: 160px; }
+}
+
 chat .list-group { height: 90vh; overflow-y: auto; }

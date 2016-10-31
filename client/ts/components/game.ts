@@ -3,7 +3,7 @@ import GameState from '../game-state';
 import Rules from '../rules';
 import Square from '../square';
 
-import { Observable } from 'rxjs/Rx';
+import { Observable, BehaviorSubject } from 'rxjs/Rx';
 
 import { Component, Input } from '@angular/core';
 
@@ -20,13 +20,18 @@ export class GameComponent {
 
 	protected ngOnInit() {
 		const { roomService } = this;
-		const allGames = roomService.getGames(),
-			currentRoom = roomService.getCurrentRoom();
+		const currentRoom = roomService.getCurrentRoom();
 		currentRoom.subscribe( room => {
 			this.room = room || null;
 		} );
-		Observable.combineLatest( allGames, currentRoom,
-			( games, room ) => room && games.filter( game => game.gameId === room.gameId )[ 0 ] )
+		Observable.combineLatest( roomService.getGames(), currentRoom,
+			( games, room ) => {
+				if( room ) {
+					return games.filter( game => game.gameId === room.gameId )[ 0 ];
+				} else {
+					return null;
+				}
+			} )
 			.subscribe( game => {
 				this.game = game || null;
 			} );

@@ -7,6 +7,8 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 	} = process.env;
 import uuid = require( 'uuid' );
 
+import GameRepository from './game-repository';
+import RoomRepository from './room-repository';
 import Game from './game';
 import GameState from './game-state';
 import Board from './board';
@@ -38,9 +40,8 @@ type Session = {
 	socket: SocketIO.Client
 };
 
-const rooms = [] as Room[];
-const roomsById = new Map<string, Room>();
-const gamesById = new Map<string, Game>();
+const roomRepository = new RoomRepository,
+	gameRepository = new GameRepository;
 
 function usersInRoom( roomId: string ): number {
 	const room = io.nsps[ '/' ].adapter.rooms[ roomId ];
@@ -48,14 +49,14 @@ function usersInRoom( roomId: string ): number {
 	return Object.keys( room.sockets ).length;
 }
 
-function cleanupRooms() {
+async function cleanupRooms() {
 	let removed = 0;
-	for( let i = 0; i < rooms.length; ++i ) {
-		const { roomId } = rooms[ i ];
+	for( const room of await roomRepository.listAll() ) {
+		const { roomId } = room;
 		if( usersInRoom( roomId ) <= 0 ) {
 			console.log( `Deleting room ${roomId}...` );
-			rooms.splice( i--, 1 );
-			roomsById.delete( roomId );
+			await roomRepository.delete( roomId );
+			await gameRepository.delete( room.gameId );
 			++removed;
 		}
 	}
@@ -65,11 +66,11 @@ function cleanupRooms() {
 }
 
 async function flushRooms( target: SocketIO.Socket|SocketIO.Server = io ) {
-	target.emit( 'rooms', rooms );
+	target.emit( 'rooms', await roomRepository.listAll() );
 }
 
 async function flushUpdate( room: Room, socket?: SocketIO.Socket ) {
-	const game = gamesById.get( room.gameId );
+	const game = await gameRepository.read( room.gameId );
 	if( !game ) return;
 	if( socket ) {
 		socket.emit( 'update', game.serialize() );
@@ -78,39 +79,40 @@ async function flushUpdate( room: Room, socket?: SocketIO.Socket ) {
 	}
 }
 
-function newGame( room: Room ) {
-	let game = gamesById.get( room.gameId );
+async function newGame( room: Room ) {
+	let game = await gameRepository.read( room.gameId );
 	if( game ) {
 		const { currentGameState: gameState } = game,
 			{ board } = gameState!;
-		if( !rules.isGameOver( board ) ) return null;
+		if( !rules.isGameOver( board ) ) throw new Error( 'Game is not over.' );
 	}
 	statusMessage( room.roomId, 'New game' );
 	const gameId = uuid.v4();
 	game = rules.newGame( gameId );
-	gamesById.set( gameId, game );
+	room.gameId = gameId;
+	await gameRepository.create( game );
+	flushRooms();
 	flushUpdate( room );
 	return game;
 }
 
-function createRoom( name: string ) {
+async function createRoom( name: string ) {
 	const roomId = uuid.v4(),
-		room = { roomId, gameId: null as any, name } as Room;
-	room.gameId = newGame( room )!.gameId;
-	roomsById.set( roomId, room );
-	rooms.push( room );
+		room = { roomId, gameId: null as any, name } as Room,
+		game = await newGame( room );
+	room.gameId = game!.gameId;
+	await roomRepository.create( room );
+	await flushRooms();
 	return room;
 }
 
-function destroyRoom( roomId: string ) {
-	const index = rooms.findIndex( room => room.roomId === roomId );
-	if( index >= 0 ) rooms.splice( index, 1 );
-	roomsById.delete( roomId );
-	flushRooms();
+async function destroyRoom( roomId: string ) {
+	await gameRepository.delete( roomId );
+	await flushRooms();
 }
 
-function makeMove( room: Room, position: Point ) {
-	const game = gamesById.get( room.gameId );
+async function makeMove( room: Room, position: Point ) {
+	const game = await gameRepository.read( room.gameId );
 	if( !game ) return;
 	if( !rules.makeMove( game, position ) ) return;
 	const { roomId } = room,
@@ -120,14 +122,14 @@ function makeMove( room: Room, position: Point ) {
 		const black = rules.getScore( board, 0 ),
 			white = rules.getScore( board, 1 );
 		if( black > white ) {
-			statusMessage( roomId, `Black wins ${black}:${white}` );
+			await statusMessage( roomId, `Black wins ${black}:${white}` );
 		} else if( white > black ) {
-			statusMessage( roomId, `White wins ${white}:${black}` );
+			await statusMessage( roomId, `White wins ${white}:${black}` );
 		} else {
-			statusMessage( roomId, 'Draw game' );
+			await statusMessage( roomId, 'Draw game' );
 		}
 	}
-	flushUpdate( room );
+	await flushUpdate( room );
 	return true;
 }
 
@@ -145,9 +147,7 @@ let connections = 0;
 io.on( 'connection', ( socket: SocketIO.Socket ) => {
 	function flushJoinedRooms() {
 		socket.emit( 'joinedRooms',
-			Object.values( socket.rooms )
-			.map( roomId => roomsById.get( roomId ) )
-			.filter( room => !!room )
+			Object.values( socket.rooms ).slice( 1 )
 		); 
 	}
 
@@ -163,62 +163,62 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 
 	socket.on( 'makeMove', async ( { roomId, position }, callback ) => {
 		try {
-			const room = roomsById.get( roomId );
+			const room = await roomRepository.read( roomId );
 			if( !room ) {
 				throw new Error( 'Room not found.' );
 			}
-			if( !makeMove( room, position ) ) {
+			if( !await makeMove( room, position ) ) {
 				throw new Error( 'Failed to make move.' );
 			}
-			await flushUpdate( room ); 
 			callback( null, {} );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 	} );
 
 	socket.on( 'newGame', async ( { roomId }, callback ) => {
 		try {
-			const game = newGame( roomId );
+			const room = await roomRepository.read( roomId );
+			if( !room ) {
+				throw new Error( 'Room not found.' );
+			}
+			const game = await newGame( room );
 			if( !game ) {
 				throw new Error( 'Failed to create game.' );
 			}
-			await flushRooms();
-			await flushUpdate( roomId );
 			callback( null, { game: game.serialize() } );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 	} );
 
 	socket.on( 'sendMessage', async ( { roomId, user, message }, callback ) => {
 		try {
-			if( !chatMessage( roomId, user, message ) ) {
+			if( !await chatMessage( roomId, user, message ) ) {
 				throw new Error( 'Failed to send message.' );
 			}
 			callback( null, {} );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 	} );
 
 	socket.on( 'createRoom', async ( { name }, callback ) => {
 		try {
-			const room = createRoom( name );
-			if( !room ) {
-				throw new Error( 'Failed to create room.' );
-			}
-
-			await flushRooms();
+			const room = await createRoom( name );
 			callback( null, room );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 	} );
 
 	socket.on( 'joinRoom', async ( { roomId }, callback ) => {
 		try {
-			const room = roomsById.get( roomId );
+			const room = await roomRepository.read( roomId );
 			if( !room ) {
 				throw new Error( 'Failed to join room.' );
 			}
@@ -233,6 +233,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			await statusMessage( roomId, 'User has joined the room.' );
 			callback( null, { room } );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 	} );
@@ -252,6 +253,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			await statusMessage( roomId, 'User has left the room.' );
 			callback( null, {} );
 		} catch( ex ) {
+			console.error( ex );
 			callback( ex.message || ex, null );
 		}
 		setTimeout( () => { cleanupRooms(); }, 0 );

@@ -12,8 +12,10 @@
 				(click)="setRoom(room)"
 				[class.active]="currentRoom?.roomId===room.roomId"
 			>
-			{{room.name}}
-			<button class="close pull-xs-right ml-1" (click)="leaveRoom(room)">×</button>
+				<span class="text-truncate">
+					{{room.name}}
+				</span>
+				<button class="close pull-xs-right ml-1" (click)="leaveRoom(room)">×</button>
 			</a>
 		</li>
 	</ul>

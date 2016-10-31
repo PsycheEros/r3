@@ -26,13 +26,20 @@ export class RoomService {
 			allRooms.next( rooms );
 		} );
 
-		sessionService.getEvents<Room[]>( 'joinedRooms' ).subscribe( rooms => {
-			const { joinedRooms } = this,
+		sessionService.getEvents<string[]>( 'joinedRooms' ).subscribe( roomIds => {
+			const { joinedRoomIds } = this;
+			joinedRoomIds.next( roomIds );
+		} );
+
+		Observable.combineLatest( this.joinedRoomIds, this.allRooms, ( roomIds, rooms ) => {
+			const joinedRooms = rooms.filter( r => roomIds.includes( r.roomId ) ),
 				currentRoom = this.currentRoom.getValue();
-			if( currentRoom && !rooms.some( room => room.roomId === currentRoom.roomId ) ) {
-				this.currentRoom.next( null );
+			if( currentRoom ) {
+				this.currentRoom.next( joinedRooms.filter( j => j.roomId === currentRoom.roomId )[ 0 ] || null );
 			}
-			joinedRooms.next( rooms );
+			return joinedRooms;
+		} ).subscribe( joinedRooms => {
+			this.joinedRooms.next( joinedRooms );
 		} );
 
 		sessionService.getEvents<Message>( 'message' ).subscribe( message => {
@@ -53,7 +60,7 @@ export class RoomService {
 
 	public async newGame( roomId: string ) {
 		const { sessionService } = this;
-		return await sessionService.emit<Game>( 'newGame', { roomId } );
+		return await sessionService.emit<SerializedGame>( 'newGame', { roomId } );
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
@@ -115,6 +122,7 @@ export class RoomService {
 	private allMessages = new ReplaySubject<Message>( 10 );
 	private allGames = new BehaviorSubject<Game[]>( [] );
 	private allRooms = new BehaviorSubject<Room[]>( [] );
+	private joinedRoomIds = new BehaviorSubject<string[]>( [] );
 	private joinedRooms = new BehaviorSubject<Room[]>( [] );
 	private currentRoom = new BehaviorSubject<Room|null>( null );
 }
