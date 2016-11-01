@@ -179,8 +179,9 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 				}
 			} );
 		} );
+		const username = getValue( 'username' );
 		await flushJoinedRooms();
-		await statusMessage( roomId, 'User has left the room.' );
+		await statusMessage( roomId, `${username} has left the room.` );
 	}
 
 	const commands = {
@@ -227,8 +228,9 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 	console.log( `User connected, ${++connections} connected` );
 
 	socket.on( 'disconnecting', () => {
+		const username = getValue( 'username' );
 		for( const roomId of Object.values( socket.rooms ) ) {
-			statusMessage( roomId, 'User has disconnected.' );
+			statusMessage( roomId, `${username} has disconnected.` );
 		}
 	} );
 
@@ -304,6 +306,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			if( !room ) {
 				throw new Error( 'Failed to join room.' );
 			}
+			const username = getValue( 'username' );
 			await new Promise( ( resolve, reject ) => {
 				socket.join( room.roomId, err => {
 					if( err ) { reject( err ); }
@@ -312,7 +315,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			} );
 			await flushJoinedRooms();
 			await flushUpdate( room, socket );
-			await statusMessage( roomId, 'User has joined the room.' );
+			await statusMessage( roomId, `${username} has joined the room.` );
 			callback( null, { room } );
 		} catch( ex ) {
 			console.error( ex );
