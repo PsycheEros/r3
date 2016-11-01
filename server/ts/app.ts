@@ -16,6 +16,7 @@ import Rules from './rules';
 import express = require( 'express' );
 const app = express();
 import index = require( 'serve-index' );
+const compression = require( 'compression' );
 const server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server ) as SocketIO.Server,
 	rules = new Rules;
@@ -344,11 +345,11 @@ app.use( ( req, res, next ) => {
 } );
 */
 
-app.use( express.static( 'client' ) );
-app.use( index( 'client' ) );
+app.use( compression(), express.static( 'client' ) );
+app.use( compression(), index( 'client' ) );
 
-app.use( '/lib', express.static( 'node_modules' ) );
-app.use( '/lib', index( 'node_modules' ) );
+app.use( '/lib', compression(), express.static( 'node_modules' ) );
+app.use( '/lib', compression(), index( 'node_modules' ) );
 
 server.listen( NODE_PORT, NODE_IP, () => {
 	console.log( `Application worker ${process.pid} started...` );
