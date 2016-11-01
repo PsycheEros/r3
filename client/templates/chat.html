@@ -13,9 +13,7 @@
 		<div class="list-group" angular2-auto-scroll>
 			<div class="list-group-item" *ngFor="let message of messages">
 				<h4 class="list-group-item-heading text-muted" *ngIf="message.user">{{message.user}}</h4>
-				<p class="list-group-item-text">
-					{{message.message}}
-				</p>
+				<p class="list-group-item-text">{{message.message}}</p>
 			</div>
 		</div>
 	</div>

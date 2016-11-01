@@ -43,6 +43,11 @@ type Session = {
 const roomRepository = new RoomRepository,
 	gameRepository = new GameRepository;
 
+function isValidUsername( username: string ) {
+	if( !username ) return false;
+	return /^[_a-z][-_a-z0-9]+[_a-z0-9]+/i.test( username );
+}
+
 function usersInRoom( roomId: string ): number {
 	const room = io.nsps[ '/' ].adapter.rooms[ roomId ];
 	if( !room ) return 0;
@@ -133,8 +138,13 @@ async function makeMove( room: Room, position: Point ) {
 	return true;
 }
 
-function statusMessage( roomId: string, message ) {
-	io.to( roomId ).emit( 'message', { roomId, message } );
+
+function statusMessage( roomId: string, message: string, socket?: SocketIO.Socket ) {
+	if( socket ) {
+		socket.emit( 'message', { roomId, message } );
+	} else {
+		io.to( roomId ).emit( 'message', { roomId, message } );
+	}
 	return true;
 }
 
@@ -150,13 +160,79 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 			Object.values( socket.rooms ).slice( 1 )
 		); 
 	}
+	
+	function getValue( key: string ) {
+		return socket[ key ];
+	}
+
+	function setValue( key: string, value: any ) {
+		socket[ key ] = value;
+	}
+
+	async function leaveRoom( roomId: string ) {
+		await new Promise( ( resolve, reject ) => {
+			socket.leave( roomId, err => {
+				if( err ) {
+					reject( err );
+				} else {
+					resolve();
+				}
+			} );
+		} );
+		await flushJoinedRooms();
+		await statusMessage( roomId, 'User has left the room.' );
+	}
+
+	const commands = {
+		async help( roomId: string ) {
+			await statusMessage( roomId, `Available commands:
+/?
+/help
+/nick <username>
+/quit
+`, socket );
+		},
+		async '?'( roomId: string ) {
+			await commands.help( roomId );
+		},
+		async nick( roomId: string, username: string ) {
+			if( !isValidUsername( username ) ) {
+				throw new Error( 'Invalid username.' );
+			}
+			const previousUsername = getValue( 'username' );
+			setValue( 'username', username );
+			await statusMessage( roomId, `${previousUsername} is now known as ${username}.` );
+		},
+		async quit( roomId: string ) {
+			await leaveRoom( roomId );
+		}
+	};
+	async function command( roomId: string, raw: string ) {
+		const [ cmd, ...params ] = raw.trim().split( /\s+/g );
+		try {
+			if( !commands.hasOwnProperty( cmd ) ) {
+				throw new Error( 'Unknown command.' );
+			}
+			await commands[ cmd ]( roomId, ...params );
+		} catch( ex ) {
+			if( ex && ex.message ) {
+				await statusMessage( roomId, ex.message );
+			}
+			throw ex;
+		}
+	}
+
+	setValue( 'username', 'Guest' );
 
 	console.log( `User connected, ${++connections} connected` );
 
-	socket.on( 'disconnect', () => {
+	socket.on( 'disconnecting', () => {
 		for( const roomId of Object.values( socket.rooms ) ) {
 			statusMessage( roomId, 'User has disconnected.' );
 		}
+	} );
+
+	socket.on( 'disconnect', () => {
 		setTimeout( () => { cleanupRooms(); }, 0 );
 		console.log( `User disconnected, ${--connections} connected` );
 	} );
@@ -194,9 +270,15 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 		}
 	} );
 
-	socket.on( 'sendMessage', async ( { roomId, user, message }, callback ) => {
+	socket.on( 'sendMessage', async ( { roomId, message }, callback ) => {
 		try {
-			if( !await chatMessage( roomId, user, message ) ) {
+			if( message.startsWith( '/' ) ) {
+				await command( roomId, message.slice( 1 ) );
+				callback( null, {} );
+				return;
+			}
+			const username = getValue( 'username' );
+			if( !await chatMessage( roomId, username, message ) ) {
 				throw new Error( 'Failed to send message.' );
 			}
 			callback( null, {} );
@@ -240,17 +322,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 
 	socket.on( 'leaveRoom', async ( { roomId }, callback ) => {
 		try {
-			await new Promise( ( resolve, reject ) => {
-				socket.leave( roomId, err => {
-					if( err ) {
-						reject( err );
-					} else {
-						resolve();
-					}
-				} );
-			} );
-			await flushJoinedRooms();
-			await statusMessage( roomId, 'User has left the room.' );
+			await leaveRoom( roomId );
 			callback( null, {} );
 		} catch( ex ) {
 			console.error( ex );

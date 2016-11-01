@@ -68,9 +68,9 @@ export class RoomService {
 		await sessionService.emit( 'makeMove', { roomId, position } );
 	}
 
-	public async sendMessage( roomId: string, user: string, message: string ) {
+	public async sendMessage( roomId: string, message: string ) {
 		const { sessionService } = this;
-		await sessionService.emit( 'sendMessage', { roomId, user, message } );
+		await sessionService.emit( 'sendMessage', { roomId, message } );
 	}
 
 	public getMessages() {

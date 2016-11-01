@@ -38,6 +38,6 @@ export class ChatComponent {
 		const { roomService, room, text: message } = this;
 		if( !room || !message ) { return; }
 		this.text = '';
-		await roomService.sendMessage( room.roomId, 'Guest', message );
+		await roomService.sendMessage( room.roomId, message );
 	}
 }
