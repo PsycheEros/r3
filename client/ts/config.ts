@@ -13,7 +13,8 @@
 			'ng2-bootstrap': 'lib/ng2-bootstrap/bundles/ng2-bootstrap.umd.js'
 		},
 		map: {
-			'@angular': 'lib/@angular'
+			'@angular': 'lib/@angular',
+			'angular2-auto-scroll': 'lib/angular2-auto-scroll'
 		},
 		packages: {
 			app: {
@@ -58,6 +59,9 @@
 			},
 			'@angular/upgrade': {
 				main: `bundles/upgrade.umd.js`,
+				defaultExtension: 'js'
+			},
+			'angular2-auto-scroll': {
 				defaultExtension: 'js'
 			}
 		},
