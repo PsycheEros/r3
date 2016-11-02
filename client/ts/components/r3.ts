@@ -1,4 +1,4 @@
-import { Component, ViewContainerRef } from '@angular/core';
+import { Component, ViewContainerRef, HostListener } from '@angular/core';
 import { RoomService } from '../services/index';
 
 @Component( {
@@ -19,6 +19,37 @@ export class R3Component {
 		roomService.getCurrentRoom().subscribe( room => {
 			this.currentRoom = room;
 		} );
+	}
+
+
+	protected ngAfterViewInit() {
+		const keys = [ 'Backspace', ' ' ],
+			codes = [ 'Backspace', 'Space' ],
+			keyCodes = [ 8, 32 ],
+			inputs = [ 'INPUT', 'TEXTAREA', 'SELECT' ],
+			preventBackspace = ( e: KeyboardEvent ) => {
+				console.log( e.key );
+				if( !keyCodes.includes( e.keyCode || e.which )
+				&& 	!keys.includes( e.key )
+				&&	!codes.includes( e.code ) ) { return; }
+				const { activeElement } = document,
+					target = ( e.srcElement || e.target ) as HTMLInputElement|void;
+				if( activeElement === document.body
+				||	activeElement === document.documentElement
+				||	!target
+				||	!inputs.includes( target.tagName || target.nodeName )
+				||	target.disabled
+				||	target.readOnly
+				) {
+					e.cancelBubble = true;
+					e.returnValue = false;
+					e.stopPropagation();
+					e.preventDefault();
+					return false;
+				}
+			};
+		document.addEventListener( 'keydown', preventBackspace, false );
+		document.addEventListener( 'keypress', preventBackspace, false );
 	}
 
 	public rooms = [] as Room[];
