@@ -61,6 +61,10 @@ export class BoardComponent {
 		this.render();
 	}
 
+	protected ngOnChanges() {
+		this.render();
+	}
+
 	@ViewChild( 'canvasElement' )
 	private canvasElementRef: ElementRef;
 
@@ -79,7 +83,6 @@ export class BoardComponent {
 
 	private render() {
 		requestAnimationFrame( time => {
-			requestAnimationFrame( () => { this.render(); } );
 			const { board } = this;
 			if( !board ) { return; }
 			const { canvas, c2d } = this,
