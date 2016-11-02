@@ -28,7 +28,6 @@ export class R3Component {
 			keyCodes = [ 8, 32 ],
 			inputs = [ 'INPUT', 'TEXTAREA', 'SELECT' ],
 			preventBackspace = ( e: KeyboardEvent ) => {
-				console.log( e.key );
 				if( !keyCodes.includes( e.keyCode || e.which )
 				&& 	!keys.includes( e.key )
 				&&	!codes.includes( e.code ) ) { return; }
