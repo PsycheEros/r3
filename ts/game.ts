@@ -1,5 +1,4 @@
 import GameState from './game-state';
-import Rules from './rules';
 
 export default class Game {
 	public constructor( public readonly gameId: string ) {}

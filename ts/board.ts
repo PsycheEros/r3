@@ -81,7 +81,7 @@ export default class Board {
 	}
 
 	public deserialize( { width, height, data }: SerializedBoard ) {
-		this.reset( width, height ); 
+		this.reset( width, height );
 		let i = 0;
 		for( const square of this ) {
 			const char = data[ i++ ];

@@ -7,8 +7,11 @@ const { NODE_PORT = 3000, NODE_IP = 'localhost',
 	} = process.env;
 import uuid = require( 'uuid' );
 
-import GameRepository from './game-repository';
-import RoomRepository from './room-repository';
+import SessionRepository from './repository/session';
+import UserRepository from './repository/user';
+import GameRepository from './repository/game';
+import GameStateRepository from './repository/game-state';
+import RoomRepository from './repository/room';
 import Game from './game';
 import GameState from './game-state';
 import Board from './board';
@@ -41,23 +44,31 @@ type Session = {
 	socket: SocketIO.Client
 };
 
-const roomRepository = new RoomRepository,
-	gameRepository = new GameRepository;
+const sessionRepository = new SessionRepository,
+	userRepository = new UserRepository,
+	roomRepository = new RoomRepository,
+	gameRepository = new GameRepository,
+	gameStateRepository = new GameStateRepository;
 
 function isValidUsername( username: string ) {
-	if( !username ) return false;
-	return /^[_a-z][-_a-z0-9]+[_a-z0-9]+/i.test( username );
+	if( !username ) {
+		return false;
+	}
+	return /^[_a-z][-_a-z0-9]{1,30}[_a-z0-9]+/i.test( username );
 }
 
 function usersInRoom( roomId: string ): number {
 	const room = io.nsps[ '/' ].adapter.rooms[ roomId ];
-	if( !room ) return 0;
-	return Object.keys( room.sockets ).length;
+	if( room ) {
+		return Object.keys( room.sockets ).length;
+	} else {
+		return 0;
+	}
 }
 
 async function cleanupRooms() {
 	let removed = 0;
-	for( const room of await roomRepository.listAll() ) {
+	for( const room of await roomRepository.list() ) {
 		const { roomId } = room;
 		if( usersInRoom( roomId ) <= 0 ) {
 			console.log( `Deleting room ${roomId}...` );
@@ -71,32 +82,53 @@ async function cleanupRooms() {
 	}
 }
 
-async function flushRooms( target: SocketIO.Socket|SocketIO.Server = io ) {
-	target.emit( 'rooms', await roomRepository.listAll() );
+type Target = {
+	emit: Function;
+};
+
+async function flushRooms( target: Target = io ) {
+	target.emit( 'rooms', await roomRepository.list() );
 }
 
-async function flushUpdate( room: Room, socket?: SocketIO.Socket ) {
-	const game = await gameRepository.read( room.gameId );
-	if( !game ) return;
-	if( socket ) {
-		socket.emit( 'update', game.serialize() );
-	} else {
-		io.to( room.roomId ).emit( 'update', game.serialize() );
+async function flushUpdate( room: Room, target: Target = io.to( room.roomId ) ) {
+	const game = await getGame( room.gameId );
+	target.emit( 'update', game.serialize() );
+}
+
+async function getGame( gameId: string ) {
+	const gameRecord = await gameRepository.get( gameId );
+	const game = new Game( gameRecord.gameId );
+	for(
+		let gameStateRecord = await gameStateRepository.get( gameRecord.initialGameStateId );
+		gameStateRecord.nextGameStateId;
+		gameStateRecord = await gameStateRepository.get( gameStateRecord.nextGameStateId )
+	) {
+		const gameState = new GameState;
+		// gameState.board.deserialize( gameStateRecord.boardData ); TODO
+		game.gameStates.push( gameState );
 	}
+	return game;
+}
+
+async function saveGame( game: Game ) {
+	// TODO
+	/*
+	const { gameId } = game;
+	for( const gameState of game.gameStates ) {
+		await gameStateRepository.upsert( gameState );
+	}
+	await gameRepository.upsert( {
+		gameId
+	} );
+	*/
 }
 
 async function newGame( room: Room ) {
-	let game = await gameRepository.read( room.gameId );
-	if( game ) {
-		const { currentGameState: gameState } = game,
-			{ board } = gameState!;
-		if( !rules.isGameOver( board ) ) throw new Error( 'Game is not over.' );
-	}
 	statusMessage( room.roomId, 'New game' );
-	const gameId = uuid.v4();
-	game = rules.newGame( gameId );
+	const gameId = uuid.v4(),
+		game = rules.newGame( gameId );
 	room.gameId = gameId;
-	await gameRepository.create( game );
+	await saveGame( game );
 	flushRooms();
 	flushUpdate( room );
 	return game;
@@ -107,20 +139,17 @@ async function createRoom( name: string ) {
 		room = { roomId, gameId: null as any, name } as Room,
 		game = await newGame( room );
 	room.gameId = game!.gameId;
-	await roomRepository.create( room );
+	await roomRepository.insert( room );
 	await flushRooms();
 	return room;
 }
 
-async function destroyRoom( roomId: string ) {
-	await gameRepository.delete( roomId );
-	await flushRooms();
-}
-
 async function makeMove( room: Room, position: Point ) {
-	const game = await gameRepository.read( room.gameId );
-	if( !game ) return;
-	if( !rules.makeMove( game, position ) ) return;
+	const game = await getGame( room.gameId );
+	if( !rules.makeMove( game, position ) ) {
+		return;
+	}
+	await saveGame( game );
 	const { roomId } = room,
 		{ currentGameState: gameState } = game,
 		{ board } = gameState!;
@@ -155,13 +184,16 @@ function chatMessage( roomId: string, user: string, message: string ) {
 }
 
 let connections = 0;
-io.on( 'connection', ( socket: SocketIO.Socket ) => {
+io.on( 'connection', async ( socket: SocketIO.Socket ) => {
+	const session = { sessionId: uuid.v4() };
+	await sessionRepository.insert( session );
+
 	function flushJoinedRooms() {
 		socket.emit( 'joinedRooms',
 			Object.values( socket.rooms ).slice( 1 )
-		); 
+		);
 	}
-	
+
 	function getValue( key: string ) {
 		return socket[ key ];
 	}
@@ -242,7 +274,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 
 	socket.on( 'makeMove', async ( { roomId, position }, callback ) => {
 		try {
-			const room = await roomRepository.read( roomId );
+			const room = await roomRepository.get( roomId );
 			if( !room ) {
 				throw new Error( 'Room not found.' );
 			}
@@ -258,7 +290,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 
 	socket.on( 'newGame', async ( { roomId }, callback ) => {
 		try {
-			const room = await roomRepository.read( roomId );
+			const room = await roomRepository.get( roomId );
 			if( !room ) {
 				throw new Error( 'Room not found.' );
 			}
@@ -303,7 +335,7 @@ io.on( 'connection', ( socket: SocketIO.Socket ) => {
 
 	socket.on( 'joinRoom', async ( { roomId }, callback ) => {
 		try {
-			const room = await roomRepository.read( roomId );
+			const room = await roomRepository.get( roomId );
 			if( !room ) {
 				throw new Error( 'Failed to join room.' );
 			}
