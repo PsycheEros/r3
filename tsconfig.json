@@ -2,9 +2,11 @@
 	"compilerOptions": {
 		"target": "es2015",
 		"module": "commonjs",
+		"moduleResolution": "node",
 		"lib": [ "dom", "es2017" ],
 		"allowSyntheticDefaultImports": false,
 		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
 		"strictNullChecks": false
 	}
 }
