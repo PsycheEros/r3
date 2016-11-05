@@ -44,19 +44,24 @@ app.get( '/health', ( req, res ) => {
 const connectionManager = getConnectionManager();
 ( async () => {
 	try {
-		const connection = await connectionManager.createAndConnect( {
+		const connection =
+			await connectionManager.create( {
+				name: 'sqlite',
 				driver: {
 					type: 'sqlite',
 					storage: ':memory:'
 				},
-				autoSchemaSync: true,
 				entities: [ `${__dirname}/entities/index.js` ],
+				namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
+				usedNamingStrategy: 'R3NamingStrategy',
 				logging: {
 					logSchemaCreation: true,
 					logQueries: true
 				}
-			} ),
-			{ entityManager } = connection,
+			} );
+		await connection.connect();
+		await connection.syncSchema();
+		const { entityManager } = connection,
 			user =
 				await entityManager.create( UserEntity, {
 					userId: uuid.v4(),

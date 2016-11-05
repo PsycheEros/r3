@@ -4,10 +4,10 @@ import { RoomEntity } from './room';
 
 @Table( 'Session' )
 export class SessionEntity {
-	@PrimaryColumn( { name: 'SessionID' } )
+	@PrimaryColumn()
 	public sessionId: string;
 
-	@Column( { name: 'UserID' } )
+	@Column()
 	public userId: string;
 
 	@ManyToOne( type => UserEntity, userEntity => userEntity.sessions )

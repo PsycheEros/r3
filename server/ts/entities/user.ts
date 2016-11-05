@@ -5,10 +5,10 @@ import { SessionEntity } from './session';
 
 @Table( 'User' )
 export class UserEntity {
-	@PrimaryColumn( { name: 'UserID' } )
+	@PrimaryColumn()
 	public userId: string;
 
-	@Column( { name: 'Nick' } )
+	@Column()
 	public nick: string;
 
 	@OneToMany( type => SessionEntity, session => session.user )

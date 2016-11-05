@@ -3,13 +3,13 @@ import { GameEntity } from './game';
 
 @Table( 'GameState' )
 export class GameStateEntity {
-	@PrimaryColumn( { name: 'GameStateID' } )
+	@PrimaryColumn()
 	public gameStateId: string;
 
-	@Column( { name: 'GameID' } )
+	@Column()
 	public gameId: string;
 
-	@Column( { name: 'Turn' } )
+	@Column()
 	public turn: number;
 
 	@ManyToOne( type => GameEntity, game => game.gameStates )

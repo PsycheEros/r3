@@ -4,16 +4,16 @@ import { SessionEntity } from './session';
 
 @Table( 'Room' )
 export class RoomEntity {
-	@PrimaryColumn( { name: 'RoomID' } )
+	@PrimaryColumn()
 	public roomId: string;
 
-	@Column( { name: 'GameID' } )
+	@Column()
 	public gameId: string;
 
-	@Column( { name: 'Name' } )
+	@Column()
 	public name: string;
 
-	@Column( { name: 'Password' } )
+	@Column()
 	public password = '';
 
 	@OneToOne( type => GameEntity )

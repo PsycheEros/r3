@@ -3,7 +3,7 @@ import { GameStateEntity } from './game-state';
 
 @Table( 'Game' )
 export class GameEntity {
-	@PrimaryColumn( { name: 'GameID' } )
+	@PrimaryColumn()
 	public gameId: string;
 
 	@OneToMany( type => GameStateEntity, gameState => gameState.game, {

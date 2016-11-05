@@ -3,18 +3,18 @@ import { UserEntity } from './user';
 
 @Table( 'Login' )
 export class LoginEntity {
-	@PrimaryColumn( { name: 'LoginID' } )
+	@PrimaryColumn()
 	public loginId: string;
 
-	@Column( { name: 'UserID' } )
+	@Column()
 	@Index( { unique: true } )
 	public userId: string;
 
-	@Column( { name: 'Username' } )
+	@Column()
 	@Index( { unique: true } )
 	public username: string;
 
-	@Column( { name: 'PasswordHash' } )
+	@Column()
 	public passwordHash: string;
 
 	@OneToOne( type => UserEntity, user => user.login )
