@@ -2,6 +2,7 @@ import 'source-map-support/register';
 import 'core-js';
 import 'reflect-metadata';
 
+import { EventEmitter } from 'events';
 import { getConnectionManager } from 'typeorm';
 import uuid = require( 'uuid' );
 import { GameEntity, GameStateEntity, LoginEntity, RoomEntity, SessionEntity, UserEntity } from './entities/index';
@@ -10,19 +11,24 @@ import GameState from './game-state';
 import Board from './board';
 import Rules from './rules';
 import express = require( 'express' );
+import { Socket } from './socket';
 import index = require( 'serve-index' );
 
-const { NODE_PORT = 3000, NODE_IP = 'localhost',
+const { NODE_PORT = 3000,
+		NODE_IP = 'localhost',
 		OPENSHIFT_REDIS_HOST,
 		OPENSHIFT_REDIS_PASSWORD,
 		OPENSHIFT_REDIS_PORT
 	} = process.env,
 	app = express(),
 	compression = require( 'compression' ),
-	server = require( 'http' ).Server( app ),
-	io = require( 'socket.io' )( server ) as SocketIO.Server,
+	// server = require( 'http' ).Server( app ),
+	// io = require( 'socket.io' )( server ) as SocketIO.Server,
 	rules = new Rules;
 
+require( 'express-ws' )( app );
+
+/*
 if( OPENSHIFT_REDIS_HOST ) {
 	const redis = require( 'redis' ).createClient,
 		adapter = require( 'socket.io-redis' ),
@@ -31,6 +37,7 @@ if( OPENSHIFT_REDIS_HOST ) {
 
 	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
 }
+*/
 
 app.use( require( 'body-parser' ).json() );
 
@@ -74,6 +81,8 @@ const connectionManager = getConnectionManager();
 				} );
 		await entityManager.persist( UserEntity, user );
 		await entityManager.persist( LoginEntity, login ); 
+
+/*
 
 		type Session = {
 			socket: SocketIO.Client
@@ -207,7 +216,21 @@ const connectionManager = getConnectionManager();
 		}
 
 		let connections = 0;
-		io.on( 'connection', async ( socket: SocketIO.Socket ) => {
+*/
+		app.param( 'sessionId', ( req, res, next, sessionId ) => {
+			req[ 'sessionId' ] = sessionId || uuid();
+			next();
+		} );
+
+		app.ws( '/ws/:sessionId', ( ws, req ) => {
+			const sessionId = req[ 'sessionId' ] as string;
+			new Socket( ws );
+			ws.on( 'message', ( str: string ) => {
+				const msg = JSON.parse( str );
+				console.log( msg.data );
+			} );
+		} );
+		/*
 			const sessionId = uuid.v4();
 			await entityManager.persist( SessionEntity,
 				await entityManager.create( SessionEntity, { sessionId } )
@@ -418,7 +441,7 @@ const connectionManager = getConnectionManager();
 		app.use( '/lib', compression(), express.static( 'node_modules' ) );
 		app.use( '/lib', compression(), index( 'node_modules' ) );
 
-		server.listen( NODE_PORT, NODE_IP, () => {
+		app.listen( NODE_PORT, NODE_IP, () => {
 			console.log( `Application worker ${process.pid} started...` );
 		} );
 	} catch( ex ) {

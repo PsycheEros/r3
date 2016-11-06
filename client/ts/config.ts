@@ -14,12 +14,20 @@
 		},
 		map: {
 			'@angular': 'lib/@angular',
-			'angular2-auto-scroll': 'lib/angular2-auto-scroll'
+			'angular2-auto-scroll': 'lib/angular2-auto-scroll',
+			uuid: 'lib/uuid'
 		},
 		packages: {
 			app: {
 				main: 'default',
 				defaultExtension: 'js'
+			},
+			uuid: {
+				main: 'uuid.js',
+				defaultExtension: 'js',
+				map: {
+					'./rng': './rng-browser' 
+				}
 			},
 			rxjs: {
 				main: 'Rx.js',

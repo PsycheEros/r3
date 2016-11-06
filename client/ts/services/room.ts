@@ -3,13 +3,13 @@ import { Inject, Injectable } from '@angular/core';
 import Rules from '../rules';
 import Game from '../game';
 import GameState from '../game-state';
-import { SessionService } from './session';
+import { SocketService } from './socket';
 import * as io from 'socket.io-client';
 
 @Injectable()
 export class RoomService {
-	constructor( @Inject(SessionService) private sessionService: SessionService ) {
-		sessionService.getEvents<SerializedGame>( 'update' ).subscribe( gameSerialized => {
+	constructor( @Inject(SocketService) private readonly socketService: SocketService ) {
+		socketService.getEvents<SerializedGame>( 'update' ).subscribe( gameSerialized => {
 			const allGames = this.allGames.getValue(),
 				game = Game.deserialize( gameSerialized ),
 				index = allGames.findIndex( g => g.gameId === game.gameId );
@@ -21,12 +21,12 @@ export class RoomService {
 			this.allGames.next( allGames );
 		} );
 
-		sessionService.getEvents<Room[]>( 'rooms' ).subscribe( rooms => {
+		socketService.getEvents<Room[]>( 'rooms' ).subscribe( rooms => {
 			const { allRooms } = this;
 			allRooms.next( rooms );
 		} );
 
-		sessionService.getEvents<string[]>( 'joinedRooms' ).subscribe( roomIds => {
+		socketService.getEvents<string[]>( 'joinedRooms' ).subscribe( roomIds => {
 			const { joinedRoomIds } = this;
 			joinedRoomIds.next( roomIds );
 		} );
@@ -42,7 +42,7 @@ export class RoomService {
 			this.joinedRooms.next( joinedRooms );
 		} );
 
-		sessionService.getEvents<Message>( 'message' ).subscribe( message => {
+		socketService.getEvents<Message>( 'message' ).subscribe( message => {
 			const { allMessages } = this;
 			allMessages.next( message );
 		} );
@@ -59,18 +59,18 @@ export class RoomService {
 	}
 
 	public async newGame( roomId: string ) {
-		const { sessionService } = this;
-		return await sessionService.emit<SerializedGame>( 'newGame', { roomId } );
+		const { socketService } = this;
+		return await socketService.send<SerializedGame>( 'newGame', { roomId } );
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'makeMove', { roomId, position } );
+		const { socketService } = this;
+		await socketService.send( 'makeMove', { roomId, position } );
 	}
 
 	public async sendMessage( roomId: string, message: string ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'sendMessage', { roomId, message } );
+		const { socketService } = this;
+		await socketService.send( 'sendMessage', { roomId, message } );
 	}
 
 	public getMessages() {
@@ -84,20 +84,20 @@ export class RoomService {
 	}
 
 	public async joinRoom( room: Room ) {
-		const { sessionService, currentRoom } = this,
+		const { socketService, currentRoom } = this,
 			{ roomId } = room;
-		await sessionService.emit<Room>( 'joinRoom', { roomId } );
+		await socketService.send<Room>( 'joinRoom', { roomId } );
 		currentRoom.next( room );
 	}
 
 	public async leaveRoom( roomId: string ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'leaveRoom', { roomId } );
+		const { socketService } = this;
+		await socketService.send( 'leaveRoom', { roomId } );
 	}
 
 	public async createRoom( name: string ) {
-		const { sessionService, currentRoom } = this;
-		return await sessionService.emit<Room>( 'createRoom', { name } );
+		const { socketService, currentRoom } = this;
+		return await socketService.send<Room>( 'createRoom', { name } );
 	}
 
 	public async setRoom( room: Room|void ) {
