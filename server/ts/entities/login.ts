@@ -18,5 +18,5 @@ export class LoginEntity {
 	public passwordHash: string;
 
 	@OneToOne( type => UserEntity, user => user.login )
-	public user: UserEntity;
+	public user?: UserEntity;
 }

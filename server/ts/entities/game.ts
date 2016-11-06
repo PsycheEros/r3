@@ -3,11 +3,11 @@ import { GameStateEntity } from './game-state';
 
 @Table( 'Game' )
 export class GameEntity {
-	@PrimaryColumn()
+	@PrimaryColumn( { length: '36' } )
 	public gameId: string;
 
 	@OneToMany( type => GameStateEntity, gameState => gameState.game, {
 		cascadeAll: true
 	} )
-	public gameStates = [] as GameStateEntity[];
+	public gameStates?: GameStateEntity[];
 }

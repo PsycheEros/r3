@@ -5,10 +5,10 @@ import { SessionEntity } from './session';
 
 @Table( 'User' )
 export class UserEntity {
-	@PrimaryColumn()
+	@PrimaryColumn( { length: '36' } )
 	public userId: string;
 
-	@Column()
+	@Column( { length: '64' } )
 	public nick: string;
 
 	@OneToMany( type => SessionEntity, session => session.user )
@@ -18,5 +18,5 @@ export class UserEntity {
 		cascadeAll: true
 	} )
 	@JoinColumn()
-	public login: LoginEntity;
+	public login?: LoginEntity;
 }

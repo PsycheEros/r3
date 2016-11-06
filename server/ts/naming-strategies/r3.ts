@@ -1,5 +1,6 @@
 import { NamingStrategy } from 'typeorm';
 import { DefaultNamingStrategy } from 'typeorm/naming-strategy/DefaultNamingStrategy';
+import { Log } from '../decorators/log';
 
 function splitWords( str: string ) {
 	const separators = /[-_\s]/g,
@@ -48,65 +49,73 @@ function pascalCase( str: string ) {
 	return splitWords( str ).map( upperCaseFirstLetter ).join( '' );
 }
 
+const logEnabled = false;
+
 @NamingStrategy( 'R3NamingStrategy' )
 export class R3NamingStrategy extends DefaultNamingStrategy {
+	@Log( logEnabled )
 	public tableName( className: string, customName: string ) {
-		console.log( 'tableName', ...arguments );
 		return super.tableName( className, customName );
 	}
 
+	@Log( logEnabled )
 	public columnName( propertyName: string, customName: string ) {
 		return pascalCase( propertyName );
 	}
 
+	@Log( logEnabled )
 	public embeddedColumnName( embeddedPropertyName: string, columnPropertyName: string, columnCustomName?: string ) {
-		console.log( 'embeddedColumnName', ...arguments );
 		return super.embeddedColumnName( embeddedPropertyName, columnPropertyName, columnCustomName );
 	}
 
+	@Log( logEnabled )
 	public relationName( propertyName: string ) {
-		console.log( 'relationName', ...arguments );
 		return super.relationName( propertyName );
 	}
 
+	@Log( logEnabled )
 	public indexName( customName: string|undefined, tableName: string, columns: string[] ) {
 		const name = customName || tableName;
 		return `ix_${name}_${columns.join('_')}`;
 	}
 
+	@Log( logEnabled )
 	public joinColumnInverseSideName( joinColumnName: string, propertyName: string ) {
-		console.log( 'joinColumnInverseSideName', ...arguments );
 		return super.joinColumnInverseSideName( joinColumnName, propertyName );
 	}
 
+	@Log( logEnabled )
 	public joinTableName( firstTableName: string, secondTableName: string, firstPropertyName: string, secondPropertyName: string, firstColumnName: string, secondColumnName: string ) {
 		return `${firstTableName}_${secondTableName}`;
 	}
 
+	@Log( logEnabled )
 	public joinTableColumnName( tableName: string, columnName: string, secondTableName: string, secondColumnName: string ) {
 		return columnName;
 	}
 
+	@Log( logEnabled )
 	public joinTableInverseColumnName( tableName: string, columnName: string, secondTableName: string, secondColumnName: string ) {
 		return columnName;
 	}
 
+	@Log( logEnabled )
 	public foreignKeyName( tableName: string, columnNames: string[], referencedTableName: string, referencedColumnNames: string[] ) {
 		return `fk_${tableName}_${referencedTableName}`;
 	}
 
+	@Log( logEnabled )
 	public closureJunctionTableName( tableName: string ) {
-		console.log( 'closureJunctionTableName', ...arguments );
 		return super.closureJunctionTableName( tableName );
 	}
 
+	@Log( logEnabled )
 	public classTableInheritanceParentColumnName( parentTableName: any, parentTableIdPropertyName: any ) {
-		console.log( 'classTableInheritanceParentColumnName', ...arguments );
 		return super.classTableInheritanceParentColumnName( parentTableName, parentTableIdPropertyName );
 	}
 
+	@Log( logEnabled )
 	public prefixTableName( prefix: string, originalTableName: string ) {
-		console.log( 'prefixTableName', ...arguments );
 		return super.prefixTableName( prefix, originalTableName );
 	}
 }

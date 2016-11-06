@@ -3,15 +3,15 @@ import { GameEntity } from './game';
 
 @Table( 'GameState' )
 export class GameStateEntity {
-	@PrimaryColumn()
+	@PrimaryColumn( { length: '36' } )
 	public gameStateId: string;
 
-	@Column()
+	@Column( { length: '36' } )
 	public gameId: string;
 
 	@Column()
 	public turn: number;
 
 	@ManyToOne( type => GameEntity, game => game.gameStates )
-	public game: GameEntity;
+	public game?: GameEntity;
 }

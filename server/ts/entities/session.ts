@@ -4,15 +4,15 @@ import { RoomEntity } from './room';
 
 @Table( 'Session' )
 export class SessionEntity {
-	@PrimaryColumn()
+	@PrimaryColumn( { length: '36' } )
 	public sessionId: string;
 
-	@Column()
-	public userId: string;
+	@Column( { length: '36', nullable: true } )
+	public userId: string|undefined;
 
 	@ManyToOne( type => UserEntity, userEntity => userEntity.sessions )
-	public user: UserEntity;
+	public user?: UserEntity;
 
 	@ManyToMany( type => RoomEntity, room => room.sessions )
-	public rooms = [] as RoomEntity[];
+	public rooms?: RoomEntity[];
 }

@@ -3,25 +3,23 @@ import 'core-js';
 import 'reflect-metadata';
 
 import { getConnectionManager } from 'typeorm';
-
-const { NODE_PORT = 3000, NODE_IP = 'localhost',
-		OPENSHIFT_REDIS_HOST,
-		OPENSHIFT_REDIS_PASSWORD,
-		OPENSHIFT_REDIS_PORT
-	} = process.env;
 import uuid = require( 'uuid' );
-
 import { GameEntity, GameStateEntity, LoginEntity, RoomEntity, SessionEntity, UserEntity } from './entities/index';
 import Game from './game';
 import GameState from './game-state';
 import Board from './board';
 import Rules from './rules';
 import express = require( 'express' );
-
-const app = express();
 import index = require( 'serve-index' );
-const compression = require( 'compression' );
-const server = require( 'http' ).Server( app ),
+
+const { NODE_PORT = 3000, NODE_IP = 'localhost',
+		OPENSHIFT_REDIS_HOST,
+		OPENSHIFT_REDIS_PASSWORD,
+		OPENSHIFT_REDIS_PORT
+	} = process.env,
+	app = express(),
+	compression = require( 'compression' ),
+	server = require( 'http' ).Server( app ),
 	io = require( 'socket.io' )( server ) as SocketIO.Server,
 	rules = new Rules;
 
@@ -55,8 +53,8 @@ const connectionManager = getConnectionManager();
 				namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
 				usedNamingStrategy: 'R3NamingStrategy',
 				logging: {
-					logSchemaCreation: true,
-					logQueries: true
+					logSchemaCreation: false,
+					logQueries: false
 				}
 			} );
 		await connection.connect();
@@ -100,7 +98,7 @@ const connectionManager = getConnectionManager();
 		async function cleanupRooms() {
 			let removed = 0;
 			for( const room of await entityManager.getRepository( RoomEntity ).find() ) {
-				if( room.sessions.length <= 0 ) {
+				if( ( room.sessions || [] ).length <= 0 ) {
 					const { roomId } = room;
 					console.log( `Deleting room ${roomId}...` );
 					await entityManager.remove( room );
@@ -127,21 +125,26 @@ const connectionManager = getConnectionManager();
 
 		async function getGame( gameId: string ) {
 			const gameRecord = await entityManager.findOneById( GameEntity, gameId );
+			if( !gameRecord ) {
+				throw new Error( `Game ${gameId} not found.` );
+			}
 			const game = new Game( gameRecord.gameId );
-			game.gameStates.splice( 0, 0, ...gameRecord.gameStates.map( g => {
+			game.gameStates.splice( 0, 0, ...( gameRecord.gameStates || [] ).map( g => {
 				return new GameState;
 			} ) ); 
 			return game;
 		}
 
-		async function newGame( room: RoomEntity ) {
-			statusMessage( room.roomId, 'New game' );
+		async function newGame( roomEntity: RoomEntity ) {
+			statusMessage( roomEntity.roomId, 'New game' );
 			const gameId = uuid.v4(),
 				gameEntity = await entityManager.create( GameEntity, { gameId } ),
 				game = rules.newGame( gameId );
-			room.gameId = gameId;
+			roomEntity.gameId = gameId;
+			await entityManager.persist( gameEntity );
+			await entityManager.persist( roomEntity );
 			flushRooms();
-			flushUpdate( room );
+			flushUpdate( roomEntity );
 			return game;
 		}
 
@@ -168,7 +171,7 @@ const connectionManager = getConnectionManager();
 		async function makeMove( room: RoomEntity, position: Point ) {
 			const game = await getGame( room.gameId );
 			if( !rules.makeMove( game, position ) ) {
-				return;
+				return false;
 			}
 			const { roomId } = room,
 				{ currentGameState: gameState } = game,
@@ -209,7 +212,6 @@ const connectionManager = getConnectionManager();
 			await entityManager.persist( SessionEntity,
 				await entityManager.create( SessionEntity, { sessionId } )
 			);
-
 			async function getCurrentSession() {
 				return await entityManager.findOneById( SessionEntity, sessionId );
 			}
@@ -231,7 +233,7 @@ const connectionManager = getConnectionManager();
 			async function flushJoinedRooms() {
 				const session = await getCurrentSession();
 				socket.emit( 'joinedRooms',
-					session.rooms.map( room => room.roomId )
+					( session.rooms || [] ).map( room => room.roomId )
 				);
 			}
 
@@ -299,7 +301,7 @@ const connectionManager = getConnectionManager();
 			socket.on( 'disconnect', async () => {
 				const session = await getCurrentSession(),
 					nick = await getCurrentNick();
-				for( const { roomId } of session.rooms ) {
+				for( const { roomId } of session.rooms || [] ) {
 					statusMessage( roomId, `${nick} has disconnected.` );
 				}
 				setTimeout( () => { cleanupRooms(); }, 0 );
@@ -309,7 +311,7 @@ const connectionManager = getConnectionManager();
 				try {
 					const room = await entityManager.findOneById( RoomEntity, roomId );
 					if( !room ) {
-						throw new Error( 'Room not found.' );
+						throw new Error( `Room ${roomId} not found.` );
 					}
 					if( !await makeMove( room, position ) ) {
 						throw new Error( 'Failed to make move.' );
@@ -325,7 +327,7 @@ const connectionManager = getConnectionManager();
 				try {
 					const room = await entityManager.findOneById( RoomEntity, roomId );
 					if( !room ) {
-						throw new Error( 'Room not found.' );
+						throw new Error( `Room ${roomId} not found.` );
 					}
 					const game = await newGame( room );
 					if( !game ) {
@@ -372,7 +374,7 @@ const connectionManager = getConnectionManager();
 					if( !room ) {
 						throw new Error( 'Failed to join room.' );
 					}
-					const nick = getCurrentNick();
+					const nick = await getCurrentNick();
 					await new Promise( ( resolve, reject ) => {
 						socket.join( room.roomId, err => {
 							if( err ) { reject( err ); }

@@ -22,5 +22,5 @@ export class RoomEntity {
 
 	@ManyToMany( type => SessionEntity, session => session.rooms )
 	@JoinTable()
-	public sessions = [] as SessionEntity[];
+	public sessions?: SessionEntity[];
 }
