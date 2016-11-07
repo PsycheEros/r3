@@ -12,6 +12,7 @@ import Board from './board';
 import Rules from './rules';
 import express = require( 'express' );
 import { Socket } from './socket';
+import { SocketManager } from './socket-manager';
 import index = require( 'serve-index' );
 
 const { NODE_PORT = 3000,
@@ -82,11 +83,7 @@ const connectionManager = getConnectionManager();
 		await entityManager.persist( UserEntity, user );
 		await entityManager.persist( LoginEntity, login ); 
 
-/*
-
-		type Session = {
-			socket: SocketIO.Client
-		};
+		const socketManager = new SocketManager;
 
 		function isValidNick( nick: string ) {
 			if( !nick ) {
@@ -95,13 +92,10 @@ const connectionManager = getConnectionManager();
 			return /^[_a-z][-_a-z0-9]{1,30}[_a-z0-9]+/i.test( nick );
 		}
 
-		function usersInRoom( roomId: string ): number {
-			const room = io.nsps[ '/' ].adapter.rooms[ roomId ];
-			if( room ) {
-				return Object.keys( room.sockets ).length;
-			} else {
-				return 0;
-			}
+		async function usersInRoom( roomId: string ) {
+			const [ , count ] =
+				await entityManager.findAndCount( SessionEntity, session => session.rooms.some( room => room.roomId === roomId ) );
+			return count;
 		}
 
 		async function cleanupRooms() {
@@ -119,17 +113,17 @@ const connectionManager = getConnectionManager();
 			}
 		}
 
-		type Target = {
-			emit: Function;
-		};
-
-		async function flushRooms( target: Target = io ) {
-			target.emit( 'rooms', await entityManager.find( RoomEntity ) );
+		async function flushRooms( sessionIds?: string[] ) {
+			const roomEntities = await entityManager.find( RoomEntity );
+			socketManager.send( sessionIds!, 'rooms', roomEntities.map( room => ( {
+				roomId: room.roomId,
+				name: room.name
+			} ) ) );
 		}
 
-		async function flushUpdate( room: Room, target: Target = io.to( room.roomId ) ) {
+		async function flushUpdate( room: Room, sessionIds?: string[] ) {
 			const game = await getGame( room.gameId );
-			target.emit( 'update', game.serialize() );
+			socketManager.send( sessionIds!, 'update', game.serialize() );
 		}
 
 		async function getGame( gameId: string ) {
@@ -200,231 +194,208 @@ const connectionManager = getConnectionManager();
 			return true;
 		}
 
-
-		function statusMessage( roomId: string, message: string, socket?: SocketIO.Socket ) {
-			if( socket ) {
-				socket.emit( 'message', { roomId, message } );
-			} else {
-				io.to( roomId ).emit( 'message', { roomId, message } );
-			}
+		function statusMessage( roomId: string, message: string, sessionIds?: string[] ) {
+			socketManager.send( sessionIds!, 'message', { roomId, message } );
 			return true;
 		}
 
-		function chatMessage( roomId: string, user: string, message: string ) {
-			io.to( roomId ).emit( 'message', { roomId, user, message } );
+		function chatMessage( roomId: string, user: string, message: string, sessionIds?: string[] ) {
+			socketManager.send( sessionIds!, 'message', { roomId, user, message } );
 			return true;
 		}
 
-		let connections = 0;
-*/
 		app.param( 'sessionId', ( req, res, next, sessionId ) => {
 			req[ 'sessionId' ] = sessionId || uuid();
 			next();
 		} );
 
-		app.ws( '/ws/:sessionId', ( ws, req ) => {
-			const sessionId = req[ 'sessionId' ] as string;
-			new Socket( ws );
-			ws.on( 'message', ( str: string ) => {
-				const msg = JSON.parse( str );
-				console.log( msg.data );
-			} );
-		} );
-		/*
-			const sessionId = uuid.v4();
-			await entityManager.persist( SessionEntity,
-				await entityManager.create( SessionEntity, { sessionId } )
-			);
-			async function getCurrentSession() {
-				return await entityManager.findOneById( SessionEntity, sessionId );
-			}
+		async function getSession( sessionId: string ) {
+			return await entityManager.findOneById( SessionEntity, sessionId );
+		}
 
-			async function getCurrentUser() {
-				const { user } = await getCurrentSession();
-				return user;
-			}
+		async function getUser( sessionId: string ) {
+			const { user } = await getSession( sessionId );
+			return user;
+		}
 
-			async function getCurrentNick() {
-				const user = await getCurrentUser();
-				if( user ) {
-					return user.nick;
-				} else {
-					return 'Guest';
-				}
+		async function getNick( sessionId: string ) {
+			const user = await getUser( sessionId );
+			if( user ) {
+				return user.nick;
+			} else {
+				return 'Guest';
 			}
+		}
 
-			async function flushJoinedRooms() {
-				const session = await getCurrentSession();
-				socket.emit( 'joinedRooms',
-					( session.rooms || [] ).map( room => room.roomId )
-				);
-			}
+		async function flushJoinedRooms( sessionId: string ) {
+			const session = await getSession( sessionId );
+			socketManager.send( [ sessionId ], 'joinedRooms', ( session.rooms || [] ).map( room => room.roomId ) );
+		}
 
-			async function leaveRoom( roomId: string ) {
-				await new Promise( ( resolve, reject ) => {
-					socket.leave( roomId, err => {
-						if( err ) {
-							reject( err );
-						} else {
-							resolve();
-						}
-					} );
-				} );
-				const nick = await getCurrentNick();
-				await flushJoinedRooms();
-				await statusMessage( roomId, `${nick} has left the room.` );
-			}
+		async function leaveRoom( sessionId: string, roomId: string ) {
+			const session = await getSession( sessionId );
+			session.rooms = session.rooms!.filter( room => room.roomId !== roomId );
+			await entityManager.persist( session );
+			const nick = await getNick( sessionId );
+			await flushJoinedRooms( sessionId );
+			await statusMessage( roomId, `${nick} has left the room.` );
+		}
 
-			const commands = {
-				async help( roomId: string ) {
-					await statusMessage( roomId, `Available commands:
+		async function joinRoom( sessionId: string, roomId: string ) {
+			const session = await getSession( sessionId );
+			const room = await entityManager.findOneById( RoomEntity, { roomId } );
+			session.rooms!.push( room );
+			await entityManager.persist( session );
+			const nick = await getNick( sessionId );
+			await flushJoinedRooms( sessionId );
+			await statusMessage( roomId, `${nick} has joined the room.` );
+		}
+
+		const commands = {
+			async help( sessionId: string, roomId: string ) {
+				await statusMessage( roomId, `Available commands:
 /?
 /help
 /nick <username>
 /quit
-`, socket );
-				},
-				async '?'( roomId: string ) {
-					await commands.help( roomId );
-				},
-				async nick( roomId: string, nick: string ) {
-					const user = await getCurrentUser();
-					if( !user ) {
-						throw new Error( 'You must be logged in.' );
-					}
-					if( !isValidNick( nick ) ) {
-						throw new Error( 'Invalid nick.' );
-					}
-					const previousNick = await user.nick;
-					user.nick = nick;
-					await entityManager.persist( UserEntity, user );
-					await statusMessage( roomId, `${previousNick} is now known as ${nick}.` );
-				},
-				async quit( roomId: string ) {
-					await leaveRoom( roomId );
+`, [ sessionId ] );
+			},
+			async '?'( sessionId: string, roomId: string ) {
+				await commands.help( sessionId, roomId );
+			},
+			async nick( sessionId: string, roomId: string, nick: string ) {
+				const user = await getUser( sessionId );
+				if( !user ) {
+					throw new Error( 'You must be logged in.' );
 				}
-			};
-			async function command( roomId: string, raw: string ) {
-				const [ cmd, ...params ] = raw.trim().split( /\s+/g );
-				try {
-					if( !commands.hasOwnProperty( cmd ) ) {
-						throw new Error( 'Unknown command.' );
-					}
-					await commands[ cmd ]( roomId, ...params );
-				} catch( ex ) {
-					if( ex && ex.message ) {
-						await statusMessage( roomId, ex.message, socket );
-					}
-					throw ex;
+				if( !isValidNick( nick ) ) {
+					throw new Error( 'Invalid nick.' );
 				}
+				const previousNick = await user.nick;
+				user.nick = nick;
+				await entityManager.persist( UserEntity, user );
+				await statusMessage( roomId, `${previousNick} is now known as ${nick}.` );
+			},
+			async quit( sessionId: string, roomId: string ) {
+				await leaveRoom( sessionId, roomId );
 			}
-
-			console.log( `User connected, ${++connections} connected` );
-
-			socket.on( 'disconnect', async () => {
-				const session = await getCurrentSession(),
-					nick = await getCurrentNick();
-				for( const { roomId } of session.rooms || [] ) {
-					statusMessage( roomId, `${nick} has disconnected.` );
+		};
+		async function command( sessionId: string, roomId: string, raw: string ) {
+			const [ cmd, ...params ] = raw.trim().split( /\s+/g );
+			try {
+				if( !commands.hasOwnProperty( cmd ) ) {
+					throw new Error( 'Unknown command.' );
 				}
-				setTimeout( () => { cleanupRooms(); }, 0 );
-			} );
-
-			socket.on( 'makeMove', async ( { roomId, position }, callback ) => {
-				try {
-					const room = await entityManager.findOneById( RoomEntity, roomId );
-					if( !room ) {
-						throw new Error( `Room ${roomId} not found.` );
-					}
-					if( !await makeMove( room, position ) ) {
-						throw new Error( 'Failed to make move.' );
-					}
-					callback( null, {} );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+				await commands[ cmd ]( sessionId, roomId, ...params );
+			} catch( ex ) {
+				if( ex && ex.message ) {
+					await statusMessage( roomId, ex.message, [ sessionId ] );
 				}
-			} );
+				throw ex;
+			}
+		}
 
-			socket.on( 'newGame', async ( { roomId }, callback ) => {
-				try {
-					const room = await entityManager.findOneById( RoomEntity, roomId );
-					if( !room ) {
-						throw new Error( `Room ${roomId} not found.` );
-					}
-					const game = await newGame( room );
-					if( !game ) {
-						throw new Error( 'Failed to create game.' );
-					}
-					callback( null, { game: game.serialize() } );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+		app.ws( '/ws/:sessionId', async ( ws, req ) => {
+			const sessionId = req[ 'sessionId' ] as string;
+			socketManager.addConnection( ws, sessionId );
+			await entityManager.persist( SessionEntity,
+				await entityManager.create( SessionEntity, { sessionId } )
+			);
+		} );
+
+		socketManager.getMessages<{ roomId: string, position: Point }>( 'makeMove' )
+		.subscribe( async ( [ { data: { roomId, position } }, responder, { sessionId } ] ) => {
+			try {
+				const room = await entityManager.findOneById( RoomEntity, roomId );
+				if( !room ) {
+					throw new Error( `Room ${roomId} not found.` );
 				}
-			} );
-
-			socket.on( 'sendMessage', async ( { roomId, message }, callback ) => {
-				try {
-					if( message.startsWith( '/' ) ) {
-						await command( roomId, message.slice( 1 ) );
-						callback( null, {} );
-						return;
-					}
-					const nick = await getCurrentNick();
-					if( !await chatMessage( roomId, nick, message ) ) {
-						throw new Error( 'Failed to send message.' );
-					}
-					callback( null, {} );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+				if( !await makeMove( room, position ) ) {
+					throw new Error( 'Failed to make move.' );
 				}
-			} );
+				responder.resolve( {} );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+		} );
 
-			socket.on( 'createRoom', async ( { name }, callback ) => {
-				try {
-					const room = await createRoom( name );
-					callback( null, room );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+		socketManager.getMessages<{ roomId: string }>( 'newGame' )
+		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
+			try {
+				const room = await entityManager.findOneById( RoomEntity, roomId );
+				if( !room ) {
+					throw new Error( `Room ${roomId} not found.` );
 				}
-			} );
-
-			socket.on( 'joinRoom', async ( { roomId }, callback ) => {
-				try {
-					const room = await entityManager.findOneById( RoomEntity, roomId );
-					if( !room ) {
-						throw new Error( 'Failed to join room.' );
-					}
-					const nick = await getCurrentNick();
-					await new Promise( ( resolve, reject ) => {
-						socket.join( room.roomId, err => {
-							if( err ) { reject( err ); }
-							else { resolve(); }
-						} );
-					} );
-					await flushJoinedRooms();
-					await flushUpdate( room, socket );
-					await statusMessage( roomId, `${nick} has joined the room.` );
-					callback( null, { room } );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+				const game = await newGame( room );
+				if( !game ) {
+					throw new Error( 'Failed to create game.' );
 				}
-			} );
+				responder.resolve( { game: game.serialize() } );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+		} );
 
-			socket.on( 'leaveRoom', async ( { roomId }, callback ) => {
-				try {
-					await leaveRoom( roomId );
-					callback( null, {} );
-				} catch( ex ) {
-					console.error( ex );
-					callback( ex.message || ex, null );
+		socketManager.getMessages<{ roomId: string, message: string }>( 'sendMessage' )
+		.subscribe( async ( [ { data: { roomId, message } }, responder, { sessionId } ] ) => {
+			try {
+				if( message.startsWith( '/' ) ) {
+					await command( sessionId, roomId, message.slice( 1 ) );
+					responder.resolve( {} );
+					return;
 				}
-				setTimeout( () => { cleanupRooms(); }, 0 );
-			} );
+				const nick = await getNick( sessionId );
+				if( !await chatMessage( roomId, nick, message ) ) {
+					throw new Error( 'Failed to send message.' );
+				}
+				responder.resolve( {} );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+		} );
 
+		socketManager.getMessages<{ name: string }>( 'createRoom' )
+		.subscribe( async ( [ { data: { name } }, responder, { sessionId } ] ) => {
+			try {
+				const room = await createRoom( name );
+				responder.resolve( room );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+		} );
+
+		socketManager.getMessages<{ roomId: string }>( 'joinRoom' )
+		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
+			try {
+				const room = await entityManager.findOneById( RoomEntity, roomId );
+				if( !room ) {
+					throw new Error( 'Failed to join room.' );
+				}
+				await joinRoom( sessionId, roomId );
+				await flushUpdate( room, [ sessionId ] );
+				responder.resolve( { room } );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+		} );
+
+		socketManager.getMessages<{ roomId: string }>( 'leaveRoom' )
+		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
+			try {
+				await leaveRoom( sessionId, roomId );
+				responder.resolve( {} );
+			} catch( ex ) {
+				console.error( ex );
+				responder.reject( ex );
+			}
+			setTimeout( () => { cleanupRooms(); }, 0 );
+		} );
+		/*
 			flushRooms( socket );
 		} );
 

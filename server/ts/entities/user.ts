@@ -3,7 +3,7 @@ import { LoginEntity } from './login';
 import { SessionEntity } from './session';
 
 
-@Table( 'User' )
+@Table()
 export class UserEntity {
 	@PrimaryColumn( { length: '36' } )
 	public userId: string;
@@ -12,7 +12,7 @@ export class UserEntity {
 	public nick: string;
 
 	@OneToMany( type => SessionEntity, session => session.user )
-	public sessions = [] as SessionEntity[];
+	public sessions?: SessionEntity[];
 
 	@OneToOne( type => LoginEntity, login => login.user, {
 		cascadeAll: true

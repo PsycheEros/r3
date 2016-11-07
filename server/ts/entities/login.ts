@@ -1,7 +1,7 @@
 import { Table, Index, Column, PrimaryColumn, OneToMany, OneToOne } from 'typeorm';
 import { UserEntity } from './user';
 
-@Table( 'Login' )
+@Table()
 export class LoginEntity {
 	@PrimaryColumn()
 	public loginId: string;

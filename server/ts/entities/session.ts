@@ -2,7 +2,7 @@ import { Table, Index, Column, PrimaryColumn, ManyToOne, ManyToMany } from 'type
 import { UserEntity } from './user';
 import { RoomEntity } from './room';
 
-@Table( 'Session' )
+@Table()
 export class SessionEntity {
 	@PrimaryColumn( { length: '36' } )
 	public sessionId: string;

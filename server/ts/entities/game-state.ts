@@ -1,7 +1,7 @@
 import { Table, Index, Column, PrimaryColumn, ManyToOne } from 'typeorm';
 import { GameEntity } from './game';
 
-@Table( 'GameState' )
+@Table()
 export class GameStateEntity {
 	@PrimaryColumn( { length: '36' } )
 	public gameStateId: string;

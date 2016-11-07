@@ -34,7 +34,7 @@ export class SocketService {
 
 	public getMessages<T>( ...messageNames: string[] ) {
 		const { webSocket } = this;
-		let retval = webSocket as Observable<SocketMessage<T>>;
+		let retval = webSocket.filter( m => m.name !== 'ack' );
 		if( messageNames.length ) {
 			retval = retval.filter( m => messageNames.includes( m.name ) );
 		}
@@ -51,6 +51,7 @@ export class SocketService {
 				subscription =
 					this.webSocket
 					.filter( m => m.name === 'ack' && m.messageId === messageId )
+					.take( 1 )
 					.subscribe( ( { data } ) => {
 						resolve( data );
 						subscription.unsubscribe();

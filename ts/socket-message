@@ -1,0 +1,5 @@
+declare interface SocketM<T> extends SocketMessage<T> {
+	accept( data?: any ): void;
+
+	reject( error: any ): void;
+}

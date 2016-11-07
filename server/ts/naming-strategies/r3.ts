@@ -55,7 +55,7 @@ const logEnabled = false;
 export class R3NamingStrategy extends DefaultNamingStrategy {
 	@Log( logEnabled )
 	public tableName( className: string, customName: string ) {
-		return super.tableName( className, customName );
+		return customName || pascalCase( className.replace( /entity$/i, '' ) );
 	}
 
 	@Log( logEnabled )

@@ -2,7 +2,7 @@ import { Table, Index, Column, PrimaryColumn, OneToOne, ManyToMany, JoinColumn, 
 import { GameEntity } from './game';
 import { SessionEntity } from './session';
 
-@Table( 'Room' )
+@Table()
 export class RoomEntity {
 	@PrimaryColumn()
 	public roomId: string;
