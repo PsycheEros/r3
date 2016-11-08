@@ -10,7 +10,8 @@
 			jquery: 'lib/jquery/dist/jquery.min.js',
 			mathjs: 'lib/mathjs/dist/math.min.js',
 			moment: 'lib/moment/moment.js',
-			'ng2-bootstrap': 'lib/ng2-bootstrap/bundles/ng2-bootstrap.umd.js'
+			'ng2-bootstrap': 'lib/ng2-bootstrap/bundles/ng2-bootstrap.umd.js',
+			tslib: 'lib/tslib.js'
 		},
 		map: {
 			'@angular': 'lib/@angular',

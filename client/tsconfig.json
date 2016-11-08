@@ -7,6 +7,8 @@
 		"lib": [ "dom", "es2017" ],
 		"rootDirs": [ "ts", "../ts" ],
 		"types": [ "systemjs", "mathjs" ],
+		"noEmitHelpers": true,
+		"importHelpers": true,
 		"allowSyntheticDefaultImports": false,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,

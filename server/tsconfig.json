@@ -11,7 +11,9 @@
 		"strictNullChecks": true,
 		"lib": [ "es2017" ],
 		"rootDirs": [ "ts", "../ts" ],
-		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs", "uuid" ]
+		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs", "uuid" ],
+		"noEmitHelpers": true,
+		"importHelpers": true
 	},
 	"include": [
 		"ts/**/*.ts",

@@ -25,7 +25,6 @@ export class Socket {
 			connectedSubject.complete();
 			messageSubject.complete();
 		} );
-		console.log( 'Client connected' );
 	}
 
 	public send<T>( name: string, data: any ) {
@@ -35,8 +34,12 @@ export class Socket {
 					this.messageSubject
 						.filter( message => message.name === 'ack' && message.messageId === messageId )
 						.take( 1 )
-						.subscribe( msg => {
-							resolve( msg.data );
+						.subscribe( ( { data: [ error, data ] } ) => {
+							if( error ) {
+								reject( new Error( error ) );
+							} else {
+								resolve( data );
+							}
 							subscription.unsubscribe();
 						} );
 			setTimeout( () => {
@@ -52,7 +55,7 @@ export class Socket {
 		this.ws.send( JSON.stringify( { messageId, name, data } ) );
 	}
 
-	public getMessages<T>( ...messages: string[] ): Observable<T> {
+	public getMessages<T>( ...messages: string[] ): Observable<SocketMessage<T>> {
 		const { messageSubject } = this;
 		let retval = messageSubject.filter( m => m.name !== 'ack' ); 
 		if( messages.length ) {
