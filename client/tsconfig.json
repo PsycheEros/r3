@@ -6,7 +6,7 @@
 		"moduleResolution": "node",
 		"lib": [ "dom", "es2017" ],
 		"rootDirs": [ "ts", "../ts" ],
-		"types": [ "systemjs", "mathjs" ],
+		"types": [ "systemjs", "jquery", "mathjs" ],
 		"noEmitHelpers": true,
 		"importHelpers": true,
 		"allowSyntheticDefaultImports": false,

@@ -1,12 +1,12 @@
 import { Component, ViewChild, Input, Output, EventEmitter } from '@angular/core';
-import { ModalDirective } from 'ng2-bootstrap';
+import { ModalDirective } from '../../directives/index';
 
 @Component( {
 	selector: 'modal-choose',
 	templateUrl: 'templates/modal/choose.html'
 } )
 export class ModalChooseComponent {
-	@ViewChild('chooseModal')
+	@ViewChild( 'chooseModal' )
 	protected chooseModal: ModalDirective;
 
 	@Output()

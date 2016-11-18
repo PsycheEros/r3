@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { RoomService } from '../../services/index';
-import { ModalDirective } from 'ng2-bootstrap';
+import { ModalDirective } from '../../directives/index';
 
 @Component( {
 	selector: 'modal-create-room',

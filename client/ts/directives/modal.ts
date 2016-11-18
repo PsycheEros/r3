@@ -8,7 +8,7 @@ import * as $ from 'jquery';
 export class ModalDirective {
 	public constructor( private readonly element: ElementRef, private readonly renderer: Renderer ) {}
 
-	public ngAfterViewInit() {
+	protected ngAfterViewInit() {
 		const { element: { nativeElement } } = this,
 			$e = $( nativeElement );
 		$e.on( 'show.bs.modal', () => {
@@ -25,6 +25,15 @@ export class ModalDirective {
 		} );
 	}
 
+	protected ngOnDestroy() {
+		const { element: { nativeElement } } = this,
+			$e = $( nativeElement );
+		$e.off( 'show.bs.modal' );
+		$e.off( 'shown.bs.modal' );
+		$e.off( 'hide.bs.modal' );
+		$e.off( 'hidden.bs.modal' );
+	}
+
 	@Output()
 	public readonly onShow = new EventEmitter<ModalDirective>();
 
@@ -36,6 +45,11 @@ export class ModalDirective {
 
 	@Output()
 	public readonly onHidden = new EventEmitter<ModalDirective>();
+
+	public toggle() {
+		const { element: { nativeElement } } = this;
+		$( nativeElement ).modal( 'toggle' );
+	}
 
 	public show() {
 		const { element: { nativeElement } } = this;
