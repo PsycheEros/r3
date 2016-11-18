@@ -1,22 +1,27 @@
 ( () => {
 	SystemJS.config( {
+		baseURL: '/',
 		paths: {
-			app: 'js',
-			'socket.io-client': 'lib/socket.io-client/socket.io.js',
-			'reflect-metadata': 'lib/reflect-metadata/Reflect.js',
-			'rxjs/*': 'lib/rxjs/bundles/Rx.min.js',
-			bootstrap: 'lib/bootstrap/dist/js/bootstrap.min.js',
-			tether: 'lib/tether/dist/js/tether.min.js',
-			jquery: 'lib/jquery/dist/jquery.min.js',
-			mathjs: 'lib/mathjs/dist/math.min.js',
-			moment: 'lib/moment/moment.js',
-			'ng2-bootstrap': 'lib/ng2-bootstrap/bundles/ng2-bootstrap.umd.js',
-			tslib: 'lib/tslib.js'
+			'npm:*': 'lib/*',
+			'rxjs/*': 'rxjs',
+		},
+		bundles: {
+			'npm:rxjs/bundles/Rx.min.js': [ 'rxjs/*' ]
 		},
 		map: {
-			'@angular': 'lib/@angular',
-			'angular2-auto-scroll': 'lib/angular2-auto-scroll',
-			uuid: 'lib/uuid'
+			app: 'js',
+			rxjs: 'npm:rxjs',
+			'ng2-bootstrap': 'npm:ng2-bootstrap/bundles/ng2-bootstrap.umd.js',
+			'reflect-metadata': 'npm:reflect-metadata/Reflect.js',
+			tslib: 'npm:tslib/tslib.js',
+			'@angular': 'npm:@angular',
+			'angular2-auto-scroll': 'npm:angular2-auto-scroll',
+			bootstrap: 'npm:bootstrap/dist/js/bootstrap.min.js',
+			tether: 'npm:tether/dist/js/tether.min.js',
+			jquery: 'npm:jquery/dist/jquery.min.js',
+			mathjs: 'npm:mathjs/dist/math.min.js',
+			moment: 'npm:moment/moment.js',
+			uuid: 'npm:uuid'
 		},
 		packages: {
 			app: {
@@ -75,6 +80,9 @@
 			}
 		},
 		meta: {
+			'rxjs/*': {
+				deps: [ 'tslib' ]
+			},
 			bootstrap: {
 				deps: [ 'jquery', 'tether' ]
 			},

@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalDirective } from '../directives/index';
 import { ModalChooseComponent, ModalCreateRoomComponent } from '../components/modal/index';
-import { ModalModule as Ng2ModalModule } from 'ng2-bootstrap';
 
 @NgModule( {
-	imports:      [ CommonModule, FormsModule, Ng2ModalModule ],
-	exports:      [ ModalChooseComponent, ModalCreateRoomComponent ],
-	declarations: [ ModalChooseComponent, ModalCreateRoomComponent ]
+	imports:      [ CommonModule, FormsModule ],
+	exports:      [ ModalChooseComponent, ModalCreateRoomComponent, ModalDirective ],
+	declarations: [ ModalChooseComponent, ModalCreateRoomComponent, ModalDirective ]
 } )
 export class ModalModule {}
