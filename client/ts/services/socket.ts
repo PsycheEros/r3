@@ -53,8 +53,12 @@ export class SocketService {
 					.share()
 					.filter( m => m.name === 'ack' && m.messageId === messageId )
 					.take( 1 )
-					.subscribe( ( { data } ) => {
-						resolve( data );
+					.subscribe( ( { data: [ error, data ] } ) => {
+						if( error ) {
+							reject( new Error( error ) );
+						} else {
+							resolve( data );
+						}
 						subscription.unsubscribe();
 					} );
 

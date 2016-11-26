@@ -4,10 +4,14 @@ import { SessionEntity } from './session';
 
 @Table()
 export class RoomEntity {
-	@PrimaryColumn()
+	public constructor( data: Partial<RoomEntity> = {} ) {
+		Object.assign( this, data );
+	}
+
+	@PrimaryColumn( { length: '36' } )
 	public roomId: string;
 
-	@Column()
+	@Column( { length: '36' } )
 	public gameId: string;
 
 	@Column()
@@ -18,9 +22,9 @@ export class RoomEntity {
 
 	@OneToOne( type => GameEntity )
 	@JoinColumn()
-	public game: GameEntity;
+	public game?: GameEntity;
 
-	@ManyToMany( type => SessionEntity, session => session.rooms )
+	@ManyToMany( type => SessionEntity )
 	@JoinTable()
-	public sessions?: SessionEntity[];
+	public sessions = [] as SessionEntity[];
 }

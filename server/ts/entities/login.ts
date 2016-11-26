@@ -3,11 +3,12 @@ import { UserEntity } from './user';
 
 @Table()
 export class LoginEntity {
-	@PrimaryColumn()
-	public loginId: string;
+	public constructor( data: Partial<LoginEntity> = {} ) {
+		Object.assign( this, data );
+	}
 
-	@Column()
-	@Index( { unique: true } )
+	@PrimaryColumn( { length: '36' } )
+	@OneToOne( type => UserEntity, user => user.login )
 	public userId: string;
 
 	@Column()
@@ -18,5 +19,5 @@ export class LoginEntity {
 	public passwordHash: string;
 
 	@OneToOne( type => UserEntity, user => user.login )
-	public user?: UserEntity;
+	public user: UserEntity;
 }

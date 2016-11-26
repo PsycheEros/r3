@@ -3,6 +3,10 @@ import { GameEntity } from './game';
 
 @Table()
 export class GameStateEntity {
+	public constructor( data: Partial<GameStateEntity> = {} ) {
+		Object.assign( this, data );
+	}
+
 	@PrimaryColumn( { length: '36' } )
 	public gameStateId: string;
 

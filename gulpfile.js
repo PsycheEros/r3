@@ -56,7 +56,7 @@ gulp.task( 'build:ts:client', () => {
 	.pipe( sourcemaps.init() )
 	.pipe( tsproj() )
 	.pipe( gulpIf( options.babel, babel( { presets: [ 'es2015' ] } ) ) )
-	.pipe( sourcemaps.write( './' ) )
+	.pipe( sourcemaps.write() )
 	.pipe( gulp.dest( 'client/js' ) );
 } );
 
@@ -68,7 +68,7 @@ gulp.task( 'build:ts:server', () => {
 	] )
 	.pipe( sourcemaps.init() )
 	.pipe( tsproj() )
-	.pipe( sourcemaps.write( './' ) )
+	.pipe( sourcemaps.write() )
 	.pipe( gulp.dest( 'server/js' ) );
 } );
 

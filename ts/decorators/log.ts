@@ -21,10 +21,10 @@ export function Log( options: LogOptions|boolean = true ) {
 		descriptor.value = function( ...args ) {
 			let retval: any;
 			try {
-				retval = method!.apply( this!, args );
+				retval = method!.apply( this, args );
 				return retval;
 			} finally {
-				const parts = [];
+				const parts = [] as any[];
 				if( logArguments ) {
 					parts.push( args );
 				}

@@ -32,7 +32,7 @@
 				main: 'uuid.js',
 				defaultExtension: 'js',
 				map: {
-					'./rng': './rng-browser' 
+					'./lib/rng': './lib/rng-browser' 
 				}
 			},
 			rxjs: {

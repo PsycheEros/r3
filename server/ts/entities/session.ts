@@ -4,6 +4,10 @@ import { RoomEntity } from './room';
 
 @Table()
 export class SessionEntity {
+	public constructor( data: Partial<SessionEntity> = {} ) {
+		Object.assign( this, data );
+	}
+
 	@PrimaryColumn( { length: '36' } )
 	public sessionId: string;
 
@@ -14,5 +18,5 @@ export class SessionEntity {
 	public user?: UserEntity;
 
 	@ManyToMany( type => RoomEntity, room => room.sessions )
-	public rooms?: RoomEntity[];
+	public rooms = [] as RoomEntity[];
 }

@@ -54,8 +54,8 @@ export default class Rules {
 	public getColors( board: Board ) {
 		const colors = new Set<number>();
 		for( let { color } of board ) {
-			if( Number.isSafeInteger( color ) ) {
-				colors.add( color );
+			if( Number.isSafeInteger( color! ) ) {
+				colors.add( color! );
 			}
 		}
 		return colors;
