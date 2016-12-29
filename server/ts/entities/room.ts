@@ -8,16 +8,16 @@ export class RoomEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	public roomId: string;
 
-	@Column( { length: '36' } )
+	@Column( { length: 36 } )
 	public gameId: string;
 
 	@Column()
 	public name: string;
 
-	@Column()
+	@Column( { length: 64 } )
 	public password = '';
 
 	@OneToOne( type => GameEntity )

@@ -58,8 +58,8 @@ const connectionManager = getConnectionManager();
 					storage: ':memory:'
 				},
 				entities: [ `${__dirname}/entities/index.js` ],
-				// namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
-				// usedNamingStrategy: 'R3NamingStrategy',
+				namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
+				usedNamingStrategy: 'R3NamingStrategy',
 				logging: {
 					logSchemaCreation: true,
 					logQueries: true
@@ -87,6 +87,7 @@ const connectionManager = getConnectionManager();
 		const socketManager = new SocketManager;
 
 		function isValidNick( nick: string ) {
+			console.log( 'isValidNick', ...arguments );
 			if( !nick ) {
 				return false;
 			}
@@ -94,12 +95,14 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function usersInRoom( roomId: string ) {
+			console.log( 'usersInRoom', ...arguments );
 			const [ , count ] =
 				await entityManager.findAndCount( SessionEntity, session => session.rooms.some( room => room.roomId === roomId ) );
 			return count;
 		}
 
 		async function cleanupRooms() {
+			console.log( 'cleanupRooms', ...arguments );
 			let removed = 0;
 			await entityManager.transaction( async transaction => {
 				const promises = [] as Promise<any>[];
@@ -119,6 +122,7 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function flushRooms( sessionIds?: string[] ) {
+			console.log( 'flushRooms', ...arguments );
 			const roomEntities = await entityManager.find( RoomEntity );
 			socketManager.send( sessionIds!, 'rooms', roomEntities.map( room => ( {
 				roomId: room.roomId,
@@ -127,11 +131,13 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function flushUpdate( room: Room, sessionIds?: string[] ) {
+			console.log( 'flushUpdate', ...arguments );
 			const game = await getGame( room.gameId );
 			socketManager.send( sessionIds!, 'update', game.serialize() );
 		}
 
 		async function getGame( gameId: string ) {
+			console.log( 'getGame', ...arguments );
 			const gameRecord = await entityManager.findOneById( GameEntity, gameId );
 			if( !gameRecord ) {
 				throw new Error( `Game ${gameId} not found.` );
@@ -144,6 +150,7 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function newGame( roomEntity: RoomEntity ) {
+			console.log( 'newGame', ...arguments );
 			statusMessage( roomEntity.roomId, 'New game' );
 			const gameId = uuid.v4(),
 				gameEntity = new GameEntity( { gameId } ),
@@ -159,6 +166,7 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function createRoom( name: string ) {
+			console.log( 'createRoom', ...arguments );
 			const roomId = uuid.v4(),
 				roomEntity =
 					new RoomEntity( {
@@ -171,6 +179,7 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function makeMove( room: RoomEntity, position: Point ) {
+			console.log( 'makeMove', ...arguments );
 			const game = await getGame( room.gameId );
 			if( !rules.makeMove( game, position ) ) {
 				return false;
@@ -194,11 +203,13 @@ const connectionManager = getConnectionManager();
 		}
 
 		function statusMessage( roomId: string, message: string, sessionIds?: string[] ) {
+			console.log( 'statusMessage', ...arguments );
 			socketManager.send( sessionIds!, 'message', { roomId, message } );
 			return true;
 		}
 
 		function chatMessage( roomId: string, user: string, message: string, sessionIds?: string[] ) {
+			console.log( 'chatMessage', ...arguments );
 			socketManager.send( sessionIds!, 'message', { roomId, user, message } );
 			return true;
 		}
@@ -209,17 +220,20 @@ const connectionManager = getConnectionManager();
 		} );
 
 		async function getSession( sessionId: string ) {
+			console.log( 'getSession', ...arguments );
 			const session = await entityManager.findOneById( SessionEntity, sessionId );
 			if( !session ) throw new Error( `Session ${sessionId} not found` );
 			return session;
 		}
 
 		async function getUser( sessionId: string ) {
+			console.log( 'getUser', ...arguments );
 			const { user } = await getSession( sessionId );
 			return user;
 		}
 
 		async function getNick( sessionId: string ) {
+			console.log( 'getNick', ...arguments );
 			const user = await getUser( sessionId );
 			if( user ) {
 				return user.nick;
@@ -229,11 +243,13 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function flushJoinedRooms( sessionId: string ) {
+			console.log( 'flushJoinedRooms', ...arguments );
 			const session = await getSession( sessionId );
 			socketManager.send( [ sessionId ], 'joinedRooms', ( session.rooms || [] ).map( room => room.roomId ) );
 		}
 
 		async function leaveRoom( sessionId: string, roomId: string ) {
+			console.log( 'leaveRoom', ...arguments );
 			const session = await getSession( sessionId );
 			session.rooms = session.rooms!.filter( room => room.roomId !== roomId );
 			await entityManager.persist( session );
@@ -243,8 +259,12 @@ const connectionManager = getConnectionManager();
 		}
 
 		async function joinRoom( sessionId: string, roomId: string ) {
+			console.log( 'joinRoom', ...arguments );
 			const session = await getSession( sessionId );
 			const room = await entityManager.findOneById( RoomEntity, { roomId } );
+			if( !room ) {
+				throw new Error( `Room ${roomId} not found.` );
+			}
 			session.rooms.push( room );
 			await entityManager.persist( session );
 			const nick = await getNick( sessionId );
@@ -282,6 +302,7 @@ const connectionManager = getConnectionManager();
 			}
 		};
 		async function command( sessionId: string, roomId: string, raw: string ) {
+			console.log( 'command', ...arguments );
 			const [ cmd, ...params ] = raw.trim().split( /\s+/g );
 			try {
 				if( !commands.hasOwnProperty( cmd ) ) {
@@ -299,12 +320,7 @@ const connectionManager = getConnectionManager();
 		app.ws( '/ws/:sessionId', async ( ws, req ) => {
 			const sessionId = req[ 'sessionId' ] as string;
 			await entityManager.transaction( async transaction => {
-				let session: SessionEntity|null;
-				try {
-					session = await transaction.findOneById( SessionEntity, sessionId );
-				} catch( ex ) {
-					session = null;
-				}
+				let session = await transaction.findOneById( SessionEntity, sessionId );
 				if( !session ) {
 					session =
 						await transaction.persist(

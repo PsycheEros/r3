@@ -7,13 +7,13 @@ export class GameStateEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	public gameStateId: string;
 
-	@Column( { length: '36' } )
+	@Column( { length: 36 } )
 	public gameId: string;
 
-	@Column()
+	@Column( { type: 'int' } )
 	public turn: number;
 
 	@ManyToOne( type => GameEntity, game => game.gameStates )

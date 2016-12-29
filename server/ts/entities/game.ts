@@ -7,7 +7,7 @@ export class GameEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	public gameId: string;
 
 	@OneToMany( type => GameStateEntity, gameState => gameState.game, {

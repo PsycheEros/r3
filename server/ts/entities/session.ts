@@ -8,10 +8,10 @@ export class SessionEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	public sessionId: string;
 
-	@Column( { length: '36', nullable: true } )
+	@Column( { length: 36, nullable: true } )
 	public userId: string|undefined;
 
 	@ManyToOne( type => UserEntity, userEntity => userEntity.sessions )

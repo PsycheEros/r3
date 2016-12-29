@@ -9,10 +9,10 @@ export class UserEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	public userId: string;
 
-	@Column( { length: '64' } )
+	@Column( { length: 64 } )
 	public nick: string;
 
 	@OneToMany( type => SessionEntity, session => session.user )

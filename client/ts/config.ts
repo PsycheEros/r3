@@ -29,7 +29,7 @@
 				defaultExtension: 'js'
 			},
 			uuid: {
-				main: 'uuid.js',
+				main: 'index.js',
 				defaultExtension: 'js',
 				map: {
 					'./lib/rng': './lib/rng-browser' 

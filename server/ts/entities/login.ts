@@ -7,7 +7,7 @@ export class LoginEntity {
 		Object.assign( this, data );
 	}
 
-	@PrimaryColumn( { length: '36' } )
+	@PrimaryColumn( { length: 36 } )
 	@OneToOne( type => UserEntity, user => user.login )
 	public userId: string;
 

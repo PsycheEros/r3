@@ -13,7 +13,9 @@
 		"rootDirs": [ "ts", "../ts" ],
 		"types": [ "express", "node", "redis", "socket.io", "serve-static", "mathjs", "uuid" ],
 		"noEmitHelpers": true,
-		"importHelpers": true
+		"importHelpers": true,
+		"alwaysStrict": false,
+		"noImplicitUseStrict": true
 	},
 	"include": [
 		"ts/**/*.ts",
