@@ -1,8 +1,8 @@
 <div class="row" *ngIf="game">
-	<div class="col-xs-12">
+	<div class="col-12">
 		<board [board]="game.currentGameState?.board" (click)="onClick($event)" (mousemove)="onMouseMove($event)"></board>
 	</div>
-	<div class="col-xs-12">
+	<div class="col-12">
 		<div class="card">
 			<div class="card-block">
 				<div *ngIf="game.currentGameState?.turn === 0">Black's Turn</div>

@@ -1,5 +1,5 @@
 <div class="row">
-	<div class="col-xs-12">
+	<div class="col-12">
 		<form (ngSubmit)="sendMessage()" #messageForm="ngForm">
 			<div class="form-group">
 				<input type="text" class="form-control" required="required" placeholder="Enter message" [(ngModel)]="text" name="text"/>
@@ -9,7 +9,7 @@
 			</div>
 		</form>
 	</div>
-	<div class="col-xs-12">
+	<div class="col-12">
 		<div class="list-group" angular2-auto-scroll>
 			<div class="list-group-item" *ngFor="let message of messages">
 				<h4 class="list-group-item-heading text-muted" *ngIf="message.user">{{message.user}}</h4>

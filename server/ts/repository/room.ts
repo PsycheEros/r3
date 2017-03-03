@@ -1,6 +1,6 @@
-import MapRepository from './map';
+import { MapRepository } from './map';
 
-export default class RoomRepository extends MapRepository<RoomRecord> {
+export class RoomRepository extends MapRepository<RoomRecord> {
 	public constructor() {
 		super( 'roomId' );
 	}

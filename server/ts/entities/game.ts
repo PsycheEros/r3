@@ -1,4 +1,4 @@
-import { Table, Column, PrimaryColumn, OneToMany } from 'typeorm';
+import { Table, PrimaryColumn, OneToMany } from 'typeorm';
 import { GameStateEntity } from './game-state';
 
 @Table()
@@ -11,7 +11,8 @@ export class GameEntity {
 	public gameId: string;
 
 	@OneToMany( type => GameStateEntity, gameState => gameState.game, {
-		cascadeAll: true
+		cascadeInsert: true,
+		cascadeUpdate: true
 	} )
 	public gameStates = [] as GameStateEntity[];
 }

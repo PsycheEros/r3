@@ -1,7 +1,4 @@
-import Game from './game';
-import GameState from './game-state';
-import Board from './board';
-import Square from './square';
+import { Board } from './board';
 
 const directions: Point[] = [
 	{ x:  0, y: -1 },
@@ -17,7 +14,7 @@ const directions: Point[] = [
 function getAffectedSquares( board: Board, position: Point, color: number ): Square[] {
 	if( !board.boundsCheck( position ) ) { return []; }
 	const square = board.get( position );
-	if( !square || !square.empty || !square.enabled ) { return []; }
+	if( !square || square.color === null || !square.enabled ) { return []; }
 	function direction( { x, y }: Point, delta: Point ): Square[] {
 		const squares = [] as Square[];
 		for( ; ; ) {
@@ -25,7 +22,7 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 			y += delta.y;
 			if( !board.boundsCheck( { x, y } ) ) { return []; }
 			const square = board.get( { x, y } );
-			if( !square || square.empty || !square.enabled ) { return []; }
+			if( !square || square.color === null || !square.enabled ) { return []; }
 			if( square.color === color ) { return squares; }
 			squares.push( square );
 		}
@@ -38,7 +35,7 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 	return squares;
 }
 
-export default class Rules {
+export class Rules {
 	public isValid( board: Board, position: Point, color: number ) {
 		return getAffectedSquares( board, position, color ).length > 0;
 	}
@@ -69,8 +66,12 @@ export default class Rules {
 	}
 
 	public makeMove( game: Game, position: Point ) {
-		const { gameStates } = game;
-		let gameState = gameStates[ gameStates.length - 1 ].clone();
+		const { gameStates } = game,
+			lastGameState = gameStates[ gameStates.length - 1 ];
+		let gameState: GameState = {
+			turn: lastGameState.turn,
+			board: lastGameState.board.clone()
+		};
 		const { board, turn: color } = gameState,
 			squares = getAffectedSquares( board, position, color );
 		for( const square of squares ) {
@@ -80,7 +81,7 @@ export default class Rules {
 		if( length > 0 ) {
 			if( !this.isGameOver( board ) ) {
 				do {
-					gameState.turn = ( gameState.turn + 1 ) % 2
+					gameState.turn = ( gameState.turn + 1 ) % 2;
 				} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
 			}
 			gameStates.push( gameState );
@@ -101,17 +102,16 @@ export default class Rules {
 	}
 
 	public newGame( gameId: string ) {
-		const game = new Game( gameId ),
-			gameState = new GameState,
-			{ board } = gameState;
-		game.colors.splice( 0, 0, 0, 1 );
-		gameState.turn = 0;
+		const gameStates: GameState[] = [],
+			board = new Board,
+			game: Game = { gameId, colors: [ 0, 1 ], gameStates },
+			gameState: GameState = { turn: 0, board }
 		board.reset( 8, 8 );
 		board.get( { x: 3, y: 3 } ).color = 0;
 		board.get( { x: 4, y: 3 } ).color = 1;
 		board.get( { x: 3, y: 4 } ).color = 1;
 		board.get( { x: 4, y: 4 } ).color = 0;
-		game.gameStates.push( gameState );
+		gameStates.push( gameState );
 		return game;
 	}
 }

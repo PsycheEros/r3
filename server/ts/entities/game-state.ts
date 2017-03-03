@@ -1,4 +1,4 @@
-import { Table, Index, Column, PrimaryColumn, ManyToOne } from 'typeorm';
+import { Table, Column, PrimaryColumn, ManyToOne } from 'typeorm';
 import { GameEntity } from './game';
 
 @Table()

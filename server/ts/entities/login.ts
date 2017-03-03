@@ -1,4 +1,4 @@
-import { Table, Index, Column, PrimaryColumn, OneToMany, OneToOne } from 'typeorm';
+import { Table, Index, Column, PrimaryColumn, OneToOne } from 'typeorm';
 import { UserEntity } from './user';
 
 @Table()

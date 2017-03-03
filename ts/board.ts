@@ -1,8 +1,7 @@
-import Grid from './grid';
-import Bounds from './bounds';
-import Square from './square';
+import { Grid } from './grid';
+import { Bounds } from './bounds';
 
-export default class Board {
+export class Board {
 	public reset( width: number, height: number ) {
 		const grid = new Grid<Square>( width, height ),
 			squareSize: Size = { width: 64, height: 64 },
@@ -22,7 +21,7 @@ export default class Board {
 					0.5 + squareSize.width,
 					0.5 + squareSize.height
 				);
-			grid.set( { x, y }, new Square( position, bounds ) );
+			grid.set( { x, y }, { position, bounds, enabled: true, color: null } );
 		}
 		Object.assign( this, { grid, bounds } );
 	}
@@ -67,10 +66,10 @@ export default class Board {
 	public serialize(): SerializedBoard {
 		const { width, height } = this;
 		let data = '';
-		for( const { enabled, empty, color } of this ) {
+		for( const { enabled, color } of this ) {
 			data +=
 				!enabled ? 'x'
-			:	empty ? ' '
+			:	color === null ? ' '
 			:	color;
 		}
 		return { width, height, data };

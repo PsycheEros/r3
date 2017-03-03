@@ -1,6 +1,6 @@
-import MapRepository from './map';
+import { MapRepository } from './map';
 
-export default class GameRepository extends MapRepository<GameRecord> {
+export class GameRepository extends MapRepository<GameRecord> {
 	public constructor() {
 		super( 'gameId' );
 	}

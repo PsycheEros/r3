@@ -1,4 +1,4 @@
-import { Table, Index, Column, PrimaryColumn, OneToOne, ManyToMany, JoinColumn, JoinTable } from 'typeorm';
+import { Table, Column, PrimaryColumn, OneToOne, ManyToMany, JoinColumn, JoinTable } from 'typeorm';
 import { GameEntity } from './game';
 import { SessionEntity } from './session';
 
@@ -24,7 +24,7 @@ export class RoomEntity {
 	@JoinColumn()
 	public game?: GameEntity;
 
-	@ManyToMany( type => SessionEntity )
+	@ManyToMany( type => SessionEntity, session => session.rooms )
 	@JoinTable()
 	public sessions = [] as SessionEntity[];
 }

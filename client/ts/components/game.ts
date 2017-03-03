@@ -1,11 +1,8 @@
-import Game from '../game';
-import GameState from '../game-state';
-import Rules from '../rules';
-import Square from '../square';
+import { Rules } from '../rules';
 
-import { Observable, BehaviorSubject } from 'rxjs/Rx';
+import { Observable } from 'rxjs/Rx';
 
-import { Component, Input } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { RoomService } from '../services/index';
 
@@ -43,7 +40,8 @@ export class GameComponent {
 
 	public onMouseMove( { square }: BoardMouseEvent ) {
 		if( !square ) { return; }
-		const { room: { roomId }, game: { currentGameState: { board, turn } }, roomService } = this;
+		const { room: { roomId }, game: { gameStates }, roomService } = this,
+			{ board, turn } = gameStates[ gameStates.length - 1 ];
 		document.documentElement.style.cursor =
 			rules.isGameOver( board )
 		||	( rules.isValid( board, square.position, turn ) ) ? 'pointer' : null;
@@ -51,12 +49,12 @@ export class GameComponent {
 
 	public onClick( { square }: BoardMouseEvent ) {
 		if( !square ) { return; }
-		const { room: { roomId }, game: { currentGameState: { board, turn } }, roomService } = this;
+		const { room: { roomId }, game: { gameStates }, roomService } = this,
+			{ board, turn } = gameStates[ gameStates.length - 1 ];
 		if( rules.isGameOver( board ) ) {
 			roomService.newGame( roomId );
 		} else {
 			roomService.makeMove( roomId, square.position );
 		}
 	}
-
 }

@@ -1,4 +1,4 @@
-import { Table, Index, Column, PrimaryColumn, ManyToOne, ManyToMany } from 'typeorm';
+import { Table, Column, PrimaryColumn, ManyToOne, ManyToMany } from 'typeorm';
 import { UserEntity } from './user';
 import { RoomEntity } from './room';
 

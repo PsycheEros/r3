@@ -1,17 +1,13 @@
 import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs/Rx';
 import { Inject, Injectable } from '@angular/core';
-import Rules from '../rules';
-import Game from '../game';
-import GameState from '../game-state';
 import { SocketService } from './socket';
 import * as io from 'socket.io-client';
 
 @Injectable()
 export class RoomService {
 	constructor( @Inject(SocketService) private readonly socketService: SocketService ) {
-		socketService.getEvents<SerializedGame>( 'update' ).subscribe( gameSerialized => {
+		socketService.getEvents<Game>( 'update' ).subscribe( game => {
 			const allGames = this.allGames.getValue(),
-				game = Game.deserialize( gameSerialized ),
 				index = allGames.findIndex( g => g.gameId === game.gameId );
 			if( index >= 0 ) {
 				allGames.splice( index, 1, game );
@@ -59,18 +55,21 @@ export class RoomService {
 	}
 
 	public async newGame( roomId: string ) {
-		const { socketService } = this;
-		return await socketService.send<SerializedGame>( 'newGame', { roomId } );
+		const { socketService } = this,
+			response = await socketService.send<Game>( { name: 'newGame', data: { roomId }, rsvp: true } );
+		return response.data;
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
-		const { socketService } = this;
-		await socketService.send( 'makeMove', { roomId, position } );
+		const { socketService } = this,
+			response = await socketService.send( { name: 'makeMove', data: { roomId, position }, rsvp: true } );
+		return response.data;
 	}
 
 	public async sendMessage( roomId: string, message: string ) {
-		const { socketService } = this;
-		await socketService.send( 'sendMessage', { roomId, message } );
+		const { socketService } = this,
+			response = await socketService.send( { name: 'sendMessage', data: { roomId, message }, rsvp: true } );
+		return response.data;
 	}
 
 	public getMessages() {
@@ -85,19 +84,20 @@ export class RoomService {
 
 	public async joinRoom( room: Room ) {
 		const { socketService, currentRoom } = this,
-			{ roomId } = room;
-		await socketService.send<Room>( 'joinRoom', { roomId } );
-		currentRoom.next( room );
+			{ roomId } = room,
+			response = await socketService.send<Room>( { name: 'joinRoom', data: { roomId }, rsvp: true } );
+		currentRoom.next( response.data );
 	}
 
 	public async leaveRoom( roomId: string ) {
 		const { socketService } = this;
-		await socketService.send( 'leaveRoom', { roomId } );
+		await socketService.send( { name: 'leaveRoom', data: { roomId } } );
 	}
 
 	public async createRoom( name: string ) {
-		const { socketService, currentRoom } = this;
-		return await socketService.send<Room>( 'createRoom', { name } );
+		const { socketService, currentRoom } = this,
+			response = await socketService.send<Room>( { name: 'createRoom', data: { name }, rsvp: true } );
+		return response.data;
 	}
 
 	public async setRoom( room: Room|void ) {

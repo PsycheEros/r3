@@ -1,7 +1,6 @@
-import { Table, Index, Column, PrimaryColumn, OneToMany, OneToOne, JoinColumn } from 'typeorm';
+import { Table, Column, PrimaryColumn, OneToMany, OneToOne, JoinColumn } from 'typeorm';
 import { LoginEntity } from './login';
 import { SessionEntity } from './session';
-
 
 @Table()
 export class UserEntity {

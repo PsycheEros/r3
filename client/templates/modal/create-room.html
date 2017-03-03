@@ -2,19 +2,19 @@
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<div class="modal-header">
+				<h5 class="modal-title">
+					Create Game
+				</h5>
 				<button type="button" class="close" (click)="createRoomModal.hide()" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 				</button>
-				<h4 class="modal-title">
-					Create Game
-				</h4>
 			</div>
 			<div class="modal-body">
 				<form (ngSubmit)="createRoom()" class="clearfix" #createRoomForm="ngForm">
 					<div class="form-group">
 						<input type="text" class="form-control" placeholder="Room Name" required="required" [(ngModel)]="roomName" #roomNameText name="room-name"/>
 					</div>
-					<button class="btn float-xs-right" [disabled]="!createRoomForm.form.valid">
+					<button class="btn float-right" [disabled]="!createRoomForm.form.valid">
 						Create
 					</button>
 				</form>

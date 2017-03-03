@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs/Rx';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { RoomService } from '../services/index';
 

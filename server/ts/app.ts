@@ -6,14 +6,13 @@ import { EventEmitter } from 'events';
 import { getConnectionManager } from 'typeorm';
 import uuid = require( 'uuid' );
 import { GameEntity, GameStateEntity, LoginEntity, RoomEntity, SessionEntity, UserEntity } from './entities/index';
-import Game from './game';
-import GameState from './game-state';
-import Board from './board';
-import Rules from './rules';
 import express = require( 'express' );
 import { Socket } from './socket';
 import { SocketManager } from './socket-manager';
 import index = require( 'serve-index' );
+import { EntityManager } from 'typeorm/entity-manager/entitymanager';
+import { Rules } from './rules';
+import { Board } from './board';
 
 const { NODE_PORT = 3000,
 		NODE_IP = 'localhost',
@@ -47,6 +46,24 @@ app.get( '/health', ( req, res ) => {
 	res.end();
 } );
 
+function debug( this: any, fn: Function, name = fn.name ) {
+	return function( ...args ) {
+		console.log( name, ...args );
+		const retval = fn.apply( this, args );
+		console.log( name, retval );
+		return retval;
+	};
+}
+
+function debugAsync( this: any, fn: Function, name = fn.name ) {
+	return async function( ...args ) {
+		console.log( name, ...args );
+		const retval = await fn.apply( this, args );
+		console.log( name, retval );
+		return retval;
+	};
+}
+
 const connectionManager = getConnectionManager();
 ( async () => {
 	try {
@@ -61,7 +78,7 @@ const connectionManager = getConnectionManager();
 				namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
 				usedNamingStrategy: 'R3NamingStrategy',
 				logging: {
-					logSchemaCreation: true,
+					logSchemaCreation: false,
 					logQueries: true
 				}
 			} );
@@ -70,41 +87,59 @@ const connectionManager = getConnectionManager();
 		const { entityManager } = connection,
 			userId = uuid.v4();
 
-		await entityManager.transaction( async transaction => {
-			await transaction.persist(
+		async function transaction( em: EntityManager, cb: ( em: EntityManager ) => Promise<any>|void ) {
+			if( em === entityManager ) {
+				await em.transaction( async transaction => {
+					await cb( transaction );
+				} );
+			} else {
+				await cb( em );
+			}
+		}
+
+		await transaction( entityManager, transaction => Promise.all( [
+			transaction.persist(
 				new UserEntity( {
 					userId,
 					nick: 'error'
 				} )
-			);
-			await transaction.persist( new LoginEntity( {
+			),
+			transaction.persist( new LoginEntity( {
 				userId,
 				username: 'error',
 				passwordHash: ''
-			} ) );
-		} );
+			} ) )
+		] ) );
 
 		const socketManager = new SocketManager;
 
 		function isValidNick( nick: string ) {
-			console.log( 'isValidNick', ...arguments );
 			if( !nick ) {
 				return false;
 			}
 			return /^[_a-z][-_a-z0-9]{1,34}[_a-z0-9]+/i.test( nick );
 		}
 
-		async function usersInRoom( roomId: string ) {
-			console.log( 'usersInRoom', ...arguments );
+		async function usersInRoom( roomId: string, em: EntityManager ) {
 			const [ , count ] =
-				await entityManager.findAndCount( SessionEntity, session => session.rooms.some( room => room.roomId === roomId ) );
+				await em.findAndCount( SessionEntity, session => session.rooms.some( room => room.roomId === roomId ) );
 			return count;
 		}
 
-		async function cleanupRooms() {
-			console.log( 'cleanupRooms', ...arguments );
+		async function flushRooms( sessionIds: string[], em: EntityManager ) {
+			const roomEntities = await em.find( RoomEntity );
+			await socketManager.send( {
+				name: 'rooms',
+				data: roomEntities.map( room => ( {
+					roomId: room.roomId,
+					name: room.name
+				} ) )
+			}, sessionIds );
+		}
+
+		async function cleanupRooms( em: EntityManager ) {
 			let removed = 0;
-			await entityManager.transaction( async transaction => {
+			await transaction( em, async transaction => {
 				const promises = [] as Promise<any>[];
 				for( const room of await transaction.find( RoomEntity ) ) {
 					if( ( room.sessions || [] ).length <= 0 ) {
@@ -115,78 +150,80 @@ const connectionManager = getConnectionManager();
 					}
 				}
 				await Promise.all( promises );
+				if( removed ) {
+					flushRooms( [], transaction );
+				}
 			} );
-			if( removed ) {
-				flushRooms();
-			}
 		}
 
-		async function flushRooms( sessionIds?: string[] ) {
-			console.log( 'flushRooms', ...arguments );
-			const roomEntities = await entityManager.find( RoomEntity );
-			socketManager.send( sessionIds!, 'rooms', roomEntities.map( room => ( {
-				roomId: room.roomId,
-				name: room.name
-			} ) ) );
+		async function flushUpdate( room: Room, sessionIds: string[], em: EntityManager ) {
+			const data = await getGame( room.gameId, em );
+			socketManager.send( { name: 'update', data }, sessionIds );
 		}
 
-		async function flushUpdate( room: Room, sessionIds?: string[] ) {
-			console.log( 'flushUpdate', ...arguments );
-			const game = await getGame( room.gameId );
-			socketManager.send( sessionIds!, 'update', game.serialize() );
-		}
-
-		async function getGame( gameId: string ) {
-			console.log( 'getGame', ...arguments );
-			const gameRecord = await entityManager.findOneById( GameEntity, gameId );
+		async function getGame( gameId: string, em: EntityManager ) {
+			const gameRecord = await em.findOneById( GameEntity, gameId );
 			if( !gameRecord ) {
 				throw new Error( `Game ${gameId} not found.` );
 			}
-			const game = new Game( gameRecord.gameId );
-			game.gameStates.splice( 0, 0, ...( gameRecord.gameStates || [] ).map( g => {
-				return new GameState;
-			} ) ); 
+			const game: Game = {
+				gameId,
+				colors: [ 0, 1 ],
+				gameStates: gameRecord.gameStates.map( g => ( {
+					board: new Board,
+					turn: 0
+				} ) )
+			};
 			return game;
 		}
 
-		async function newGame( roomEntity: RoomEntity ) {
-			console.log( 'newGame', ...arguments );
+		function statusMessage( roomId: string, message: string, sessionIds?: string[] ) {
+			socketManager.send( { name: 'message', data: { roomId, message } }, sessionIds );
+			return true;
+		}
+
+		function chatMessage( roomId: string, user: string, message: string, sessionIds?: string[] ) {
+			socketManager.send( { name: 'message', data: { roomId, user, message } }, sessionIds );
+			return true;
+		}
+
+		async function newGame( roomEntity: RoomEntity, em: EntityManager ) {
 			statusMessage( roomEntity.roomId, 'New game' );
 			const gameId = uuid.v4(),
 				gameEntity = new GameEntity( { gameId } ),
 				game = rules.newGame( gameId );
 			Object.assign( roomEntity, { gameId } );
-			await entityManager.transaction( async transaction => {
-				await transaction.persist( gameEntity );
-				await transaction.persist( roomEntity );
+			await transaction( em, async transaction => {
+				await Promise.all( [
+					transaction.persist( gameEntity ),
+					transaction.persist( roomEntity )
+				] );
+				await flushRooms( [], transaction );
+				await flushUpdate( roomEntity, [], transaction );
 			} );
-			await flushRooms();
-			await flushUpdate( roomEntity );
 			return game;
 		}
 
-		async function createRoom( name: string ) {
-			console.log( 'createRoom', ...arguments );
+		async function createRoom( name: string, em: EntityManager ) {
 			const roomId = uuid.v4(),
 				roomEntity =
 					new RoomEntity( {
 						roomId,
 						name
-					} ),
-				game = await newGame( roomEntity );
-			await flushRooms();
+					} );
+			await newGame( roomEntity, em );
 			return roomEntity;
 		}
 
-		async function makeMove( room: RoomEntity, position: Point ) {
-			console.log( 'makeMove', ...arguments );
-			const game = await getGame( room.gameId );
+		async function makeMove( room: RoomEntity, position: Point, em: EntityManager ) {
+			const game = await getGame( room.gameId, em );
 			if( !rules.makeMove( game, position ) ) {
 				return false;
 			}
 			const { roomId } = room,
-				{ currentGameState: gameState } = game,
-				{ board } = gameState!;
+				{ gameStates } = game,
+				gameState = gameStates[ gameStates.length - 1 ],
+				{ board } = gameState;
 			if( rules.isGameOver( board ) ) {
 				const black = rules.getScore( board, 0 ),
 					white = rules.getScore( board, 1 );
@@ -198,19 +235,7 @@ const connectionManager = getConnectionManager();
 					await statusMessage( roomId, 'Draw game' );
 				}
 			}
-			await flushUpdate( room );
-			return true;
-		}
-
-		function statusMessage( roomId: string, message: string, sessionIds?: string[] ) {
-			console.log( 'statusMessage', ...arguments );
-			socketManager.send( sessionIds!, 'message', { roomId, message } );
-			return true;
-		}
-
-		function chatMessage( roomId: string, user: string, message: string, sessionIds?: string[] ) {
-			console.log( 'chatMessage', ...arguments );
-			socketManager.send( sessionIds!, 'message', { roomId, user, message } );
+			await flushUpdate( room, [], em );
 			return true;
 		}
 
@@ -219,22 +244,29 @@ const connectionManager = getConnectionManager();
 			next();
 		} );
 
-		async function getSession( sessionId: string ) {
-			console.log( 'getSession', ...arguments );
-			const session = await entityManager.findOneById( SessionEntity, sessionId );
-			if( !session ) throw new Error( `Session ${sessionId} not found` );
+		async function getRoom( roomId: string, em: EntityManager ) {
+			const room = await em.findOneById( RoomEntity, roomId );
+			if( !room ) {
+				throw new Error( `Room ${roomId} not found.` );
+			}
+			return room;
+		}
+
+		async function getSession( sessionId: string, em: EntityManager ) {
+			const session = await em.findOneById( SessionEntity, sessionId );
+			if( !session ) {
+				throw new Error( `Session ${sessionId} not found.` );
+			}
 			return session;
 		}
 
-		async function getUser( sessionId: string ) {
-			console.log( 'getUser', ...arguments );
-			const { user } = await getSession( sessionId );
+		async function getUser( sessionId: string, em: EntityManager ) {
+			const { user } = await getSession( sessionId, em );
 			return user;
 		}
 
-		async function getNick( sessionId: string ) {
-			console.log( 'getNick', ...arguments );
-			const user = await getUser( sessionId );
+		async function getNick( sessionId: string, em: EntityManager ) {
+			const user = await getUser( sessionId, em );
 			if( user ) {
 				return user.nick;
 			} else {
@@ -242,34 +274,29 @@ const connectionManager = getConnectionManager();
 			}
 		}
 
-		async function flushJoinedRooms( sessionId: string ) {
-			console.log( 'flushJoinedRooms', ...arguments );
-			const session = await getSession( sessionId );
-			socketManager.send( [ sessionId ], 'joinedRooms', ( session.rooms || [] ).map( room => room.roomId ) );
+		async function flushJoinedRooms( sessionId: string, em: EntityManager ) {
+			const session = await getSession( sessionId, em );
+			socketManager.send( { name: 'joinedRooms', data: ( session.rooms || [] ).map( room => room.roomId ) }, [ sessionId ] );
 		}
 
-		async function leaveRoom( sessionId: string, roomId: string ) {
-			console.log( 'leaveRoom', ...arguments );
-			const session = await getSession( sessionId );
+		async function leaveRoom( sessionId: string, roomId: string, em: EntityManager ) {
+			const session = await getSession( sessionId, em );
 			session.rooms = session.rooms!.filter( room => room.roomId !== roomId );
-			await entityManager.persist( session );
-			const nick = await getNick( sessionId );
-			await flushJoinedRooms( sessionId );
+			await em.persist( session );
+			const nick = await getNick( sessionId, em );
+			await flushJoinedRooms( sessionId, em );
 			await statusMessage( roomId, `${nick} has left the room.` );
 		}
 
-		async function joinRoom( sessionId: string, roomId: string ) {
-			console.log( 'joinRoom', ...arguments );
-			const session = await getSession( sessionId );
-			const room = await entityManager.findOneById( RoomEntity, { roomId } );
-			if( !room ) {
-				throw new Error( `Room ${roomId} not found.` );
-			}
-			session.rooms.push( room );
-			await entityManager.persist( session );
-			const nick = await getNick( sessionId );
-			await flushJoinedRooms( sessionId );
-			await statusMessage( roomId, `${nick} has joined the room.` );
+		async function joinRoom( sessionId: string, roomId: string, em: EntityManager ) {
+			await transaction( em, async transaction => {
+				const [ session, room ] = await Promise.all( [ getSession( sessionId, transaction ), getRoom( roomId, transaction ) ] );
+				session.rooms.push( room );
+				await transaction.persist( session );
+				const nick = await getNick( sessionId, transaction );
+				await flushJoinedRooms( sessionId, transaction );
+				await statusMessage( roomId, `${nick} has joined the room.` );
+			} );
 		}
 
 		const commands = {
@@ -285,41 +312,46 @@ const connectionManager = getConnectionManager();
 				await commands.help( sessionId, roomId );
 			},
 			async nick( sessionId: string, roomId: string, nick: string ) {
-				const user = await getUser( sessionId );
-				if( !user ) {
-					throw new Error( 'You must be logged in.' );
-				}
-				if( !isValidNick( nick ) ) {
-					throw new Error( 'Invalid nick.' );
-				}
-				const previousNick = await user.nick;
-				user.nick = nick;
-				await entityManager.persist( UserEntity, user );
-				await statusMessage( roomId, `${previousNick} is now known as ${nick}.` );
+				await transaction( entityManager, async transaction => {
+					if( !isValidNick( nick ) ) {
+						throw new Error( 'Invalid nick.' );
+					}
+					const user = await getUser( sessionId, transaction );
+					if( !user ) {
+						throw new Error( 'You must be logged in.' );
+					}
+					const previousNick = user.nick;
+					user.nick = nick;
+					await transaction.persist( UserEntity, user );
+					await statusMessage( roomId, `${previousNick} is now known as ${nick}.`, [] );
+				} );
 			},
 			async quit( sessionId: string, roomId: string ) {
-				await leaveRoom( sessionId, roomId );
+				await transaction( entityManager, async transaction => {
+					await leaveRoom( sessionId, roomId, transaction );
+				} );
 			}
 		};
-		async function command( sessionId: string, roomId: string, raw: string ) {
-			console.log( 'command', ...arguments );
-			const [ cmd, ...params ] = raw.trim().split( /\s+/g );
-			try {
-				if( !commands.hasOwnProperty( cmd ) ) {
-					throw new Error( 'Unknown command.' );
+		const command = debugAsync(
+			async function command( sessionId: string, roomId: string, raw: string ) {
+				const [ cmd, ...params ] = raw.trim().split( /\s+/g );
+				try {
+					if( !commands.hasOwnProperty( cmd ) ) {
+						throw new Error( 'Unknown command.' );
+					}
+					await commands[ cmd ]( sessionId, roomId, ...params );
+				} catch( ex ) {
+					if( ex && ex.message ) {
+						await statusMessage( roomId, ex.message, [ sessionId ] );
+					}
+					throw ex;
 				}
-				await commands[ cmd ]( sessionId, roomId, ...params );
-			} catch( ex ) {
-				if( ex && ex.message ) {
-					await statusMessage( roomId, ex.message, [ sessionId ] );
-				}
-				throw ex;
 			}
-		}
+		);
 
 		app.ws( '/ws/:sessionId', async ( ws, req ) => {
 			const sessionId = req[ 'sessionId' ] as string;
-			await entityManager.transaction( async transaction => {
+			await transaction( entityManager, async transaction => {
 				let session = await transaction.findOneById( SessionEntity, sessionId );
 				if( !session ) {
 					session =
@@ -334,14 +366,13 @@ const connectionManager = getConnectionManager();
 		socketManager.getMessages<{ roomId: string, position: Point }>( 'makeMove' )
 		.subscribe( async ( [ { data: { roomId, position } }, responder, { sessionId } ] ) => {
 			try {
-				const room = await entityManager.findOneById( RoomEntity, roomId );
-				if( !room ) {
-					throw new Error( `Room ${roomId} not found.` );
-				}
-				if( !await makeMove( room, position ) ) {
-					throw new Error( 'Failed to make move.' );
-				}
-				responder.resolve( {} );
+				await transaction( entityManager, async transaction => {
+					const room = await getRoom( roomId, transaction );
+					if( !await makeMove( room, position, transaction ) ) {
+						throw new Error( 'Failed to make move.' );
+					}
+					responder.resolve( {} );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
@@ -351,15 +382,10 @@ const connectionManager = getConnectionManager();
 		socketManager.getMessages<{ roomId: string }>( 'newGame' )
 		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
 			try {
-				const room = await entityManager.findOneById( RoomEntity, roomId );
-				if( !room ) {
-					throw new Error( `Room ${roomId} not found.` );
-				}
-				const game = await newGame( room );
-				if( !game ) {
-					throw new Error( 'Failed to create game.' );
-				}
-				responder.resolve( { game: game.serialize() } );
+				await transaction( entityManager, async transaction => {
+					const game = await newGame( await getRoom( roomId, transaction ), transaction );
+					responder.resolve( { game } );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
@@ -374,11 +400,13 @@ const connectionManager = getConnectionManager();
 					responder.resolve( {} );
 					return;
 				}
-				const nick = await getNick( sessionId );
-				if( !await chatMessage( roomId, nick, message ) ) {
-					throw new Error( 'Failed to send message.' );
-				}
-				responder.resolve( {} );
+				await transaction( entityManager, async transaction => {
+					const nick = await getNick( sessionId, transaction );
+					if( !await chatMessage( roomId, nick, message ) ) {
+						throw new Error( 'Failed to send message.' );
+					}
+					responder.resolve( {} );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
@@ -388,8 +416,10 @@ const connectionManager = getConnectionManager();
 		socketManager.getMessages<{ name: string }>( 'createRoom' )
 		.subscribe( async ( [ { data: { name } }, responder, { sessionId } ] ) => {
 			try {
-				const room = await createRoom( name );
-				responder.resolve( room );
+				await transaction( entityManager, async transaction => {
+					const room = await createRoom( name, transaction );
+					responder.resolve( room );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
@@ -399,13 +429,12 @@ const connectionManager = getConnectionManager();
 		socketManager.getMessages<{ roomId: string }>( 'joinRoom' )
 		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
 			try {
-				const room = await entityManager.findOneById( RoomEntity, roomId );
-				if( !room ) {
-					throw new Error( 'Failed to join room.' );
-				}
-				await joinRoom( sessionId, roomId );
-				await flushUpdate( room, [ sessionId ] );
-				responder.resolve( { room } );
+				await transaction( entityManager, async transaction => {
+					const room = await getRoom( roomId, transaction );
+					await joinRoom( sessionId, roomId, transaction );
+					await flushUpdate( room, [ sessionId ], transaction );
+					responder.resolve( { room } );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
@@ -415,13 +444,15 @@ const connectionManager = getConnectionManager();
 		socketManager.getMessages<{ roomId: string }>( 'leaveRoom' )
 		.subscribe( async ( [ { data: { roomId } }, responder, { sessionId } ] ) => {
 			try {
-				await leaveRoom( sessionId, roomId );
-				responder.resolve( {} );
+				await transaction( entityManager, async transaction => {
+					await leaveRoom( sessionId, roomId, transaction );
+					cleanupRooms( transaction );
+					responder.resolve( {} );
+				} );
 			} catch( ex ) {
 				console.error( ex );
 				responder.reject( ex );
 			}
-			setTimeout( () => { cleanupRooms(); }, 0 );
 		} );
 		/*
 			flushRooms( socket );

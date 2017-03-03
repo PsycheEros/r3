@@ -2,16 +2,11 @@
 	SystemJS.config( {
 		baseURL: '/',
 		paths: {
-			'npm:*': 'lib/*',
-			'rxjs/*': 'rxjs',
-		},
-		bundles: {
-			'npm:rxjs/bundles/Rx.min.js': [ 'rxjs/*' ]
+			'npm:': 'lib/'
 		},
 		map: {
 			app: 'js',
 			rxjs: 'npm:rxjs',
-			'ng2-bootstrap': 'npm:ng2-bootstrap/bundles/ng2-bootstrap.umd.js',
 			'reflect-metadata': 'npm:reflect-metadata/Reflect.js',
 			tslib: 'npm:tslib/tslib.js',
 			'@angular': 'npm:@angular',

@@ -2,7 +2,7 @@ import { Socket } from './socket';
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import { Subscription } from 'rxjs/Subscription';
-import 'rxjs/add/operator/filter'; 
+import 'rxjs/add/operator/filter';
 
 interface SessionState {
 	sessionId: string;
@@ -35,13 +35,13 @@ export class SocketManager {
 					messageSubject.next( [ message, responder, session ] );
 
 					promise.then( data => {
-						socket.acknowledge( messageId, [ null, data ] );
+						socket.respond( { messageId, name: 'ack', data } );
 					}, err => {
-						socket.acknowledge( messageId, [ err.message, null ] );
+						socket.respond( { messageId, name: 'error', error: err.message } );
 					} );
 				} );
 		subscriptions.set( session, subscription );
-		this.map.set( sessionId, session ); 
+		this.map.set( sessionId, session );
 	}
 
 	public deleteConnection( sessionId: string ) {
@@ -52,19 +52,19 @@ export class SocketManager {
 		if( subscription ) {
 			subscription.unsubscribe();
 		}
-		map.delete( sessionId ); 
+		map.delete( sessionId );
 	}
 
 	public getMessages<T>( ...messages: string[] ) {
 		const { messageSubject } = this;
-		let retval = messageSubject as Observable<[SocketMessage<T>, Responder, SessionState]>; 
+		let retval = messageSubject as Observable<[SocketMessageRequest<T>, Responder, SessionState]>;
 		if( messages.length ) {
 			retval = retval.filter( ( [ { name } ] ) => messages.includes( name ) );
-		} 
+		}
 		return retval;
 	}
 
-	public send( sessionIds: string[], name: string, data: any ) {
+	public send<T>( message: SocketMessageRequestIn<T>, sessionIds?: string[] ) {
 		let sessions: SessionState[];
 		if( sessionIds && sessionIds.length ) {
 			sessions =
@@ -75,7 +75,7 @@ export class SocketManager {
 			sessions = Object.values( this.map );
 		}
 		for( const session of sessions ) {
-			session!.socket.send( name, data );
+			session.socket.send( Object.assign( {}, message ) );
 		}
 	}
 

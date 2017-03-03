@@ -1,4 +1,4 @@
-abstract class MapRepository<T> implements Repository<T> {
+export abstract class MapRepository<T> implements Repository<T> {
 	protected constructor( protected readonly key: string ) {}
 
 	public async insert( record: T ) {
@@ -51,5 +51,3 @@ abstract class MapRepository<T> implements Repository<T> {
 
 	private map = new Map<string, T>();
 }
-
-export default MapRepository;

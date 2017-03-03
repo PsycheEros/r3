@@ -1,8 +1,5 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Injectable } from '@angular/core';
-import Rules from '../rules';
-import Game from '../game';
-import GameState from '../game-state';
 import { v4 as uuid } from 'uuid';
 
 const timeout = 60000;
@@ -20,6 +17,15 @@ export class SocketService {
 				closingObserver: this.closingSubject,
 				closeObserver: this.closeSubject
 			} );
+		this.webSocket
+			.share()
+			.subscribe( m => {
+				if( [ 'ack', 'error' ].includes( m.name ) ) {
+					this.responseSubject.next( m as SocketMessageResponse<any> );
+				} else {
+					this.requestSubject.next( m as SocketMessageRequest<any> );
+				}
+			} );
 	}
 
 	private retryWhen( errors ) {
@@ -33,8 +39,8 @@ export class SocketService {
 	}
 
 	public getMessages<T>( ...messageNames: string[] ) {
-		const { webSocket } = this;
-		let retval = webSocket.share().filter( m => m.name !== 'ack' );
+		const { requestSubject } = this;
+		let retval = requestSubject.share();
 		if( messageNames.length ) {
 			retval = retval.filter( m => messageNames.includes( m.name ) );
 		}
@@ -45,37 +51,45 @@ export class SocketService {
 		return this.getMessages<T>( message ).map( m => m.data );
 	}
 
-	public send<T>( name: string, data: Object = {} ) {
-		return new Promise<T>( ( resolve, reject ) => {
-			const messageId = uuid(),
-				subscription =
-					this.webSocket
-					.share()
-					.filter( m => m.name === 'ack' && m.messageId === messageId )
-					.take( 1 )
-					.subscribe( ( { data: [ error, data ] } ) => {
-						if( error ) {
-							reject( new Error( error ) );
-						} else {
-							resolve( data );
-						}
-						subscription.unsubscribe();
-					} );
+	public send<T>( message: SocketMessageRequestInRsvp<any> ): Promise<SocketMessageResponseResolved<T>>;
+	public send( message: SocketMessageRequestIn<any> ): Promise<void>;
+	public send<T>( message: SocketMessageRequestIn<any>|SocketMessageRequestInRsvp<any> ) {
+		const { messageId = uuid(), name, data, rsvp } = message;
 
-			setTimeout( () => {
-				reject( new Error( 'Timeout' ) );
-				subscription.unsubscribe();
-			}, timeout );
+		return new Promise<any>( ( resolve, reject ) => {
+			if( rsvp ) {
+				const subscription =
+					this.responseSubject
+						.share()
+						.filter( m => m.messageId === messageId )
+						.subscribe( m => {
+							if( m.name === 'error' ) {
+								reject( new Error( m.error ) );
+							} else if( m.name === 'ack' ) {
+								resolve( m );
+							}
+							subscription.unsubscribe();
+						} );
+				setTimeout( () => {
+					reject( new Error( `Timeout expired for ${messageId}.` ) );
+					subscription.unsubscribe();
+				}, timeout );
+			}
 			const { webSocket } = this;
 			try {
 				webSocket.next( <any>JSON.stringify( { messageId, name, data } ) );
 			} catch( ex ) {
 				reject( ex );
 			}
+			if( !rsvp ) {
+				resolve();
+			}
 		} );
 	}
 
-	private webSocket: Subject<SocketMessage<any>>;
+	private readonly webSocket: Subject<SocketMessage<any>>;
+	private readonly requestSubject = new Subject<SocketMessageRequest<any>>();
+	private readonly responseSubject = new Subject<SocketMessageResponse<any>>();
 	private readonly openSubject = new Subject<Event>();
 	private readonly closeSubject = new Subject<CloseEvent>();
 	private readonly closingSubject = new Subject<void>();

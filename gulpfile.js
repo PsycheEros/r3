@@ -50,26 +50,26 @@ gulp.task( 'build:scss', () =>
 gulp.task( 'build:ts:client', () => {
 	const tsproj = typescript.createProject( 'client/tsconfig.json' );
 	return gulp.src( [
-		'ts/**/*.ts',
-		'client/ts/**/*.ts'
-	] )
-	.pipe( sourcemaps.init() )
-	.pipe( tsproj() )
-	.pipe( gulpIf( options.babel, babel( { presets: [ 'es2015' ] } ) ) )
-	.pipe( sourcemaps.write() )
-	.pipe( gulp.dest( 'client/js' ) );
+			'ts/**/*.ts',
+			'client/ts/**/*.ts'
+		] )
+		.pipe( sourcemaps.init() )
+		.pipe( tsproj() )
+		.pipe( gulpIf( options.babel, babel( { presets: [ 'es2015' ] } ) ) )
+		.pipe( sourcemaps.write( './' ) )
+		.pipe( gulp.dest( 'client/js' ) );
 } );
 
 gulp.task( 'build:ts:server', () => {
 	const tsproj = typescript.createProject( 'server/tsconfig.json' );
 	return gulp.src( [
-		'ts/**/*.ts',
-		'server/ts/**/*.ts'
-	] )
-	.pipe( sourcemaps.init() )
-	.pipe( tsproj() )
-	.pipe( sourcemaps.write() )
-	.pipe( gulp.dest( 'server/js' ) );
+			'ts/**/*.ts',
+			'server/ts/**/*.ts'
+		] )
+		.pipe( sourcemaps.init() )
+		.pipe( tsproj() )
+		.pipe( sourcemaps.write( './' ) )
+		.pipe( gulp.dest( 'server/js' ) );
 } );
 
 gulp.task( 'build:ts', gulp.parallel( 'build:ts:client', 'build:ts:server' ) );

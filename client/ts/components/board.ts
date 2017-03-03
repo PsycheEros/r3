@@ -1,6 +1,4 @@
-import Board from '../board';
-
-import { Observable } from 'rxjs/Rx';
+import { Board } from '../board';
 
 import { Component, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 

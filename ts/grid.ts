@@ -7,7 +7,7 @@ function validate<T>( grid: Grid<T>, { x, y }: Point ) {
 	}
 }
 
-export default class Grid<T> {
+export class Grid<T> {
 	public constructor( public readonly width: number, public readonly height: number ) {}
 
 	public boundsCheck( { x, y }: Point ) {
