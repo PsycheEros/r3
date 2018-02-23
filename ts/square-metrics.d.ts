@@ -1,10 +1,9 @@
 import { Bounds } from './bounds';
 
 declare global {
-	export interface Square {
+	export interface SquareMetrics {
 		position: Point;
 		bounds: Bounds;
-		enabled: boolean;
-		color: number|null;
+		color: Color;
 	}
 }

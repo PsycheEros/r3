@@ -155,7 +155,8 @@ gulp.task( 'server:server', () => {
 		port: 8000
 	} );
 
-	gulp.watch( [ 'client/**/*.html' ] ).on( 'change', browserSync.reload );
+	gulp.watch( [ 'client/**/*.html' ] )
+	.on( 'change', browserSync.reload );
 } );
 
 gulp.task( 'server', gulp.parallel( 'watch', 'server:server' ) );

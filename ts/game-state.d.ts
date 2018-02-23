@@ -1,8 +1,4 @@
-import { Board } from './board';
-
-declare global {
-	export interface GameState {
-		board: Board;
-		turn: number;
-	}
+declare interface GameState {
+	board: Board;
+	turn: Color;
 }

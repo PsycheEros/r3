@@ -1,5 +1,3 @@
-import { Board } from './board';
-
 const directions: Point[] = [
 	{ x:  0, y: -1 },
 	{ x:  1, y: -1 },
@@ -11,7 +9,7 @@ const directions: Point[] = [
 	{ x: -1, y: -1 }
 ];
 
-function getAffectedSquares( board: Board, position: Point, color: number ): Square[] {
+function getAffectedSquares( board: Board, position: Point, color: Color ): Square[] {
 	if( !board.boundsCheck( position ) ) { return []; }
 	const square = board.get( position );
 	if( !square || square.color === null || !square.enabled ) { return []; }
@@ -36,30 +34,23 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 }
 
 export class Rules {
-	public isValid( board: Board, position: Point, color: number ) {
+	public isValid( board: Board, position: Point, color: Color ) {
 		return getAffectedSquares( board, position, color ).length > 0;
 	}
 
-	public getValidMoves( board: Board, color: number ) {
-		const squares = [] as Square[];
-		for( const square of board ) {
+	public getValidMoves( board: Board, color: Color ) {
+		const squares = [] as Square[],
+			{ width, height } = board;
+
+		for( let x = 0; x < width; ++x )
+		for( let y = 0; y < height; ++y ) {
 			if( this.isValid( board, square.position, color ) ) { squares.push( square ); }
 		}
 		return squares;
 	}
 
-	public getColors( board: Board ) {
-		const colors = new Set<number>();
-		for( let { color } of board ) {
-			if( Number.isSafeInteger( color! ) ) {
-				colors.add( color! );
-			}
-		}
-		return colors;
-	}
-
 	public isGameOver( board: Board ) {
-		for( const color of this.getColors( board ) ) {
+		for( const color of [ 'o', 'x' ] ) {
 			if( this.getValidMoves( board, color ).length > 0 ) { return false; }
 		}
 		return true;
@@ -70,7 +61,7 @@ export class Rules {
 			lastGameState = gameStates[ gameStates.length - 1 ];
 		let gameState: GameState = {
 			turn: lastGameState.turn,
-			board: lastGameState.board.clone()
+			board: Object.assign( {}, lastGameState.board )
 		};
 		const { board, turn: color } = gameState,
 			squares = getAffectedSquares( board, position, color );
@@ -81,8 +72,8 @@ export class Rules {
 		if( length > 0 ) {
 			if( !this.isGameOver( board ) ) {
 				do {
-					gameState.turn = ( gameState.turn + 1 ) % 2;
-				} while( this.getValidMoves( board, gameState.turn ).length <= 0 ); 
+					gameState.turn = gameState.turn === 'x' ? 'o' : 'x';
+				} while( this.getValidMoves( board, gameState.turn ).length <= 0 );
 			}
 			gameStates.push( gameState );
 			return true;
@@ -91,27 +82,29 @@ export class Rules {
 		}
 	}
 
-	public getScore( board: Board, color: number ) {
-		let score = 0;
-		for( const square of board ) {
-			if( square && square.enabled && square.color === color ) {
-				++score;
-			}
-		}
-		return score;
+	public getScore( board: Board, color: Color ) {
+		return Array.from( board.data ).filter( c => c === color ).length;
 	}
 
 	public newGame( gameId: string ) {
-		const gameStates: GameState[] = [],
-			board = new Board,
-			game: Game = { gameId, colors: [ 0, 1 ], gameStates },
-			gameState: GameState = { turn: 0, board }
-		board.reset( 8, 8 );
-		board.get( { x: 3, y: 3 } ).color = 0;
-		board.get( { x: 4, y: 3 } ).color = 1;
-		board.get( { x: 3, y: 4 } ).color = 1;
-		board.get( { x: 4, y: 4 } ).color = 0;
-		gameStates.push( gameState );
-		return game;
+		return {
+			gameId,
+			gameStates: [ {
+				turn: 'x',
+				board: {
+					width: 8,
+					height: 8,
+					data:
+						'        ' +
+						'        ' +
+						'        ' +
+						'   ox   ' +
+						'   xo   ' +
+						'        ' +
+						'        ' +
+						'        '
+				}
+			} ]
+		};
 	}
 }

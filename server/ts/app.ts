@@ -12,7 +12,6 @@ import { SocketManager } from './socket-manager';
 import index = require( 'serve-index' );
 import { EntityManager } from 'typeorm/entity-manager/entitymanager';
 import { Rules } from './rules';
-import { Board } from './board';
 
 const { NODE_PORT = 3000,
 		NODE_IP = 'localhost',
@@ -74,8 +73,8 @@ const connectionManager = getConnectionManager();
 					type: 'sqlite',
 					storage: ':memory:'
 				},
-				entities: [ `${__dirname}/entities/index.js` ],
-				namingStrategies: [ require( './naming-strategies/index' ).R3NamingStrategy ],
+				entities: [ `${__dirname}/entities` ],
+				namingStrategies: [ require( './naming-strategies' ).R3NamingStrategy ],
 				usedNamingStrategy: 'R3NamingStrategy',
 				logging: {
 					logSchemaCreation: false,
@@ -168,7 +167,6 @@ const connectionManager = getConnectionManager();
 			}
 			const game: Game = {
 				gameId,
-				colors: [ 0, 1 ],
 				gameStates: gameRecord.gameStates.map( g => ( {
 					board: new Board,
 					turn: 0

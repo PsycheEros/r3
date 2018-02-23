@@ -16,6 +16,9 @@ export class GameStateEntity {
 	@Column( { type: 'int' } )
 	public turn: number;
 
+	@Column( { length: 64 } )
+	public data: string;
+
 	@ManyToOne( type => GameEntity, game => game.gameStates )
 	public game?: GameEntity;
 }
