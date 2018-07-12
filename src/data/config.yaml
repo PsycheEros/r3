@@ -1,0 +1,17 @@
+workers: 1
+cspPolicy:
+  policy:
+    directives:
+      default-src:
+      - self
+      script-src:
+      - self
+    reportPolicy:
+      useScriptNonce: true
+      useStyleNonce: true
+      directives:
+        default-src:
+        - self
+        script-src:
+        - self
+        plugin-types: []
