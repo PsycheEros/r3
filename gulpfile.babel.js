@@ -53,7 +53,7 @@ gulp.task( 'server:browsersync', () => {
 		port: 8000
 	} );
 
-	gulp.watch( [ 'dist/index.html', 'dist/client.js' ] ).on( 'change', browserSync.reload );
+	gulp.watch( [ 'dist/www/**/*' ] ).on( 'change', browserSync.reload );
 } );
 
 gulp.task( 'server', gulp.parallel( 'watch', 'server:nodemon', 'server:browsersync' ) );
