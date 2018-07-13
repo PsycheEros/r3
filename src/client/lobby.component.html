@@ -5,6 +5,7 @@
 				<p>There are no rooms. Would you like to <a href="javascript:" (click)="createRoomModal.show()">create one</a>?
 			</div>
 			<div class="list-group-item clearfix" *ngFor="let room of rooms">
+				<fa-icon icon="lock" *ngIf="room.hasPassword"></fa-icon>
 				<h4>{{room.name}}</h4>
 				<button class="btn float-right" (click)="joinRoom(room)">
 					Join

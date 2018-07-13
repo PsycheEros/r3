@@ -5,6 +5,7 @@ import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 import { PurifyPlugin } from '@angular-devkit/build-optimizer';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
 import SriPlugin from 'webpack-subresource-integrity';
 import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
@@ -31,7 +32,7 @@ const loader = {
 	babelPre: { loader: 'babel-loader' },
 	optimizer: { loader: '@angular-devkit/build-optimizer/webpack-loader' },
 	sass: { loader: 'sass-loader' },
-	style: { loader: 'style-loader' },
+	style: { loader: MiniCssExtractPlugin.loader },
 	text: { loader: 'text-loader' },
 	tslint: { loader: 'tslint-loader' },
 	typescript: { loader: 'awesome-typescript-loader' },
@@ -42,12 +43,6 @@ const loader = {
 for( const [ key, obj ] of Object.entries( loader ) ) {
 	if( !obj.options ) obj.options = config.options[ key ] || {};
 }
-
-const devtool = config.devMode ? 'source-map' : 'none';
-
-const output = {
-	path: path.resolve( __dirname, 'dist' )
-};
 
 const resolve = {
 	alias: {
@@ -67,10 +62,7 @@ const env = {
 };
 
 export default /** @type {webpack.Configuration[]} */ ( [ {
-	devtool,
-	entry: {
-		client: 'client/main'
-	},
+	...config.configuration.client,
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src', 'client' ) ], exclude: [ /\.ng\w+\./ ], enforce: 'pre', use: [ loader.tslint ] },
@@ -88,22 +80,16 @@ export default /** @type {webpack.Configuration[]} */ ( [ {
 		]
 	},
 	mode,
-	optimization: {
-		splitChunks: {
-			chunks: 'all'
-		},
-		runtimeChunk: true
-	},
-	node: {
-		fs: 'empty',
-		global: true
-	},
 	output: {
-		path: path.resolve( __dirname, 'dist', 'www' )
+		...config.configuration.client.output,
+		path: path.resolve( __dirname, ...config.configuration.client.output.path )
 	},
 	plugins: [
 		new PurifyPlugin,
 		new AngularCompilerPlugin( config.options.angular ),
+		new MiniCssExtractPlugin({
+			filename: '[name].css'
+		} ),
 		new webpack.DefinePlugin( {
 			'process.browser': JSON.stringify( true ),
 			'process.platform': JSON.stringify( 'browser' ),
@@ -131,10 +117,7 @@ export default /** @type {webpack.Configuration[]} */ ( [ {
 	],
 	resolve
 }, {
-	devtool,
-	entry: {
-		server: 'server/start'
-	},
+	...config.configuration.server,
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src' ) ], exclude: [ path.resolve( __dirname, 'src', 'client' ) ], enforce: 'pre', use: [ loader.tslint ] },
@@ -144,9 +127,10 @@ export default /** @type {webpack.Configuration[]} */ ( [ {
 		]
 	},
 	mode,
-	node: false,
-	output,
-	target: 'node',
+	output: {
+		...config.configuration.server.output,
+		path: path.resolve( __dirname, ...config.configuration.server.output.path )
+	},
 	externals: [
 		nodeExternals( {
 			modulesFromFile: {

@@ -77,3 +77,28 @@ options:
     sourceMap: true
   typescript:
     configFileName: tsconfig.server.json
+configuration:
+  shared: &sharedConfig
+    devtool: source-map
+  client:
+    <<: *sharedConfig
+    entry:
+      client: client/main
+    optimization:
+      splitChunks:
+        chunks: all
+      runtimeChunk: true
+    output:
+      crossOriginLoading: anonymous
+      path: [ dist, www ]
+    node:
+      fs: empty
+      global: true
+  server:
+    <<: *sharedConfig
+    entry:
+      server: server/start
+    node: false
+    output:
+      path: [ dist ]
+    target: node
