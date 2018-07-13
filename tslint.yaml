@@ -49,5 +49,7 @@ rules:
   trailing-comma:
   - true
   - never
-  triple-equals: true
+  triple-equals:
+  - true
+  - allow-null-check
   use-isnan: true

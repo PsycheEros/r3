@@ -1,3 +1,4 @@
+import './error-handler';
 import './polyfills';
 
 import cluster from 'cluster';
@@ -5,7 +6,7 @@ import cluster from 'cluster';
 import { workers } from 'data/config.yaml';
 
 const stopSignals = [ 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' ] as NodeJS.Signals[],
-	{ NODE_ENV} = process.env,
+	{ NODE_ENV } = process.env,
 	production = NODE_ENV === 'production';
 
 let stopping = false;

@@ -15,3 +15,11 @@ cspPolicy:
         script-src:
         - self
         plugin-types: []
+connectionOptions:
+  type: sqlite
+  database: ':memory:'
+  synchronize: true
+  logging:
+  - schema
+  - warn
+  - error

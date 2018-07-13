@@ -23,4 +23,8 @@ export class RoomEntity {
 	@ManyToMany( type => SessionEntity, session => session.rooms )
 	@JoinTable()
 	public sessions: SessionEntity[];
+
+	public static toRoom( roomEntity: RoomEntity ) {
+		return { roomId: roomEntity.roomId, gameId: roomEntity.gameId, name: roomEntity.name, hasPassword: !!roomEntity.password };
+	}
 }

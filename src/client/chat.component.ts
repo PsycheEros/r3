@@ -1,15 +1,16 @@
-import { Observable } from 'rxjs';
-import 'rxjs/add/operator/filter';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-
+import { combineLatest } from 'rxjs';
+import { Component } from '@angular/core';
 import { RoomService } from './room.service';
 
 @Component( {
 	selector: 'chat',
-	templateUrl: './chat.component.html'
+	templateUrl: './chat.component.html',
+	styleUrls: [ './chat.component.scss' ]
 } )
 export class ChatComponent {
-	constructor( private readonly roomService: RoomService ) {}
+	constructor(
+		private readonly roomService: RoomService
+	) {}
 
 	protected ngOnInit() {
 		const { roomService } = this,
@@ -18,7 +19,7 @@ export class ChatComponent {
 		currentRoom.subscribe( room => {
 			this.room = room;
 		} );
-		Observable.combineLatest( currentRoom, allMessages, ( room, messages ) => {
+		combineLatest( currentRoom, allMessages, ( room, messages ) => {
 			if( room ) {
 				return messages.filter( message => message.roomId === room.roomId );
 			} else {

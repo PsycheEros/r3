@@ -1,7 +1,7 @@
 import { Board } from 'src/board';
 
 export class GameState {
-	public readonly board = new Board;
+	public board = new Board;
 	public turn = 0;
 
 	public serialize(): SerializedGameState {

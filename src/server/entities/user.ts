@@ -7,7 +7,7 @@ export class UserEntity {
 	@PrimaryGeneratedColumn( 'uuid', { name: 'UserID' } )
 	public userId: string;
 
-	@Column( { name: 'Nick' } )
+	@Column( { name: 'Nick', unique: true } )
 	public nick: string;
 
 	@OneToMany( type => SessionEntity, session => session.user )

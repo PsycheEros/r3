@@ -1,0 +1,27 @@
+<div bsModal #joinRoomModal="bs-modal" (onHidden)="password = '';" (onShown)="roomPasswordText.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h4 class="modal-title">
+					Join Game
+				</h4>
+				<button type="button" class="close" (click)="joinRoomModal.hide()" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<form (ngSubmit)="joinRoom()" class="clearfix" #joinRoomForm="ngForm">
+					<div class="form-group">
+						<input type="text" class="form-control" [ngModel]="room?.name" name="room-name" readonly="readonly" autocomplete="off"/>
+					</div>
+					<div class="form-group" *ngShow="room?.hasPassword">
+						<input type="password" class="form-control" placeholder="Password" required="required" #roomPasswordText [(ngModel)]="password" name="room-password" autocomplete="off"/>
+					</div>
+					<button class="btn float-right" [disabled]="!joinRoomForm.form.valid">
+						Join
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

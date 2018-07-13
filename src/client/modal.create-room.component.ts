@@ -4,7 +4,8 @@ import { ModalDirective } from 'ngx-bootstrap';
 
 @Component( {
 	selector: 'modal-create-room',
-	templateUrl: 'modal.create-room.component.html'
+	templateUrl: 'modal.create-room.component.html',
+	styleUrls: [ './modal.create-room.component.scss' ]
 } )
 export class ModalCreateRoomComponent {
 	constructor( private roomService: RoomService ) {}
@@ -22,19 +23,15 @@ export class ModalCreateRoomComponent {
 		createRoomModal.hide();
 	}
 
-	protected async joinRoom( room: Room ) {
-		const { roomService } = this;
-		await roomService.joinRoom( room );
-	}
-
 	public rooms = [] as Room[];
 	public roomName = '';
+	public password = '';
 
 	public async createRoom() {
-		const { roomService, roomName } = this;
+		const { roomService, roomName, password } = this;
 		if( !roomName ) { return; }
 		this.hide();
-		const room = await roomService.createRoom( roomName );
-		await roomService.joinRoom( room );
+		const room = await roomService.createRoom( roomName, password );
+		// await roomService.joinRoom( room, password );
 	}
 }

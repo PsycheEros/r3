@@ -3,8 +3,6 @@ import { GameState } from 'src/game-state';
 export class Game {
 	public constructor( public readonly gameId: string ) {}
 
-	public readonly colors = [] as number[];
-
 	public get currentGameState() {
 		const { gameStates } = this,
 			{ length } = gameStates;
@@ -12,7 +10,8 @@ export class Game {
 		else return null;
 	}
 
-	public readonly gameStates = [] as GameState[];
+	public colors = [] as number[];
+	public gameStates = [] as GameState[];
 
 	public serialize(): SerializedGame {
 		const { gameId, colors, gameStates } = this;

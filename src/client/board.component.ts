@@ -1,7 +1,5 @@
 import { Board } from 'src/board';
 
-import { Observable } from 'rxjs';
-
 import { Component, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 
 import { screenToCanvas } from 'client/canvas';
@@ -50,7 +48,8 @@ function drawRect(
 
 @Component( {
 	selector: 'board',
-	templateUrl: './board.component.html'
+	templateUrl: './board.component.html',
+	styleUrls: [ './board.component.scss' ]
 } )
 export class BoardComponent {
 	constructor( private element: ElementRef ) {}
@@ -252,4 +251,3 @@ export class BoardComponent {
 		} );
 	}
 }
-

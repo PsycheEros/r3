@@ -1,14 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import nodeExternals from 'webpack-node-externals';
-import UglifyJsPlugin from 'uglifyjs-webpack-plugin';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 import { PurifyPlugin } from '@angular-devkit/build-optimizer';
+import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
+import SriPlugin from 'webpack-subresource-integrity';
+import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
+
 import yaml from 'js-yaml';
 
-const enableMessageLogging = false;
 const config = yaml.safeLoad( fs.readFileSync( path.resolve( 'webpack.yaml' ) ) );
 const mode = config.devMode ? 'development' : 'production';
 
@@ -64,7 +66,7 @@ const env = {
 	'process.env.NODE_ENV': JSON.stringify( mode )
 };
 
-export default [ {
+export default /** @type {webpack.Configuration[]} */ ( [ {
 	devtool,
 	entry: {
 		client: 'client/main'
@@ -86,6 +88,12 @@ export default [ {
 		]
 	},
 	mode,
+	optimization: {
+		splitChunks: {
+			chunks: 'all'
+		},
+		runtimeChunk: true
+	},
 	node: {
 		fs: 'empty',
 		global: true
@@ -108,9 +116,18 @@ export default [ {
 		} ),
 		new HtmlWebpackPlugin( {
 			inject: 'body',
+			inlineSource: /^runtime~/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.html' ),
 			xhtml: true
-		} )
+		} ),
+		new ScriptExtHtmlWebpackPlugin( {
+			defaultAttribute: 'async'
+		} ),
+		new SriPlugin( {
+			hashFuncNames: [ 'sha256' ],
+			enabled: true
+		} ),
+		new HtmlWebpackInlineSourcePlugin
 	],
 	resolve
 }, {
@@ -143,4 +160,4 @@ export default [ {
 		} )
 	],
 	resolve
-} ];
+} ] );

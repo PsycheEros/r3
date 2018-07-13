@@ -1,21 +1,22 @@
 <div class="row">
-	<div class="col-xs-12">
+	<div class="col-12">
 		<div class="list-group">
 			<div class="list-group-item" *ngIf="rooms.length === 0">
-				<p>There are no rooms. asdf Would you like to <a href="javascript:" (click)="createRoomModal.show()">create one</a>?
+				<p>There are no rooms. Would you like to <a href="javascript:" (click)="createRoomModal.show()">create one</a>?
 			</div>
 			<div class="list-group-item clearfix" *ngFor="let room of rooms">
 				<h4>{{room.name}}</h4>
-				<button class="btn float-xs-right" (click)="joinRoom(room)">
+				<button class="btn float-right" (click)="joinRoom(room)">
 					Join
 				</button>
 			</div>
 		</div>
 	</div>
-	<div class="col-xs-12 clearfix mt-1">
-		<button class="btn float-xs-right mr-2" (click)="createRoomModal.show()">
+	<div class="col-12 clearfix mt-1">
+		<button class="btn float-right mr-2" (click)="createRoomModal.show()">
 			Create Room
 		</button>
 	</div>
 </div>
 <modal-create-room #createRoomModal></modal-create-room>
+<modal-join-room #joinRoomModal></modal-join-room>

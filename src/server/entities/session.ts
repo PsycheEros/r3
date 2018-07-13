@@ -7,8 +7,11 @@ export class SessionEntity {
 	@PrimaryGeneratedColumn( 'uuid', { name: 'SessionID' } )
 	public sessionId: string;
 
-	@Column( { name: 'UserID' } )
+	@Column( { name: 'UserID', nullable: true } )
 	public userId: string;
+
+	@Column( { name: 'Nick' } )
+	public nick: string;
 
 	@ManyToOne( type => UserEntity, userEntity => userEntity.sessions )
 	public user: UserEntity;

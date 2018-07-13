@@ -1,12 +1,9 @@
 import { Game } from 'src/game';
-import { GameState } from 'src/game-state';
 import { Rules } from 'src/rules';
-import { Square } from 'src/square';
 
-import { Observable, BehaviorSubject } from 'rxjs';
-import 'rxjs/add/operator/filter';
+import { combineLatest } from 'rxjs';
 
-import { Component, Input } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { RoomService } from './room.service';
 
@@ -14,7 +11,8 @@ const rules = new Rules;
 
 @Component( {
 	selector: 'game',
-	templateUrl: './game.component.html'
+	templateUrl: './game.component.html',
+	styleUrls: [ './game.component.scss' ]
 } )
 export class GameComponent {
 	constructor( private roomService: RoomService ) {}
@@ -25,7 +23,7 @@ export class GameComponent {
 		currentRoom.subscribe( room => {
 			this.room = room || null;
 		} );
-		Observable.combineLatest( roomService.getGames(), currentRoom,
+		combineLatest( roomService.getGames(), currentRoom,
 			( games, room ) => {
 				if( room ) {
 					return games.filter( game => game.gameId === room.gameId )[ 0 ];
@@ -59,5 +57,4 @@ export class GameComponent {
 			roomService.makeMove( roomId, square.position );
 		}
 	}
-
 }

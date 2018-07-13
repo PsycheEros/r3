@@ -3,7 +3,8 @@ import { ModalDirective } from 'ngx-bootstrap';
 
 @Component( {
 	selector: 'modal-choose',
-	templateUrl: './modal.choose.component.html'
+	templateUrl: './modal.choose.component.html',
+	styleUrls: [ './modal.choose.component.scss' ]
 } )
 export class ModalChooseComponent {
 	@ViewChild('chooseModal')

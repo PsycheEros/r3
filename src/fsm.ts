@@ -1,9 +1,4 @@
-import { Observable } from 'rxjs/Observable';
-import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-import { ArrayObservable } from 'rxjs/observable/ArrayObservable';
-import 'rxjs/add/observable/from';
-import 'rxjs/add/operator/defaultIfEmpty';
-import 'rxjs/add/operator/last';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 export class Fsm {
 	public addState( name: string ) {
@@ -33,11 +28,8 @@ export class Fsm {
 	}
 
 	public get currentState(): Observable<FsmState|null> { return this.stateSubject; }
-
 	private stateStack = [] as FsmState[];
-
 	private stateMap = new Map<string, FsmState>();
-
 	private stateSubject = new BehaviorSubject<FsmState|null>( null );
 }
 

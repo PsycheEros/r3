@@ -1,18 +1,20 @@
-import { Observable, BehaviorSubject, ReplaySubject } from 'rxjs';
+import { Observable, BehaviorSubject, ReplaySubject, SchedulerLike, combineLatest } from 'rxjs';
+import { observeOn, scan } from 'rxjs/operators';
+import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
-import { Rules } from 'src/rules';
 import { Game } from 'src/game';
-import { GameState } from 'src/game-state';
 import { SessionService } from './session.service';
-import io from 'socket.io-client';
-import 'rxjs/add/observable/fromEvent';
-import 'rxjs/add/observable/combineLatest';
-import 'rxjs/add/operator/scan';
 
 @Injectable()
 export class RoomService {
-	constructor( @Inject(SessionService) private sessionService: SessionService ) {
-		sessionService.getEvents<SerializedGame>( 'update' ).subscribe( gameSerialized => {
+	constructor(
+		@Inject(ZoneScheduler)
+		private readonly scheduler: SchedulerLike,
+		@Inject(SessionService)
+		private sessionService: SessionService
+	) {
+		sessionService.getEvents<SerializedGame>( 'update' )
+		.subscribe( gameSerialized => {
 			const allGames = this.allGames.getValue(),
 				game = Game.deserialize( gameSerialized ),
 				index = allGames.findIndex( g => g.gameId === game.gameId );
@@ -24,41 +26,45 @@ export class RoomService {
 			this.allGames.next( allGames );
 		} );
 
-		sessionService.getEvents<Room[]>( 'rooms' ).subscribe( rooms => {
+		sessionService.getEvents<Room[]>( 'rooms' )
+		.subscribe( rooms => {
 			const { allRooms } = this;
 			allRooms.next( rooms );
 		} );
 
-		sessionService.getEvents<string[]>( 'joinedRooms' ).subscribe( roomIds => {
+		sessionService.getEvents<string[]>( 'joinedRooms' )
+		.subscribe( roomIds => {
 			const { joinedRoomIds } = this;
 			joinedRoomIds.next( roomIds );
 		} );
 
-		Observable.combineLatest( this.joinedRoomIds, this.allRooms, ( roomIds, rooms ) => {
+		combineLatest( this.joinedRoomIds, this.allRooms, ( roomIds, rooms ) => {
 			const joinedRooms = rooms.filter( r => roomIds.includes( r.roomId ) ),
 				currentRoom = this.currentRoom.getValue();
 			if( currentRoom ) {
 				this.currentRoom.next( joinedRooms.filter( j => j.roomId === currentRoom.roomId )[ 0 ] || null );
 			}
 			return joinedRooms;
-		} ).subscribe( joinedRooms => {
+		} )
+		.subscribe( joinedRooms => {
 			this.joinedRooms.next( joinedRooms );
 		} );
 
-		sessionService.getEvents<Message>( 'message' ).subscribe( message => {
+		sessionService.getEvents<Message>( 'message' )
+		.subscribe( message => {
 			const { allMessages } = this;
 			allMessages.next( message );
 		} );
 	}
 
 	public getRooms() {
-		const { allRooms } = this;
-		return allRooms as Observable<Room[]>;
+		const { allRooms, scheduler } = this;
+		return allRooms.pipe( observeOn( scheduler ) ) as Observable<Room[]>;
 	}
 
 	public getGames() {
-		const { allGames } = this;
-		return allGames;
+		const { allGames, scheduler } = this;
+		return allGames.pipe( observeOn( scheduler ) );
 	}
 
 	public async newGame( roomId: string ) {
@@ -77,19 +83,23 @@ export class RoomService {
 	}
 
 	public getMessages() {
-		const { allMessages } = this;
-		return allMessages.scan( ( arr, val ) => arr.concat( val ), [] ) as Observable<Message[]>;
+		const { allMessages, scheduler } = this;
+		return allMessages
+		.pipe(
+			scan<Message>( ( arr, val ) => ( [ ...arr, val ] ), [] ),
+			observeOn( scheduler )
+		);
 	}
 
 	public getJoinedRooms() {
-		const { joinedRooms } = this;
-		return joinedRooms as Observable<Room[]>;
+		const { joinedRooms, scheduler } = this;
+		return joinedRooms.pipe( observeOn( scheduler ) );
 	}
 
-	public async joinRoom( room: Room ) {
+	public async joinRoom( room: Room, password: string ) {
 		const { sessionService, currentRoom } = this,
 			{ roomId } = room;
-		await sessionService.emit<Room>( 'joinRoom', { roomId } );
+		await sessionService.emit<Room>( 'joinRoom', { roomId, password } );
 		currentRoom.next( room );
 	}
 
@@ -98,9 +108,9 @@ export class RoomService {
 		await sessionService.emit( 'leaveRoom', { roomId } );
 	}
 
-	public async createRoom( name: string ) {
-		const { sessionService, currentRoom } = this;
-		return await sessionService.emit<Room>( 'createRoom', { name } );
+	public async createRoom( name: string, password: string ) {
+		const { sessionService } = this;
+		return await sessionService.emit<Room>( 'createRoom', { name, password } );
 	}
 
 	public async setRoom( room: Room|void ) {
@@ -118,8 +128,8 @@ export class RoomService {
 	}
 
 	public getCurrentRoom() {
-		const { currentRoom } = this;
-		return currentRoom as Observable<Room>;
+		const { currentRoom, scheduler } = this;
+		return currentRoom.pipe( observeOn( scheduler ) );
 	}
 
 	private allMessages = new ReplaySubject<Message>( 10 );
