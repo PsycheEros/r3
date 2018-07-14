@@ -1,8 +1,8 @@
 import { Observable, BehaviorSubject, ReplaySubject, SchedulerLike, combineLatest } from 'rxjs';
-import { observeOn, scan } from 'rxjs/operators';
+import { distinctUntilChanged, observeOn, scan } from 'rxjs/operators';
+import { tapLog } from 'src/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
-import { Game } from 'src/game';
 import { SessionService } from './session.service';
 
 @Injectable()
@@ -11,21 +11,8 @@ export class RoomService {
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike,
 		@Inject(SessionService)
-		private sessionService: SessionService
+		private readonly sessionService: SessionService
 	) {
-		sessionService.getEvents<SerializedGame>( 'update' )
-		.subscribe( gameSerialized => {
-			const allGames = this.allGames.getValue(),
-				game = Game.deserialize( gameSerialized ),
-				index = allGames.findIndex( g => g.gameId === game.gameId );
-			if( index >= 0 ) {
-				allGames.splice( index, 1, game );
-			} else {
-				allGames.push( game );
-			}
-			this.allGames.next( allGames );
-		} );
-
 		sessionService.getEvents<Room[]>( 'rooms' )
 		.subscribe( rooms => {
 			const { allRooms } = this;
@@ -62,21 +49,6 @@ export class RoomService {
 		return allRooms.pipe( observeOn( scheduler ) ) as Observable<Room[]>;
 	}
 
-	public getGames() {
-		const { allGames, scheduler } = this;
-		return allGames.pipe( observeOn( scheduler ) );
-	}
-
-	public async newGame( roomId: string ) {
-		const { sessionService } = this;
-		return await sessionService.emit<SerializedGame>( 'newGame', { roomId } );
-	}
-
-	public async makeMove( roomId: string, position: Point ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'makeMove', { roomId, position } );
-	}
-
 	public async sendMessage( roomId: string, message: string ) {
 		const { sessionService } = this;
 		await sessionService.emit( 'sendMessage', { roomId, message } );
@@ -86,6 +58,7 @@ export class RoomService {
 		const { allMessages, scheduler } = this;
 		return allMessages
 		.pipe(
+			distinctUntilChanged(),
 			scan<Message>( ( arr, val ) => ( [ ...arr, val ] ), [] ),
 			observeOn( scheduler )
 		);
@@ -93,7 +66,10 @@ export class RoomService {
 
 	public getJoinedRooms() {
 		const { joinedRooms, scheduler } = this;
-		return joinedRooms.pipe( observeOn( scheduler ) );
+		return joinedRooms.pipe(
+			distinctUntilChanged(),
+			observeOn( scheduler )
+		);
 	}
 
 	public async joinRoom( room: Room, password: string ) {
@@ -109,8 +85,10 @@ export class RoomService {
 	}
 
 	public async createRoom( name: string, password: string ) {
-		const { sessionService } = this;
-		return await sessionService.emit<Room>( 'createRoom', { name, password } );
+		const { currentRoom, sessionService } = this;
+		const room = await sessionService.emit<Room>( 'createRoom', { name, password } );
+		currentRoom.next( room );
+		return room;
 	}
 
 	public async setRoom( room: Room|void ) {
@@ -129,13 +107,16 @@ export class RoomService {
 
 	public getCurrentRoom() {
 		const { currentRoom, scheduler } = this;
-		return currentRoom.pipe( observeOn( scheduler ) );
+		return currentRoom.pipe(
+			distinctUntilChanged(),
+			tapLog( 'currentRoom' ),
+			observeOn( scheduler )
+		);
 	}
 
-	private allMessages = new ReplaySubject<Message>( 10 );
-	private allGames = new BehaviorSubject<Game[]>( [] );
-	private allRooms = new BehaviorSubject<Room[]>( [] );
-	private joinedRoomIds = new BehaviorSubject<string[]>( [] );
-	private joinedRooms = new BehaviorSubject<Room[]>( [] );
-	private currentRoom = new BehaviorSubject<Room|null>( null );
+	private readonly allMessages = new ReplaySubject<Message>( 10 );
+	private readonly allRooms = new BehaviorSubject<Room[]>( [] );
+	private readonly joinedRoomIds = new BehaviorSubject<string[]>( [] );
+	private readonly joinedRooms = new BehaviorSubject<Room[]>( [] );
+	private readonly currentRoom = new BehaviorSubject<Room|null>( null );
 }

@@ -3,9 +3,10 @@
 	<lobby *ngIf="!currentRoom"></lobby>
 	<room *ngIf="currentRoom"></room>
 </div>
-<div class="container d-flex justify-content-end">
-	<a href="https://twitter.com/JovalentStudios" target="_blank">
+<footer class="container d-flex justify-content-end fixed-bottom my-2">
+	<a href="https://jovalent.com" target="_blank" class="mx-4">Jovalent.com</a>
+	<a href="https://twitter.com/JovalentStudios" target="_blank" class="ml-4">
 		<fa-icon [icon]="[ 'fab', 'twitter' ]"></fa-icon>
 		@JovalentStudios
 	</a>
-</div>
+</footer>

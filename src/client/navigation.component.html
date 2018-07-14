@@ -15,7 +15,9 @@
 				<span class="text-truncate">
 					{{room.name}}
 				</span>
-				<button class="close pull-right ml-1" (click)="leaveRoom(room)">×</button>
+				<button class="close ml-1" (click)="leaveRoom(room)">
+					<fa-icon icon="times" size="xs"></fa-icon>
+				</button>
 			</a>
 		</li>
 	</ul>

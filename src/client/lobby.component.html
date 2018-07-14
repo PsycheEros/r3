@@ -1,13 +1,13 @@
 <div class="row">
-	<div class="col-12">
+	<div class="col-12 mb-1">
 		<div class="list-group">
 			<div class="list-group-item" *ngIf="rooms.length === 0">
-				<p>There are no rooms. Would you like to <a href="javascript:" (click)="createRoomModal.show()">create one</a>?
+				There are no rooms. Would you like to <a href="javascript:" (click)="createRoomModal.show()">create one</a>?
 			</div>
-			<div class="list-group-item clearfix" *ngFor="let room of rooms">
-				<fa-icon icon="lock" *ngIf="room.hasPassword"></fa-icon>
+			<div class="list-group-item d-flex" *ngFor="let room of rooms">
+				<fa-icon class="mr-2 mt-1" icon="lock" *ngIf="room.hasPassword"></fa-icon>
 				<h4>{{room.name}}</h4>
-				<button class="btn float-right" (click)="joinRoom(room)">
+				<button class="btn ml-auto" (click)="joinRoom(room)">
 					Join
 				</button>
 			</div>

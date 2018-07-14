@@ -1,7 +1,7 @@
 rules:
   array-type:
   - true
-  - array-simple
+  - array
   arrow-return-shorthand: true
   class-name: true
   curly:
@@ -23,7 +23,7 @@ rules:
   no-invalid-this: true
   no-irregular-whitespace: true
   no-trailing-whitespace: true
-  no-string-literal: true
+  no-string-literal: false
   no-string-throw: true
   no-switch-case-fall-through: true
   no-unsafe-finally: true

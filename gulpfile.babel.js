@@ -37,7 +37,7 @@ gulp.task( 'default', gulp.series( 'clean', 'build' ) );
 gulp.task( 'server:nodemon', () => {
 	nodemon( {
 		script: './dist/server.js',
-		watch: [ './dist/server.js' ],
+		watch: [ './dist/*.js' ],
 		nodeArgs: [ '--inspect' ],
 		ext: 'js'
 	} );

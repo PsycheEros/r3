@@ -1,7 +1,7 @@
-import { Game } from 'src/game';
-import { GameState } from 'src/game-state';
-import { Board } from 'src/board';
-import { Square } from 'src/square';
+import { Game } from './game';
+import { GameState } from './game-state';
+import { Board } from './board';
+import { Square } from './square';
 
 const directions: Point[] = [
 	{ x:  0, y: -1 },
@@ -30,17 +30,26 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 			squares.push( square );
 		}
 	}
-	const squares = [ square ];
+	let squares = [ square ];
 	for( const delta of directions ) {
-		squares.splice( squares.length, 0, ...direction( position, delta ) );
+		squares = [ ...squares, ...direction( position, delta ) ];
 	}
 	if( squares.length <= 1 ) { return []; }
 	return squares;
 }
 
-export class Rules {
+class RulesStandard implements Rules {
+	public readonly name: string = 'Standard';
+	public readonly ruleSet: RuleSet = RuleSet.standard;
+	public readonly colors: number = 2;
+	public readonly boardSize: Readonly<Point> = Object.freeze( { x: 8, y: 8 } );
+
 	public isValid( board: Board, position: Point, color: number ) {
 		return getAffectedSquares( board, position, color ).length > 0;
+	}
+
+	public compare( score1: number, score2: number ) {
+		return score1 - score2;
 	}
 
 	public getValidMoves( board: Board, color: number ) {
@@ -51,18 +60,9 @@ export class Rules {
 		return squares;
 	}
 
-	public getColors( board: Board ) {
-		const colors = new Set<number>();
-		for( const { color } of board ) {
-			if( color !== null && Number.isSafeInteger( color ) ) {
-				colors.add( color );
-			}
-		}
-		return colors;
-	}
-
 	public isGameOver( board: Board ) {
-		for( const color of this.getColors( board ) ) {
+		const { colors } = this;
+		for( let color = 0; color < colors; ++color ) {
 			if( this.getValidMoves( board, color ).length > 0 ) { return false; }
 		}
 		return true;
@@ -71,16 +71,17 @@ export class Rules {
 	public makeMove( game: Game, position: Point ) {
 		const { gameStates } = game;
 		const gameState = gameStates[ gameStates.length - 1 ].clone();
-		const { board, turn: color } = gameState,
-			squares = getAffectedSquares( board, position, color );
+		const { board, turn } = gameState;
+		const squares = getAffectedSquares( board, position, turn );
 		for( const square of squares ) {
-			square.color = color;
+			square.color = turn;
 		}
 		const { length } = squares;
+		const { colors } = this;
 		if( length > 0 ) {
 			if( !this.isGameOver( board ) ) {
 				do {
-					gameState.turn = ( gameState.turn + 1 ) % 2;
+					gameState.turn = ( turn + 1 ) % colors;
 				} while( this.getValidMoves( board, gameState.turn ).length <= 0 );
 			}
 			gameStates.push( gameState );
@@ -103,15 +104,35 @@ export class Rules {
 	public newGame( gameId: string ) {
 		const game = new Game( gameId ),
 			gameState = new GameState,
-			{ board } = gameState;
-		game.colors.splice( 0, 0, 0, 1 );
+			{ board } = gameState,
+			{ boardSize, colors } = this;
+		game.rules = this;
+		game.colors = [ 'black', 'white' ];
 		gameState.turn = 0;
-		board.reset( 8, 8 );
-		board.get( { x: 3, y: 3 } ).color = 0;
-		board.get( { x: 4, y: 3 } ).color = 1;
-		board.get( { x: 3, y: 4 } ).color = 1;
-		board.get( { x: 4, y: 4 } ).color = 0;
+		board.reset( boardSize.x, boardSize.y );
+		// TODO: center? gets ugly with an odd dimension
+		board.get( { x: 3, y: 3 } ).color = colors[ 0 ];
+		board.get( { x: 4, y: 3 } ).color = colors[ 1 ];
+		board.get( { x: 3, y: 4 } ).color = colors[ 1 ];
+		board.get( { x: 4, y: 4 } ).color = colors[ 0 ];
 		game.gameStates.push( gameState );
 		return game;
 	}
+}
+
+class RulesReversed extends RulesStandard {
+	public readonly name: string = 'Reversed';
+	public readonly ruleSet: RuleSet = RuleSet.reversed;
+
+	public compare( score1: number, score2: number ) {
+		return score2 - score1;
+	}
+}
+
+export const rulesStandard = new RulesStandard;
+export const rulesReversed = new RulesReversed;
+export const ruleSets = [ rulesStandard, rulesReversed ] as Rules[];
+export const ruleSetMap = new Map<RuleSet, Rules>();
+for( const ruleSet of ruleSets ) {
+	ruleSetMap.set( ruleSet.ruleSet, ruleSet );
 }

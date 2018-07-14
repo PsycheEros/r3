@@ -1,7 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faGithub, faTwitter } from '@fortawesome/free-brands-svg-icons';
-library.add( faGithub, faTwitter );
-import { faWindowClose } from '@fortawesome/free-regular-svg-icons';
-library.add( faWindowClose );
-import { faKey, faLock } from '@fortawesome/free-solid-svg-icons';
-library.add( faKey, faLock );
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import { far } from '@fortawesome/free-regular-svg-icons';
+import { fas } from '@fortawesome/free-solid-svg-icons';
+library.add( fab, far, fas );

@@ -11,7 +11,7 @@ import { RoomService } from './room.service';
 } )
 export class NavigationComponent implements OnInit, OnDestroy {
 	public constructor(
-		private roomService: RoomService
+		private readonly roomService: RoomService
 	) {}
 
 	public ngOnInit() {
@@ -21,6 +21,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
 		.subscribe( rooms => {
 			this.rooms = rooms;
 		} );
+
 		roomService.getCurrentRoom()
 		.pipe( takeUntil( destroyed ) )
 		.subscribe( room => {

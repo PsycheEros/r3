@@ -668,6 +668,10 @@
   dependencies:
     tslib "^1.9.0"
 
+"@fortawesome/fontawesome-common-types@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-common-types/-/fontawesome-common-types-0.1.7.tgz#4336c4b06d0b5608ff1215464b66fcf9f4795284"
+
 "@fortawesome/fontawesome-common-types@^0.2.0":
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-common-types/-/fontawesome-common-types-0.2.0.tgz#6bcf6481030f59e7ffd1a40a67cd464d47780f6a"
@@ -677,6 +681,12 @@
   resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-svg-core/-/fontawesome-svg-core-1.2.0.tgz#b0ec14af25cdc11d38ede7d8c94b89b478ab67ab"
   dependencies:
     "@fortawesome/fontawesome-common-types" "^0.2.0"
+
+"@fortawesome/fontawesome@^1.1.8":
+  version "1.1.8"
+  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome/-/fontawesome-1.1.8.tgz#75fe66a60f95508160bb16bd781ad7d89b280f5b"
+  dependencies:
+    "@fortawesome/fontawesome-common-types" "^0.1.7"
 
 "@fortawesome/free-brands-svg-icons@^5.1.0":
   version "5.1.0"
@@ -753,6 +763,10 @@
   version "4.14.111"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.111.tgz#d926250baa9526c0ffe85914dd10363068e7893a"
 
+"@types/lodash@^4.14.112":
+  version "4.14.112"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.112.tgz#4a8d8e5716b97a1ac01fe1931ad1e4cba719de5a"
+
 "@types/mathjs@4.4.0":
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/@types/mathjs/-/mathjs-4.4.0.tgz#9e373156f3cf3b13cbf0c0c54aad9a74c26cf272"
@@ -827,9 +841,9 @@
   version "1.13.6"
   resolved "https://registry.yarnpkg.com/@types/webpack-env/-/webpack-env-1.13.6.tgz#128d1685a7c34d31ed17010fc87d6a12c1de6976"
 
-"@types/webpack@^4.4.5":
-  version "4.4.5"
-  resolved "https://registry.yarnpkg.com/@types/webpack/-/webpack-4.4.5.tgz#d45596fb67aeb724495ef5e7c78771bfc35f2955"
+"@types/webpack@^4.4.6":
+  version "4.4.6"
+  resolved "https://registry.yarnpkg.com/@types/webpack/-/webpack-4.4.6.tgz#91e909370c89aca6e6c55d3bcc3026bc21b2bae6"
   dependencies:
     "@types/node" "*"
     "@types/tapable" "*"
@@ -1320,7 +1334,7 @@ autoprefixer@^7.1.1:
     postcss "^6.0.17"
     postcss-value-parser "^3.2.3"
 
-autoprefixer@^8.6.3:
+autoprefixer@^8.6.5:
   version "8.6.5"
   resolved "https://registry.yarnpkg.com/autoprefixer/-/autoprefixer-8.6.5.tgz#343f3d193ed568b3208e00117a1b96eb691d4ee9"
   dependencies:
@@ -1804,7 +1818,7 @@ caniuse-api@^2.0.0:
     lodash.memoize "^4.1.2"
     lodash.uniq "^4.5.0"
 
-caniuse-lite@^1.0.0, caniuse-lite@^1.0.30000792, caniuse-lite@^1.0.30000805, caniuse-lite@^1.0.30000844, caniuse-lite@^1.0.30000859, caniuse-lite@^1.0.30000864:
+caniuse-lite@^1.0.0, caniuse-lite@^1.0.30000792, caniuse-lite@^1.0.30000805, caniuse-lite@^1.0.30000844, caniuse-lite@^1.0.30000864, caniuse-lite@^1.0.30000865:
   version "1.0.30000865"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30000865.tgz#70026616e8afe6e1442f8bb4e1092987d81a2f25"
 
@@ -4508,7 +4522,7 @@ lodash@^3.10.1:
   version "3.10.1"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.10.1.tgz#5bf45e8e49ba4189e17d482789dfd15bd140b7b6"
 
-lodash@^4.0.0, lodash@^4.17.3, lodash@^4.17.5, lodash@^4.3.0, lodash@~4.17.10:
+lodash@^4.0.0, lodash@^4.17.10, lodash@^4.17.3, lodash@^4.17.5, lodash@^4.3.0, lodash@~4.17.10:
   version "4.17.10"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
 
@@ -4616,9 +4630,9 @@ math-random@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/math-random/-/math-random-1.0.1.tgz#8b3aac588b8a66e4975e3cdea67f7bb329601fac"
 
-mathjs@^5.0.2:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-5.0.2.tgz#ed23dcfb40e886697447bcfe43e5dc5d92dd8eb0"
+mathjs@^5.0.3:
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-5.0.3.tgz#68bbf5f1bb8391f69ffe88a2cf852015c84702a2"
   dependencies:
     complex.js "2.0.11"
     decimal.js "10.0.1"
@@ -5597,11 +5611,11 @@ postcss-color-function@^4.0.0:
     postcss-message-helpers "^2.0.0"
     postcss-value-parser "^3.3.0"
 
-postcss-color-functional-notation@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/postcss-color-functional-notation/-/postcss-color-functional-notation-1.0.1.tgz#a12fe1302fa63935e440859c9d53730023c0eadd"
+postcss-color-functional-notation@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/postcss-color-functional-notation/-/postcss-color-functional-notation-1.0.2.tgz#836fbc5e88a4ebd958ba6a3f9e2dad7792166c9f"
   dependencies:
-    postcss "^6.0.22"
+    postcss "^6.0.23"
     postcss-values-parser "^1.5.0"
 
 postcss-color-gray@^4.0.0:
@@ -5898,17 +5912,17 @@ postcss-place@^3.0.1:
     postcss "^6.0.22"
     postcss-values-parser "^1.5.0"
 
-postcss-preset-env@^5.2.1:
-  version "5.2.1"
-  resolved "https://registry.yarnpkg.com/postcss-preset-env/-/postcss-preset-env-5.2.1.tgz#298fd5a7a6d323e025bd554fc31fe5e1003875c8"
+postcss-preset-env@^5.2.2:
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/postcss-preset-env/-/postcss-preset-env-5.2.2.tgz#b3bc339ac36d3f8465d634e888f66e6e9997e9ba"
   dependencies:
-    autoprefixer "^8.6.3"
+    autoprefixer "^8.6.5"
     browserslist "^3.2.8"
-    caniuse-lite "^1.0.30000859"
+    caniuse-lite "^1.0.30000865"
     cssdb "^3.1.0"
     postcss "^6.0.23"
     postcss-attribute-case-insensitive "^3.0.1"
-    postcss-color-functional-notation "^1.0.1"
+    postcss-color-functional-notation "^1.0.2"
     postcss-color-hex-alpha "^3.0.0"
     postcss-color-mod-function "^2.4.2"
     postcss-color-rebeccapurple "^3.1.0"
@@ -6612,9 +6626,15 @@ rx@4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/rx/-/rx-4.1.0.tgz#a5f13ff79ef3b740fe30aa803fb09f98805d4782"
 
-rxjs@^6.0.0, rxjs@^6.1.0, rxjs@^6.2.1:
+rxjs@^6.0.0, rxjs@^6.1.0:
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-6.2.1.tgz#246cebec189a6cbc143a3ef9f62d6f4c91813ca1"
+  dependencies:
+    tslib "^1.9.0"
+
+rxjs@^6.2.2:
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-6.2.2.tgz#eb75fa3c186ff5289907d06483a77884586e1cf9"
   dependencies:
     tslib "^1.9.0"
 
@@ -7478,7 +7498,7 @@ typedarray@^0.0.6:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-typeorm@0.2.7:
+typeorm@^0.2.7:
   version "0.2.7"
   resolved "https://registry.yarnpkg.com/typeorm/-/typeorm-0.2.7.tgz#4bbbace80dc91b1303be13f42d44ebf01d1b2558"
   dependencies:

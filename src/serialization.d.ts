@@ -11,6 +11,7 @@ declare interface SerializedGameState {
 
 declare interface SerializedGame {
 	gameId: string;
-	colors: number[];
+	ruleSet: RuleSet;
+	colors: Color[];
 	gameStates: SerializedGameState[];
 }

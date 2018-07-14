@@ -1,14 +1,9 @@
 <div bsModal #chooseModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
-			<div class="modal-header">
-				<h4 class="modal-title" *ngIf="title">
-					{{title}}
-				</h4>
-				<button type="button" class="close" (click)="dismiss()" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
-			</div>
+			<modal-header (closeClick)="dismiss()">
+				{{title}}
+			</modal-header>
 			<div class="modal-body clearfix">
 				<div class="row">
 					<div class="col-12" *ngIf="prompt">

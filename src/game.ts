@@ -1,4 +1,5 @@
-import { GameState } from 'src/game-state';
+import { GameState } from './game-state';
+import { ruleSetMap } from './rule-sets';
 
 export class Game {
 	public constructor( public readonly gameId: string ) {}
@@ -10,22 +11,25 @@ export class Game {
 		else return null;
 	}
 
-	public colors = [] as number[];
+	public colors: string[];
 	public gameStates = [] as GameState[];
+	public rules: Rules;
 
 	public serialize(): SerializedGame {
-		const { gameId, colors, gameStates } = this;
+		const { gameId, colors, gameStates, rules } = this;
 		return {
 			gameId,
-			colors: Array.from( colors ),
-			gameStates: Array.from( gameStates, gameState => gameState.serialize() )
+			colors: [ ...colors ],
+			gameStates: gameStates.map( gs => gs.serialize() ),
+			ruleSet: rules.ruleSet
 		};
 	}
 
-	public static deserialize( { gameId, colors, gameStates }: SerializedGame ) {
+	public static deserialize( { gameId, colors, gameStates, ruleSet }: SerializedGame ) {
 		const game = new Game( gameId );
-		game.colors.splice( 0, game.colors.length, ...colors );
-		game.gameStates.splice( 0, game.gameStates.length, ...gameStates.map( gameState => GameState.deserialize( gameState ) ) );
+		game.rules = ruleSetMap.get( ruleSet );
+		game.colors = [ ...colors ];
+		game.gameStates = gameStates.map( gameState => GameState.deserialize( gameState ) );
 		return game;
 	}
 

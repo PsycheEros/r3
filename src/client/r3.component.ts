@@ -9,7 +9,7 @@ import { RoomService } from './room.service';
 } )
 export class R3Component implements AfterViewInit, OnInit, OnDestroy {
 	public constructor(
-		private roomService: RoomService
+		private readonly roomService: RoomService
 	) {}
 
 	public ngOnInit() {

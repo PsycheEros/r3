@@ -1,14 +1,14 @@
 import { Component, ViewChild } from '@angular/core';
-import { RoomService } from './room.service';
+import { RoomService } from 'client/room.service';
 import { ModalDirective } from 'ngx-bootstrap';
 
 @Component( {
 	selector: 'modal-create-room',
-	templateUrl: 'modal.create-room.component.html',
-	styleUrls: [ './modal.create-room.component.scss' ]
+	templateUrl: 'create-room.component.html',
+	styleUrls: [ './create-room.component.scss' ]
 } )
 export class ModalCreateRoomComponent {
-	constructor( private roomService: RoomService ) {}
+	constructor( private readonly roomService: RoomService ) {}
 
 	@ViewChild( 'createRoomModal' )
 	protected createRoomModal: ModalDirective;
@@ -31,7 +31,6 @@ export class ModalCreateRoomComponent {
 		const { roomService, roomName, password } = this;
 		if( !roomName ) { return; }
 		this.hide();
-		const room = await roomService.createRoom( roomName, password );
-		// await roomService.joinRoom( room, password );
+		await roomService.createRoom( roomName, password );
 	}
 }

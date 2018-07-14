@@ -99,6 +99,10 @@ configuration:
     entry:
       server: server/start
     node: false
+    optimization:
+      splitChunks:
+        chunks: all
+      runtimeChunk: false
     output:
       path: [ dist ]
     target: node

@@ -1,0 +1,10 @@
+<div class="modal-header">
+	<h4 class="modal-title">
+		<ng-content></ng-content>
+	</h4>
+	<button type="button" class="close" (click)="closeClick.emit()" aria-label="Close" *ngIf="showCloseButton">
+		<span aria-hidden="true">
+			<fa-icon icon="times"></fa-icon>
+		</span>
+	</button>
+</div>

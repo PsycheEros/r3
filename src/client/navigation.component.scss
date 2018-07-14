@@ -1,3 +1,10 @@
-.nav-link { overflow: hidden; height: 42px;
-	.text-truncate { display: inline-block; max-width: 160px; }
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+
+nav { border-bottom: $border-width solid $border-color;
+	.nav-tabs { margin-bottom: -1px;
+		.nav-link { overflow: hidden; height: 42px;
+			.text-truncate { display: inline-block; max-width: 160px; }
+		}
+	}
 }

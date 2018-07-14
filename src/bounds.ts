@@ -1,5 +1,10 @@
 export class Bounds {
-	public constructor( public readonly left: number, public readonly top: number, public readonly width: number, public readonly height: number ) {}
+	public constructor(
+		public readonly left: number,
+		public readonly top: number,
+		public readonly width: number,
+		public readonly height: number
+	) {}
 
 	public get bottom() {
 		const { top, height } = this;

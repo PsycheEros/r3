@@ -1,9 +1,9 @@
-import { Component, ViewChild, OnInit, OnDestroy } from '@angular/core';
+import { Component, ViewChild, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { take, takeUntil } from 'rxjs/operators';
 import { RoomService } from './room.service';
-import { ModalCreateRoomComponent } from './modal.create-room.component';
-import { ModalJoinRoomComponent } from './modal.join-room.component';
+import { ModalCreateRoomComponent } from './modal/create-room.component';
+import { ModalJoinRoomComponent } from './modal/join-room.component';
 
 @Component( {
 	selector: 'lobby',
@@ -11,7 +11,9 @@ import { ModalJoinRoomComponent } from './modal.join-room.component';
 	styleUrls: [ './lobby.component.scss' ]
 } )
 export class LobbyComponent implements OnInit, OnDestroy {
-	constructor( private roomService: RoomService ) {}
+	constructor(
+		private readonly roomService: RoomService
+	) {}
 
 	@ViewChild( 'createRoomModal' )
 	public createRoomModal: ModalCreateRoomComponent;

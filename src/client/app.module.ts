@@ -11,7 +11,7 @@ import { ChatComponent } from './chat.component';
 import { GameComponent } from './game.component';
 import { GameService } from './game.service';
 import { LobbyComponent } from './lobby.component';
-import { ModalModule } from './modal.module';
+import { ModalModule } from './modal/modal.module';
 import { NavigationComponent } from './navigation.component';
 import { R3Component } from './r3.component';
 import { RoomComponent } from './room.component';

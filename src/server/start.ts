@@ -39,5 +39,5 @@ if( cluster.isMaster ) {
 		} );
 	}
 } else {
-	require( './app' );
+	import( /* webpackChunkName: "main~server" */ './main' );
 }
