@@ -84,7 +84,7 @@
   },
   "scripts": {
     "clean": "gulp clean",
-    "install": "yarn build",
+    "postinstall": "yarn build",
     "build": "gulp build",
     "start": "node dist/server.js",
     "watch": "gulp watch",
