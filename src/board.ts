@@ -1,9 +1,10 @@
 import { Grid } from 'src/grid';
 import { Bounds } from 'src/bounds';
 import { Square } from 'src/square';
+import { zip } from 'lodash';
 
 export class Board {
-	public reset( width: number, height: number ) {
+	public reset( { width, height }: Readonly<Size> ) {
 		const grid = new Grid<Square>( width, height ),
 			squareSize: Size = { width: 64, height: 64 },
 			gutterSize: Size = { width: 6, height: 6 },
@@ -47,6 +48,42 @@ export class Board {
 		return grid.boundsCheck( { x, y } )!;
 	}
 
+	public getData() {
+		return Object.freeze( Array.from( this.grid ).map( sq => sq.empty ? null : sq.color ) );
+	}
+
+	public setData( data: ReadonlyArray<number> ) {
+		for( const [ color, square ] of zip( data, Array.from( this.grid ) ) ) {
+			square.color = color;
+		}
+	}
+
+	public getGameState( index: number ) {
+		return {
+			index,
+
+			data: this.getData()
+		} as GameState;
+	}
+
+	public getMask() {
+		return Object.freeze( Array.from( this.grid ).map( sq => sq.enabled ) );
+	}
+
+	public setMask( mask: ReadonlyArray<boolean> ) {
+		for( const [ enabled, square ] of zip( mask, Array.from( this.grid ) ) ) {
+			square.enabled = enabled;
+		}
+	}
+
+	public static fromGame( game: Game, gameState: GameState ) {
+		const board = new Board;
+		board.reset( game.size );
+		board.setData( gameState.data );
+		board.setMask( game.mask );
+		return board;
+	}
+
 	public [Symbol.iterator]() {
 		const { grid } = this;
 		return grid[ Symbol.iterator ]() as IterableIterator<Square>;
@@ -63,43 +100,4 @@ export class Board {
 
 	public bounds = new Bounds( 0, 0, 0, 0 );
 	private grid = new Grid<Square>( 0, 0 );
-
-	public serialize(): SerializedBoard {
-		const { width, height } = this;
-		let data = '';
-		for( const { enabled, empty, color } of this ) {
-			data +=
-				!enabled ? 'x'
-			:	empty ? ' '
-			:	color;
-		}
-		return { width, height, data };
-	}
-
-	public static deserialize( data: SerializedBoard ) {
-		return ( new Board ).deserialize( data );
-	}
-
-	public deserialize( { width, height, data }: SerializedBoard ) {
-		this.reset( width, height );
-		let i = 0;
-		for( const square of this ) {
-			const char = data[ i++ ];
-			switch( char ) {
-			case 'x':
-				square.enabled = false;
-				break;
-			case ' ':
-				break;
-			default:
-				square.color = parseInt( char, 10 );
-				break;
-			}
-		}
-		return this;
-	}
-
-	public clone() {
-		return Board.deserialize( this.serialize() );
-	}
 }

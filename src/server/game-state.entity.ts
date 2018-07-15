@@ -23,6 +23,6 @@ export class GameStateEntity {
 	@Column( () => PointFieldNull )
 	public lastMove: PointFieldNull;
 
-	@Column()
-	public boardData: string;
+	@Column( { type: 'simple-array' } )
+	public data: string[];
 }

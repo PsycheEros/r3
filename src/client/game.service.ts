@@ -1,30 +1,41 @@
-import { SchedulerLike, BehaviorSubject } from 'rxjs';
+import { SchedulerLike, Observable, Subject } from 'rxjs';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, OnDestroy } from '@angular/core';
 import { SessionService } from './session.service';
-import { Game } from 'src/game';
-import { observeOn } from 'rxjs/operators';
+import { observeOn, shareReplay, scan, takeUntil } from 'rxjs/operators';
+import { tapLog } from 'src/operators';
 
 @Injectable()
-export class GameService {
+export class GameService implements OnDestroy {
 	constructor(
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike,
 		@Inject(SessionService)
 		private readonly sessionService: SessionService
 	) {
-		sessionService.getEvents<SerializedGame>( 'update' )
-		.subscribe( gameSerialized => {
-			const allGames = this.allGames.getValue(),
-				game = Game.deserialize( gameSerialized ),
-				index = allGames.findIndex( g => g.gameId === game.gameId );
-			if( index >= 0 ) {
-				allGames.splice( index, 1, game );
-			} else {
-				allGames.push( game );
-			}
-			this.allGames.next( allGames );
-		} );
+		this.allGames =
+		sessionService.getEvents<Game>( 'update' )
+		.pipe(
+			takeUntil( this.destroyed ),
+			scan<Game, Game[]>( ( prev, game ) => {
+				const games = [ ...prev ];
+				const index = games.findIndex( g => g.gameId === game.gameId );
+				if( index >= 0 ) {
+					games.splice( index, 1, game );
+				} else {
+					games.push( game );
+				}
+				return games;
+			}, [] as Game[] ),
+			shareReplay( 1 )
+		);
+
+		this.allGames.pipe( tapLog( 'allGames' ) ).subscribe();
+	}
+
+	public ngOnDestroy() {
+		this.destroyed.next( true );
+		this.destroyed.complete();
 	}
 
 	public getGames() {
@@ -34,7 +45,7 @@ export class GameService {
 
 	public async newGame( roomId: string, ruleSet: RuleSet ) {
 		const { sessionService } = this;
-		return await sessionService.emit<SerializedGame>( 'newGame', { roomId, ruleSet } );
+		return await sessionService.emit<Game>( 'newGame', { roomId, ruleSet } );
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
@@ -42,5 +53,6 @@ export class GameService {
 		await sessionService.emit( 'makeMove', { roomId, position } );
 	}
 
-	private readonly allGames = new BehaviorSubject<Game[]>( [] );
+	private readonly destroyed = new Subject<true>();
+	private readonly allGames: Observable<Game[]>;
 }

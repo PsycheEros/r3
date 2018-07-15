@@ -19,7 +19,7 @@ connectionOptions:
   type: sqlite
   database: ':memory:'
   synchronize: true
-  logging: true
+  logging: false
 #  - schema
 #  - warn
 #  - error

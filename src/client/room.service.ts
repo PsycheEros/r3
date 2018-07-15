@@ -109,7 +109,6 @@ export class RoomService {
 		const { currentRoom, scheduler } = this;
 		return currentRoom.pipe(
 			distinctUntilChanged(),
-			tapLog( 'currentRoom' ),
 			observeOn( scheduler )
 		);
 	}

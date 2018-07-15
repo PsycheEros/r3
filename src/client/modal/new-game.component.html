@@ -1,25 +1,25 @@
 <div bsModal #newGameModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-		<div class="modal-dialog modal-lg">
-			<div class="modal-content">
-				<modal-header (closeClick)="newGameModal.hide()">
-					New Game
-				</modal-header>
-				<div class="modal-body">
-					<form (ngSubmit)="newGame()" class="clearfix" #newGameForm="ngForm" autocomplete="off">
-						<fieldset class="form-group">
-							<legend>Rule Set</legend>
-							<div class="form-check" *ngFor="let ruleSet of ruleSets">
-								<label class="form-check-label">
-									<input type="radio" class="form-check-input" name="ruleSet" [value]="ruleSet.ruleSet" required="required">
-									{{ruleSet.name}}
-								</label>
-							</div>
-						</fieldset>
-						<button class="btn float-right" [disabled]="!newGameForm.form.valid">
-							Start
-						</button>
-					</form>
-				</div>
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<modal-header (closeClick)="newGameModal.hide()">
+				New Game
+			</modal-header>
+			<div class="modal-body">
+				<form (ngSubmit)="newGame()" class="clearfix" #newGameForm="ngForm" autocomplete="off">
+					<fieldset class="form-group">
+						<legend>Rule Set</legend>
+						<div class="form-check-inline" *ngFor="let rs of ruleSets">
+							<label class="form-check-label">
+								<input type="radio" class="form-check-input" name="ruleSet" [value]="rs.ruleSet" [(ngModel)]="ruleSet" required="required">
+								{{rs.name}}
+							</label>
+						</div>
+					</fieldset>
+					<button class="btn float-right" [disabled]="!newGameForm.form.valid">
+						Start
+					</button>
+				</form>
 			</div>
 		</div>
 	</div>
+</div>

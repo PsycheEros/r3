@@ -12,11 +12,10 @@ import { LoginEntity } from './login.entity';
 import { RoomEntity } from './room.entity';
 import { SessionEntity } from './session.entity';
 import { UserEntity } from './user.entity';
-import { Game } from 'src/game';
 import { ruleSetMap } from 'src/rule-sets';
 import { app } from './app';
-import { colors } from 'data/colors.yaml';
 import { connectionOptions, cleanup as cleanupConfig } from 'data/config.yaml';
+import { colors } from 'data/colors.yaml';
 import uuid from 'uuid/v4';
 import moment from 'moment';
 import assert from 'assert';
@@ -113,31 +112,38 @@ async function flushUpdate( manager: EntityManager, roomId: string, sessionId?: 
 		if( !room ) return;
 		const game = await manager.findOne( GameEntity, room.gameId, { relations: [ 'gameStates' ] } );
 		if( !game ) return;
-		io.to( sessionId || room.id ).emit( 'update', GameEntity.toGame( game ).serialize() );
+		io.to( sessionId || room.id ).emit( 'update', GameEntity.toGame( game ) );
 	} );
 }
 
 async function cleanupRooms( manager: EntityManager ) {
 	await transaction( manager, async manager => {
 		let removed = 0;
-		const promises = [] as Promise<{}>[];
-		for( const room of await manager.find( RoomEntity, { select: [ 'id', 'expires' ] } ) ) {
-			if( Object.values( io.of( room.id ).sockets ).length === 0 ) {
-				if( room.expires ) {
-					if( moment( room.expires ).isSameOrBefore() ) {
-						console.log( `Deleting room ${room.id}...` );
-						promises.push( manager.remove( room ) );
-						++removed;
+		await Promise.all(
+			( await manager.find( RoomEntity, { select: [ 'id', 'expires' ] } ) )
+			.map( async room => {
+				const clients = await new Promise<string[]>( ( resolve, reject ) => {
+					io.in( room.id ).clients( ( err, clients ) => {
+						if( err ) reject( err );
+						else resolve( clients );
+					} );
+				} );
+				if( clients.length === 0 ) {
+					if( room.expires ) {
+						if( moment( room.expires ).isSameOrBefore() ) {
+							console.log( `Deleting room ${room.id}...` );
+							await manager.remove( room );
+							++removed;
+						}
+					} else {
+						const expires = moment().add( cleanupConfig.rooms.expireSeconds, 's' );
+						console.log( `Queuing room ${room.id} for deletion ${expires.fromNow()}...` );
+						room.expires = expires.toDate();
+						await manager.save( room );
 					}
-				} else {
-					const expires = moment().add( cleanupConfig.rooms.expireSeconds, 's' );
-					console.log( `Queuing room ${room.id} for deletion ${expires.fromNow()}...` );
-					room.expires = expires.toDate();
-					promises.push( manager.save( room ) );
 				}
-			}
-		}
-		await Promise.all( promises );
+			} )
+		);
 		if( removed ) await flushRooms( manager );
 	} );
 }
@@ -147,8 +153,13 @@ async function newGame( manager: EntityManager, roomId: string, ruleSet: RuleSet
 	const rules = ruleSetMap.get( ruleSet );
 	return await transaction( manager, async manager => {
 		const game = rules.newGame( uuid() );
-		const gameEntity = await manager.create( GameEntity, { id: game.gameId, colors: [ ...game.colors ] } );
-		gameEntity.ruleSet = rules.ruleSet;
+		const gameEntity = await manager.create( GameEntity, {
+			id: game.gameId,
+			colors: [ ...game.colors ],
+			mask: game.mask.map( v => v ? '1' : '0' ).join( '' ),
+			size: { ...game.size },
+			ruleSet: game.ruleSet
+		} );
 		await manager.save( gameEntity );
 		await saveGameStates( manager, game );
 		await manager.update( RoomEntity, roomId, { gameId: gameEntity.id } );
@@ -160,15 +171,16 @@ async function newGame( manager: EntityManager, roomId: string, ruleSet: RuleSet
 
 async function saveGameStates( manager: EntityManager, game: Game ) {
 	return await transaction( manager, async manager => {
-		const gameStates =
-			await Promise.all(
-				game.gameStates.map( ( gs, index ) => manager.preload( GameStateEntity, {
-					gameId: game.gameId,
-					index,
-					boardData: ''
-				} ) )
-			);
-		await manager.update( GameEntity, game.gameId, { gameStates } );
+		await Promise.all(
+			game.gameStates.map( async ( gs, index ) => {
+				let gameState = await manager.findOne( GameStateEntity, { gameId: game.gameId, index } );
+				if( !gameState ) gameState = await manager.create( GameStateEntity, { gameId: game.gameId, index } );
+				gameState.turn = gs.turn;
+				gameState.data = gs.data.map( v => ( v == null ) ? 'x' : String(v) );
+				gameState.lastMove = { ...gs.lastMove };
+				await manager.save( gameState );
+			} )
+		);
 	} );
 }
 
@@ -200,8 +212,7 @@ async function createRoom( manager: EntityManager, sessionId: string, name: stri
 				password
 			} );
 		await manager.save( roomEntity );
-		await flushRooms( manager );
-		await flushJoinedRooms( manager, sessionId );
+		await joinRoom( manager, roomEntity.id, sessionId );
 		await newGame( manager, roomEntity.id, RuleSet.standard );
 		return roomEntity;
 	} );
@@ -212,26 +223,30 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 		const roomEntity = await manager.findOne( RoomEntity, roomId );
 		const gameEntity = await manager.findOne( GameEntity, roomEntity.gameId, { relations: [ 'gameStates' ] } );
 		const rules = ruleSetMap.get( gameEntity.ruleSet );
-		const game = GameEntity.toGame( gameEntity );
-		if( !rules.makeMove( game, position ) ) {
+		let game = GameEntity.toGame( gameEntity );
+		const prevGameState = game.gameStates.slice( -1 )[ 0 ];
+		const nextGameState = rules.makeMove( game, prevGameState, position );
+		if( !nextGameState ) {
 			return false;
 		}
+		game = {
+			...game,
+			gameStates: [ ...game.gameStates, nextGameState ]
+		};
 		await saveGameStates( manager, game );
-		const { currentGameState: gameState } = game,
-			{ board } = gameState!;
-		if( rules.isGameOver( board ) ) {
+		if( rules.isGameOver( game, nextGameState ) ) {
 			const scores =
 			Array.from( { length: rules.colors } )
 			.map( ( _, color ) => ( {
-				color: color[ game.colors[ color ] ].displayName,
-				score: rules.getScore( board, color )
+				color: colors[ game.colors[ color ] ].displayName,
+				score: rules.getScore( game, nextGameState, color )
 			} ) );
 			scores.sort( ( c1, c2 ) => {
-				const r1 = rules.compare( c1.score, c2.score );
+				const r1 = rules.compareScores( c1.score, c2.score );
 				return r1 === 0 ? c1.color.localeCompare( c2.color ) : r1;
 			} );
 			const bestScore = scores[ 0 ].score;
-			const winners = scores.filter( ( { score } ) => rules.compare( score, bestScore ) );
+			const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
 			let message: string;
 			if( winners.length !== 1 ) {
 				message = 'Draw game.';
@@ -390,7 +405,7 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 			handleCallbackEvent<{ roomId: string; ruleSet: RuleSet }>( 'newGame', async ( { roomId, ruleSet } ) => {
 				const game = await newGame( manager, roomId, ruleSet );
 				if( !game ) throw new Error( 'Failed to create game.' );
-				return { game: game.serialize() };
+				return { game };
 			} );
 
 			handleCallbackEvent<{ roomId: string; message: string; }>( 'sendMessage', async ( { roomId, message } ) => {
@@ -404,7 +419,6 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 
 			handleCallbackEvent<{ name: string; password: string; }>( 'createRoom', async ( { manager, name, password } ) => {
 				const roomEntity = await createRoom( manager, sessionId, name, password );
-				await joinRoom( manager, roomEntity.id, sessionId );
 				return RoomEntity.toRoom( roomEntity );
 			} );
 

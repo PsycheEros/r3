@@ -83,6 +83,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	@Input()
 	public board: Board;
 
+	@Input()
+	public lastMove: null|Point = null;
+
 	@Output()
 	public click = new EventEmitter<BoardMouseEvent>();
 
@@ -91,7 +94,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 	private render() {
 		const { board } = this;
-		if( !board ) { return; }
+		if( !board ) return;
 		const { canvas, c2d } = this,
 			{ width, height } = canvas,
 			lightSource: Point = {
@@ -214,10 +217,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				c2d.save();
 				Object.assign( c2d, {
 					fillStyle: isDark ? '#111' : '#fff',
-					shadowColor: 'rgba(0,0,0,.4)',
-					shadowBlur: lightDistance,
-					shadowOffsetX: center.x - shadowCenter.x,
-					shadowOffsetY: center.y - shadowCenter.y
+					// shadowColor: 'rgba(0,0,0,.4)',
+					// shadowBlur: lightDistance,
+					// shadowOffsetX: center.x - shadowCenter.x,
+					// shadowOffsetY: center.y - shadowCenter.y
 				} );
 				c2d.fill();
 				c2d.restore();
@@ -238,6 +241,29 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				c2d.fill();
 				c2d.restore();
 			}
+			c2d.restore();
+		}
+		const { lastMove } = this;
+		if( lastMove ) {
+			const { bounds } = board.get( lastMove );
+			c2d.save();
+			const r = 5;
+			const p = 7;
+			const center = { x: bounds.right - r - p, y: bounds.top + r + p };
+
+			const radialGradient = c2d.createRadialGradient(
+				center.x, center.y, 0,
+				center.x, center.y, r
+			);
+			radialGradient.addColorStop( 0,   `hsl(180,0%,50%)` );
+			radialGradient.addColorStop( .5,  `hsl(180,100%,50%)` );
+			radialGradient.addColorStop( 1,   `hsl(180,0%,50%)` );
+
+			c2d.fillStyle = radialGradient;
+			c2d.beginPath();
+			c2d.ellipse( bounds.right - r - p, bounds.top + r + p, r, r, 0, 0, Math.PI * 2 );
+			c2d.fill();
+			c2d.closePath();
 			c2d.restore();
 		}
 	}

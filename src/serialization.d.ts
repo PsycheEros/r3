@@ -1,17 +1,13 @@
-declare interface SerializedBoard {
-	width: number;
-	height: number;
-	data: string;
-}
-
 declare interface SerializedGameState {
-	board: SerializedBoard;
-	turn: number;
+	readonly board: ReadonlyArray<number>;
+	readonly turn: number;
+	readonly lastMove: Readonly<Point>|null;
 }
 
 declare interface SerializedGame {
-	gameId: string;
-	ruleSet: RuleSet;
-	colors: Color[];
-	gameStates: SerializedGameState[];
+	readonly gameId: string;
+	readonly ruleSet: RuleSet;
+	readonly colors: ReadonlyArray<string>;
+	readonly gameStates: ReadonlyArray<SerializedGameState>;
+	readonly size: Readonly<Size>;
 }
