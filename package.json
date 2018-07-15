@@ -84,7 +84,7 @@
   },
   "scripts": {
     "clean": "gulp clean",
-    "postinstall": "yarn build",
+    "postinstall": "npx webpack",
     "build": "gulp build",
     "start": "node dist/server.js",
     "watch": "gulp watch",
