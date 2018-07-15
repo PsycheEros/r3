@@ -8,8 +8,6 @@ export const app = express();
 for( const [ key, value ] of Object.entries( appSettings ) ) {
 	app.set( key, value );
 }
-if( process.env.R3_SERVICE_HOST ) app.set( 'host', process.env.R3_SERVICE_HOST );
-if( process.env.R3_SERVICE_PORT ) app.set( 'port', process.env.R3_SERVICE_PORT );
 app.use( compression(), express.static( path.join( __dirname, 'www' ) ) );
 csp.extend( app, cspPolicy );
 app.use( require( 'body-parser' ).json() );
