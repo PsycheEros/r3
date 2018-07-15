@@ -60,7 +60,7 @@
 /******/ 	};
 /******/
 /******/ 	var deferredModules = [];
-/******/ 	var sriHashes = {"vendors~client":"sha256-1aQq9Sx089d1VS8Pzrxlt/CdVRP8qb+1MUfdLBsaQUE=","client":"sha256-W6GBdl+kZYbcyZ5hNT2vzEjqc7vASi4WBdcx+3tydUU="};
+/******/ 	var sriHashes = {"vendors~client":"sha256-r4aUKA7zlqv57J3p6brHTyU7ysNNUjdfotKhWrDFcsg=","client":"sha256-W6GBdl+kZYbcyZ5hNT2vzEjqc7vASi4WBdcx+3tydUU="};
 /******/
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {

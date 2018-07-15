@@ -790,8 +790,8 @@ for (const [key, value] of Object.entries(_config.appSettings)) {
   app.set(key, value);
 }
 
-if (process.env.NODE_PORT) app.set('port', process.env.NODE_PORT);
-if (process.env.NODE_IP) app.set('host', process.env.NODE_IP);
+if (process.env.R3_SERVICE_HOST) app.set('host', process.env.R3_SERVICE_HOST);
+if (process.env.R3_SERVICE_PORT) app.set('port', process.env.R3_SERVICE_PORT);
 app.use((0, _compression.default)(), _express.default.static(_path.default.join(__dirname, 'www')));
 
 _expressCsp.default.extend(app, _config.cspPolicy);
