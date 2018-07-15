@@ -50,6 +50,7 @@
     "eslint-plugin-json": "^1.2.0",
     "gulp": "^4.0.0",
     "gulp-cli": "^2.0.1",
+    "gulp-gh-pages": "^0.5.4",
     "gulplog": "^1.0.0",
     "html-loader": "^0.5.5",
     "html-webpack-inline-source-plugin": "^0.0.10",
@@ -84,11 +85,11 @@
   },
   "scripts": {
     "clean": "gulp clean",
-    "postinstall": "npx webpack",
     "build": "gulp build",
     "start": "node dist/server.js",
     "watch": "gulp watch",
-    "server": "gulp server"
+    "server": "gulp server",
+    "deploy": "gulp deploy"
   },
   "dependencies": {
     "@angular/common": "^6.0.9",

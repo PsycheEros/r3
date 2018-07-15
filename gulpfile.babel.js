@@ -3,6 +3,7 @@ import del from 'del';
 import log from 'gulplog';
 import nodemon from 'nodemon';
 import webpack from 'webpack';
+import ghPages from 'gulp-gh-pages';
 
 const browserSync = require( 'browser-sync' ).create();
 
@@ -57,3 +58,15 @@ gulp.task( 'server:browsersync', () => {
 } );
 
 gulp.task( 'server', gulp.parallel( 'watch', 'server:nodemon', 'server:browsersync' ) );
+
+gulp.task( 'deploy', () =>
+	gulp.src( [
+		'package.json',
+		'yarn.lock',
+		'dist/**/*'
+	], { base: '.' } )
+	.pipe( ghPages( {
+		branch: 'openshift',
+		remote: 'origin'
+	} ) )
+);
