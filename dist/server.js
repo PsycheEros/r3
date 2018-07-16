@@ -1,2 +1,491 @@
-!function(e){var r={},t={0:0};function o(t){if(r[t])return r[t].exports;var n=r[t]={i:t,l:!1,exports:{}};return e[t].call(n.exports,n,n.exports,o),n.l=!0,n.exports}o.e=function(r){if(0!==t[r]){var o=require("./"+({1:"main~server"}[r]||r)+".js"),n=o.modules,s=o.ids;for(var i in n)e[i]=n[i];for(var u=0;u<s.length;u++)t[s[u]]=0}return Promise.all([])},o.m=e,o.c=r,o.d=function(e,r,t){o.o(e,r)||Object.defineProperty(e,r,{enumerable:!0,get:t})},o.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},o.t=function(e,r){if(1&r&&(e=o(e)),8&r)return e;if(4&r&&"object"==typeof e&&e&&e.__esModule)return e;var t=Object.create(null);if(o.r(t),Object.defineProperty(t,"default",{enumerable:!0,value:e}),2&r&&"string"!=typeof e)for(var n in e)o.d(t,n,function(r){return e[r]}.bind(null,n));return t},o.n=function(e){var r=e&&e.__esModule?function(){return e.default}:function(){return e};return o.d(r,"a",r),r},o.o=function(e,r){return Object.prototype.hasOwnProperty.call(e,r)},o.p="",o.oe=function(e){process.nextTick(function(){throw e})},o(o.s=6)}([function(e,r){e.exports=require("rxjs")},function(e){e.exports={workers:1,cspPolicy:{policy:{directives:{"default-src":["self"],"script-src":["self"]},reportPolicy:{useScriptNonce:!0,useStyleNonce:!0,directives:{"default-src":["self"],"script-src":["self"],"plugin-types":[]}}}},connectionOptions:{type:"sqlite",database:":memory:",synchronize:!0,logging:["schema","warn","error"]},validation:{maxNickLength:32,maxRoomNameLength:64},appSettings:{"case sensitive routing":!0,host:"0.0.0.0","json escape":!0,"json spaces":"\\t",port:8080,"strict routing":!0,"x-powered-by":!1},cleanup:{rooms:{checkSeconds:15,expireSeconds:300}}}},function(e,r,t){"use strict";process.on("uncaughtException",e=>{console.error(`${(new Date).toUTCString()} uncaughtException: ${e}\n${e.stack}`),process.exit(1)}),process.on("unhandledRejection",(e={})=>{console.error(`${(new Date).toUTCString()} unhandledRejection: ${e}\n${e.stack}`)})},function(e,r,t){"use strict";t(7),t(8)},function(e,r){e.exports=require("rxjs/operators")},function(e,r,t){"use strict";r.__esModule=!0,r.fromNodeEvent=void 0;var o=t(0);r.fromNodeEvent=((e,r)=>(0,o.fromEventPattern)(t=>{e.addListener(r,t)},t=>{e.removeListener(r,t)}))},function(e,r,t){"use strict";t(2),t(3);var o=t(0),n=t(4),s=t(5),i=function(e){return e&&e.__esModule?e:{default:e}}(t(9)),u=t(1);if(i.default.isMaster){const e=new o.Subject;(0,s.fromNodeEvent)(i.default,"disconnect").pipe((0,n.takeUntil)(e)).subscribe(()=>{i.default.fork()}),console.log(`Starting ${u.workers} workers...`);for(let e=0;e<u.workers;++e)i.default.fork();(0,o.of)("SIGHUP","SIGINT","SIGQUIT","SIGILL","SIGTRAP","SIGABRT","SIGBUS","SIGFPE","SIGUSR1","SIGSEGV","SIGUSR2","SIGTERM").pipe((0,n.mergeMap)(e=>(0,s.fromNodeEvent)(process,e).pipe((0,n.mapTo)(e))),(0,n.takeUntil)(e)).subscribe(r=>{console.log(`Got ${r}, stopping workers...`),e.next(0),e.complete()}),e.subscribe(e=>{i.default.disconnect(()=>{console.log(`All workers stopped, exiting with code ${e}.`),process.exit(e)})})}else t.e(1).then(t.t.bind(null,13,7))},function(e,r){e.exports=require("source-map-support/register")},function(e,r){e.exports=require("reflect-metadata")},function(e,r){e.exports=require("cluster")},function(e,r){e.exports=require("typeorm")},function(e,r){e.exports=require("lodash")},function(e,r){e.exports=require("core-js/modules/es7.symbol.async-iterator")},,function(e,r){e.exports=require("core-js/modules/es6.array.sort")},function(e,r){e.exports=require("core-js/modules/web.dom.iterable")},function(e,r){e.exports=require("express")},function(e,r){e.exports=require("express-csp")},function(e,r){e.exports=require("path")},function(e,r){e.exports=require("compression")},function(e,r){e.exports=require("body-parser")},function(e,r){e.exports=require("uuid/v4")},function(e,r){e.exports=require("moment")},function(e,r){e.exports=require("assert")},function(e,r){e.exports=require("http")},function(e,r){e.exports=require("socket.io")},function(e,r){e.exports=require("redis")},function(e,r){e.exports=require("socket.io-redis")}]);
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// object to store loaded chunks
+/******/ 	// "0" means "already loaded"
+/******/ 	var installedChunks = {
+/******/ 		"server": 0
+/******/ 	};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/ 	// This file contains only the entry chunk.
+/******/ 	// The chunk loading function for additional chunks
+/******/ 	__webpack_require__.e = function requireEnsure(chunkId) {
+/******/ 		var promises = [];
+/******/
+/******/
+/******/ 		// require() chunk loading for javascript
+/******/
+/******/ 		// "0" is the signal for "already loaded"
+/******/ 		if(installedChunks[chunkId] !== 0) {
+/******/ 			var chunk = require("./" + ({"main~server":"main~server"}[chunkId]||chunkId) + ".js");
+/******/ 			var moreModules = chunk.modules, chunkIds = chunk.ids;
+/******/ 			for(var moduleId in moreModules) {
+/******/ 				modules[moduleId] = moreModules[moduleId];
+/******/ 			}
+/******/ 			for(var i = 0; i < chunkIds.length; i++)
+/******/ 				installedChunks[chunkIds[i]] = 0;
+/******/ 		}
+/******/ 		return Promise.all(promises);
+/******/ 	};
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// uncaught error handler for webpack runtime
+/******/ 	__webpack_require__.oe = function(err) {
+/******/ 		process.nextTick(function() {
+/******/ 			throw err; // catch this error by using import().catch()
+/******/ 		});
+/******/ 	};
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/server/start.ts");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./src/data/config.yaml":
+/*!******************************!*\
+  !*** ./src/data/config.yaml ***!
+  \******************************/
+/*! exports provided: workers, cspPolicy, connectionOptions, validation, appSettings, cleanup, default */
+/***/ (function(module) {
+
+module.exports = {"workers":1,"cspPolicy":{"policy":{"directives":{"default-src":["self"],"script-src":["self"]},"reportPolicy":{"useScriptNonce":true,"useStyleNonce":true,"directives":{"default-src":["self"],"script-src":["self"],"plugin-types":[]}}}},"connectionOptions":{"type":"sqlite","database":":memory:","synchronize":true,"logging":["schema","warn","error"]},"validation":{"maxNickLength":32,"maxRoomNameLength":64},"appSettings":{"case sensitive routing":true,"host":"0.0.0.0","json escape":true,"json spaces":"\\t","port":8080,"strict routing":true,"x-powered-by":false},"cleanup":{"rooms":{"checkSeconds":15,"expireSeconds":300}}};
+
+/***/ }),
+
+/***/ "./src/server/error-handler.ts":
+/*!*************************************!*\
+  !*** ./src/server/error-handler.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+process.on('uncaughtException', err => {
+  console.error(`${new Date().toUTCString()} uncaughtException: ${err}\n${err.stack}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err = {}) => {
+  console.error(`${new Date().toUTCString()} unhandledRejection: ${err}\n${err.stack}`);
+});
+
+/***/ }),
+
+/***/ "./src/server/polyfills.ts":
+/*!*********************************!*\
+  !*** ./src/server/polyfills.ts ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+__webpack_require__(/*! source-map-support/register */ "source-map-support/register");
+
+__webpack_require__(/*! reflect-metadata */ "reflect-metadata");
+
+/***/ }),
+
+/***/ "./src/server/rxjs.ts":
+/*!****************************!*\
+  !*** ./src/server/rxjs.ts ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.fromNodeEvent = void 0;
+
+var _rxjs = __webpack_require__(/*! rxjs */ "rxjs");
+
+const fromNodeEvent = (target, event) => (0, _rxjs.fromEventPattern)(e => {
+  target.addListener(event, e);
+}, e => {
+  target.removeListener(event, e);
+});
+
+exports.fromNodeEvent = fromNodeEvent;
+
+/***/ }),
+
+/***/ "./src/server/start.ts":
+/*!*****************************!*\
+  !*** ./src/server/start.ts ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+__webpack_require__(/*! ./error-handler */ "./src/server/error-handler.ts");
+
+__webpack_require__(/*! ./polyfills */ "./src/server/polyfills.ts");
+
+var _rxjs = __webpack_require__(/*! rxjs */ "rxjs");
+
+var _operators = __webpack_require__(/*! rxjs/operators */ "rxjs/operators");
+
+var _rxjs2 = __webpack_require__(/*! ./rxjs */ "./src/server/rxjs.ts");
+
+var _cluster = _interopRequireDefault(__webpack_require__(/*! cluster */ "cluster"));
+
+var _config = __webpack_require__(/*! data/config.yaml */ "./src/data/config.yaml");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+if (_cluster.default.isMaster) {
+  const stopping = new _rxjs.Subject();
+  (0, _rxjs2.fromNodeEvent)(_cluster.default, 'disconnect').pipe((0, _operators.takeUntil)(stopping)).subscribe(() => {
+    _cluster.default.fork();
+  });
+  console.log(`Starting ${_config.workers} workers...`);
+
+  for (let i = 0; i < _config.workers; ++i) {
+    _cluster.default.fork();
+  }
+
+  (0, _rxjs.of)('SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM').pipe((0, _operators.mergeMap)(sig => (0, _rxjs2.fromNodeEvent)(process, sig).pipe((0, _operators.mapTo)(sig))), (0, _operators.takeUntil)(stopping)).subscribe(signal => {
+    console.log(`Got ${signal}, stopping workers...`);
+    stopping.next(0);
+    stopping.complete();
+  });
+  stopping.subscribe(code => {
+    _cluster.default.disconnect(() => {
+      console.log(`All workers stopped, exiting with code ${code}.`);
+      process.exit(code);
+    });
+  });
+} else {
+  __webpack_require__.e(/*! import() | main~server */ "main~server").then(__webpack_require__.t.bind(null, /*! ./main */ "./src/server/main.ts", 7));
+}
+
+/***/ }),
+
+/***/ "assert":
+/*!*************************!*\
+  !*** external "assert" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("assert");
+
+/***/ }),
+
+/***/ "body-parser":
+/*!******************************!*\
+  !*** external "body-parser" ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("body-parser");
+
+/***/ }),
+
+/***/ "cluster":
+/*!**************************!*\
+  !*** external "cluster" ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("cluster");
+
+/***/ }),
+
+/***/ "compression":
+/*!******************************!*\
+  !*** external "compression" ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("compression");
+
+/***/ }),
+
+/***/ "core-js/modules/es6.array.sort":
+/*!*************************************************!*\
+  !*** external "core-js/modules/es6.array.sort" ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("core-js/modules/es6.array.sort");
+
+/***/ }),
+
+/***/ "core-js/modules/es7.symbol.async-iterator":
+/*!************************************************************!*\
+  !*** external "core-js/modules/es7.symbol.async-iterator" ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("core-js/modules/es7.symbol.async-iterator");
+
+/***/ }),
+
+/***/ "core-js/modules/web.dom.iterable":
+/*!***************************************************!*\
+  !*** external "core-js/modules/web.dom.iterable" ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("core-js/modules/web.dom.iterable");
+
+/***/ }),
+
+/***/ "express":
+/*!**************************!*\
+  !*** external "express" ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("express");
+
+/***/ }),
+
+/***/ "express-csp":
+/*!******************************!*\
+  !*** external "express-csp" ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("express-csp");
+
+/***/ }),
+
+/***/ "http":
+/*!***********************!*\
+  !*** external "http" ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("http");
+
+/***/ }),
+
+/***/ "lodash":
+/*!*************************!*\
+  !*** external "lodash" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("lodash");
+
+/***/ }),
+
+/***/ "moment":
+/*!*************************!*\
+  !*** external "moment" ***!
+  \*************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("moment");
+
+/***/ }),
+
+/***/ "path":
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("path");
+
+/***/ }),
+
+/***/ "redis":
+/*!************************!*\
+  !*** external "redis" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("redis");
+
+/***/ }),
+
+/***/ "reflect-metadata":
+/*!***********************************!*\
+  !*** external "reflect-metadata" ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("reflect-metadata");
+
+/***/ }),
+
+/***/ "rxjs":
+/*!***********************!*\
+  !*** external "rxjs" ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("rxjs");
+
+/***/ }),
+
+/***/ "rxjs/operators":
+/*!*********************************!*\
+  !*** external "rxjs/operators" ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("rxjs/operators");
+
+/***/ }),
+
+/***/ "socket.io":
+/*!****************************!*\
+  !*** external "socket.io" ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("socket.io");
+
+/***/ }),
+
+/***/ "socket.io-redis":
+/*!**********************************!*\
+  !*** external "socket.io-redis" ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("socket.io-redis");
+
+/***/ }),
+
+/***/ "source-map-support/register":
+/*!**********************************************!*\
+  !*** external "source-map-support/register" ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("source-map-support/register");
+
+/***/ }),
+
+/***/ "typeorm":
+/*!**************************!*\
+  !*** external "typeorm" ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("typeorm");
+
+/***/ }),
+
+/***/ "uuid/v4":
+/*!**************************!*\
+  !*** external "uuid/v4" ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("uuid/v4");
+
+/***/ })
+
+/******/ });
 //# sourceMappingURL=server.js.map
