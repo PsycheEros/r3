@@ -48,7 +48,7 @@ gulp.task( 'server:browsersync', () => {
 	browserSync.init( {
 		ghostMode: false,
 		proxy: {
-			target: 'http://localhost:3000',
+			target: 'http://localhost:8080',
 			ws: true
 		},
 		port: 8000

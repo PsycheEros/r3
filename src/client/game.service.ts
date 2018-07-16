@@ -29,8 +29,6 @@ export class GameService implements OnDestroy {
 			}, [] as Game[] ),
 			shareReplay( 1 )
 		);
-
-		this.allGames.pipe( tapLog( 'allGames' ) ).subscribe();
 	}
 
 	public ngOnDestroy() {

@@ -34,7 +34,7 @@ export class SessionService implements OnDestroy {
 	public getEvents<T>( message: string ): Observable<T> {
 		const { socket, scheduler } = this;
 		return fromEvent<T>( socket, message )
-			.pipe( tapLog( 'event', message ), observeOn( scheduler ) );
+			.pipe( observeOn( scheduler ) );
 	}
 
 	public emit<T>( message: string, data: Object = {} ) {

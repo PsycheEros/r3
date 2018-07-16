@@ -51,8 +51,9 @@ export class GameComponent implements OnInit, OnDestroy {
 				const gameState = this.gameState = game.gameStates.slice( -1 )[ 0 ];
 				this.board = Board.fromGame( game, gameState );
 				this.lastMove = gameState.lastMove;
+				const c = this.colors = [ ...game.colors ];
 				if( gameState.turn == null ) this.turn = null;
-				else this.turn = colors[ game.colors[ gameState.turn ] ].displayName;
+				else this.turn = colors[ c[ gameState.turn ] ].displayName;
 			} else {
 				this.gameState = null;
 				this.board = null;
@@ -67,6 +68,7 @@ export class GameComponent implements OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
+	public colors = null as string[];
 	public turn = null as string|null;
 	public room = null as Room|null;
 	public game = null as Game|null;

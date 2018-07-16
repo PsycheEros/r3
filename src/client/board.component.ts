@@ -2,7 +2,8 @@ import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
 import { screenToCanvas } from './canvas';
 import { Subject, animationFrameScheduler, range } from 'rxjs';
-import { take, observeOn } from 'rxjs/operators';
+import { observeOn } from 'rxjs/operators';
+import { colors } from 'data/colors.yaml';
 
 function toCartesian( { x, y }: Point, center: Point ) {
 	return { x: x - center.x, y: center.y - y };
@@ -24,8 +25,8 @@ function drawRect(
 	r4: number,
 	ccw = false
 ) {
+	c2d.moveTo( x + r4, y );
 	if( ccw ) {
-		c2d.moveTo( x + r4, y );
 		c2d.quadraticCurveTo( x, y, x, y + r4 );
 		c2d.lineTo( x, y + height - r3 );
 		c2d.quadraticCurveTo( x, y + height, x + r3, y + height );
@@ -35,7 +36,6 @@ function drawRect(
 		c2d.quadraticCurveTo( x + width, y, x + width - r1, y );
 		c2d.lineTo( x + r4, y );
 	} else {
-		c2d.moveTo( x + r4, y );
 		c2d.lineTo( x + width - r1, y );
 		c2d.quadraticCurveTo( x + width, y, x + width, y + r1 );
 		c2d.lineTo( x + width, y + height - r2 );
@@ -79,6 +79,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	private canvas: HTMLCanvasElement;
 	private c2d: CanvasRenderingContext2D;
 	private readonly dirty = new Subject<true>();
+
+	@Input()
+	public colors: string[] = [];
 
 	@Input()
 	public board: Board;
@@ -133,7 +136,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		c2d.fill();
 		c2d.restore();
 		for( const { enabled, color, position: { x, y }, bounds: { left, top, width, height, center } } of board ) {
-			if( !enabled ) { continue; }
+			if( !enabled ) continue;
 			const lightSourceCart = toCartesian( lightSource, center ),
 					lightDirection = Math.atan2( lightSourceCart.y, lightSourceCart.x ),
 					lightDistance = 4,
@@ -157,7 +160,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 			c2d.beginPath();
 			path( false );
-			c2d.closePath();
 
 			c2d.save();
 			Object.assign( c2d, {
@@ -183,44 +185,45 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			c2d.beginPath();
 			c2d.rect( board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height );
 			path( true );
-			c2d.closePath();
 			Object.assign( c2d, {
-				fillStyle: '#000',
-				shadowColor: 'rgba(0,0,0,.4)',
-				shadowBlur: lightDistance,
-				shadowOffsetX: center.x - shadowCenter.x,
-				shadowOffsetY: center.y - shadowCenter.y
+				fillStyle: '#000'
+				// shadowColor: 'hsla(0,0%,0%,.4)',
+				// shadowBlur: lightDistance,
+				// shadowOffsetX: center.x - shadowCenter.x,
+				// shadowOffsetY: center.y - shadowCenter.y
 			} );
 			c2d.fill();
 			c2d.restore();
 
 			const radius = Math.min( width, height ) * .5;
 			if( color !== null ) {
+				const colorDef = colors[ this.colors[ color ] ];
+				const [ hue, saturation, lightness ] = colorDef.color;
+				const hsl = `${hue},${saturation}%,${lightness}%`;
 				// dark stones have highlights, light stones have shadows
-				const isDark = color === 0,
+				const isDark = lightness < 50,
 					// shadows are reversed from light (+pi radians)
 					radialGradient = c2d.createRadialGradient(
 						center.x, center.y, 0,
 						isDark ? lightCenter.x : shadowCenter.x,
 						isDark ? lightCenter.y : shadowCenter.y,
 						radius
-					),
-					rgb = isDark ? '255,255,255' : '0,0,0';
-				radialGradient.addColorStop( 0,   `rgba(${rgb},0)` );
-				radialGradient.addColorStop( .5,  `rgba(${rgb},.1)` );
-				radialGradient.addColorStop( .75, `rgba(${rgb},0)` );
-				radialGradient.addColorStop( 1,   `rgba(${rgb},.75)` );
+					);
+				radialGradient.addColorStop( 0,   `hsla(${hue},${saturation}%,0%,0)` );
+				radialGradient.addColorStop( .5,  `hsla(${hue},${saturation}%,0%,.1)` );
+				radialGradient.addColorStop( .75, `hsla(${hue},${saturation}%,0%,0)` );
+				radialGradient.addColorStop( 1,   `hsla(${hue},${saturation}%,0%,.75)` );
 
 				c2d.beginPath();
 				c2d.arc( center.x, center.y, radius * .8, 0, Math.PI * 2 );
 
 				c2d.save();
 				Object.assign( c2d, {
-					fillStyle: isDark ? '#111' : '#fff',
-					// shadowColor: 'rgba(0,0,0,.4)',
-					// shadowBlur: lightDistance,
-					// shadowOffsetX: center.x - shadowCenter.x,
-					// shadowOffsetY: center.y - shadowCenter.y
+					fillStyle: `hsl(${hsl})`,
+					shadowColor: 'hsla(0,0,0,.4)',
+					shadowBlur: lightDistance,
+					shadowOffsetX: center.x - shadowCenter.x,
+					shadowOffsetY: center.y - shadowCenter.y
 				} );
 				c2d.fill();
 				c2d.restore();
@@ -228,7 +231,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				c2d.save();
 				Object.assign( c2d, {
 					lineWidth: 1,
-					strokeStyle: 'rgba(0,0,0,.5)'
+					strokeStyle: 'hsla(0,0,0,.5)'
 				} );
 				c2d.stroke();
 				c2d.restore();

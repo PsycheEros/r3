@@ -1,37 +1,37 @@
 colors:
   aqua:
     displayName: Aqua
-    color: [ 180, 100, 50 ]
+    color: [ 180, 90, 55 ]
   black:
     displayName: Black
     color: [ 0, 0, 0 ]
   blue:
     displayName: Blue
-    color: [ 240, 100, 50 ]
+    color: [ 240, 90, 55 ]
   fuschsia:
     displayName: Fuchsia
-    color: [ 300, 100, 50 ]
+    color: [ 300, 90, 55 ]
   gray:
     displayName: Gray
-    color: [ 0, 0, 50 ]
+    color: [ 0, 0, 55 ]
   green:
     displayName: Green
-    color: [ 120, 100, 50 ]
+    color: [ 120, 90, 55 ]
   orange:
     displayName: Orange
-    color: [ 30, 100, 50 ]
+    color: [ 30, 90, 55 ]
   pink:
     displayName: Pink
-    color: [ 330, 100, 50 ]
+    color: [ 330, 90, 55 ]
   purple:
     displayName: Purple
-    color: [ 270, 100, 50 ]
+    color: [ 270, 90, 55 ]
   red:
     displayName: Red
-    color: [ 0, 100, 50 ]
+    color: [ 0, 90, 55 ]
   white:
     displayName: White
     color: [ 0, 0, 100 ]
   yellow:
     displayName: Yellow
-    color: [ 60, 100, 50 ]
+    color: [ 55, 90, 55 ]
