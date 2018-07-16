@@ -1,0 +1,28 @@
+environment:
+  access_token:
+    secure: QmvdmXy3CdTojdtsWPqH7IzlXDCpnWP3P5XjsVtulciz2aa6wUVYR+qb088RWexv
+
+cache:
+ - "%LOCALAPPDATA%\\Yarn"
+
+install:
+- ps: Install-Product node $env:nodejs_version x64
+- ps: Update-NodeJsInstallation (Get-NodeJsLatestBuild 1.0)
+- git checkout master
+- yarn install --non-interactive --frozen-lockfile --production false
+
+test_script:
+- node --version
+- yarn --version
+
+build:
+- yarn clean
+- yarn build
+
+on_success:
+- git config --global credential.helper store
+- ps: Add-Content "$HOME\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
+- git config --global user.name "AppVeyor"
+- git config --global user.email "error@error-unlimited.net"
+- git fetch openshift
+- yarn deploy
