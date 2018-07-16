@@ -1,4 +1,4 @@
-devMode: false
+devMode: true
 browserSpec: &browserSpec
 - last 5 Chrome versions
 - last 5 Firefox versions
