@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { fromEventPattern } from 'rxjs';
 
-type EventTarget = NodeJS.EventEmitter|EventEmitter;
+type EventTarget = Pick<NodeJS.EventEmitter|EventEmitter, 'addListener'|'removeListener'>;
 
 export const fromNodeEvent = <T>( target: EventTarget, event: string ) =>
 	fromEventPattern<T>(
