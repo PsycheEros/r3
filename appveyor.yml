@@ -2,6 +2,15 @@ environment:
   access_token:
     secure: QmvdmXy3CdTojdtsWPqH7IzlXDCpnWP3P5XjsVtulciz2aa6wUVYR+qb088RWexv
 
+branches:
+  only:
+  - master
+  except:
+  - openshift
+
+skip_commits:
+  author: AppVeyor
+
 cache:
  - "%LOCALAPPDATA%\\Yarn"
 
@@ -15,11 +24,10 @@ test_script:
 - node --version
 - yarn --version
 
-build:
-- yarn clean
+build_script:
 - yarn build
 
-on_success:
+deploy_script:
 - git config --global credential.helper store
 - ps: Add-Content "$HOME\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
 - git config --global user.name "AppVeyor"
