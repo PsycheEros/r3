@@ -1,43 +1,48 @@
 import './error-handler';
 import './polyfills';
 
+import { Subject, of } from 'rxjs';
+import { takeUntil, mapTo, mergeMap } from 'rxjs/operators';
+import { fromNodeEvent } from './rxjs';
+
 import cluster from 'cluster';
 
 import { workers } from 'data/config.yaml';
 
-const stopSignals = [ 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' ] as NodeJS.Signals[],
-	{ NODE_ENV } = process.env,
-	production = NODE_ENV === 'production';
-
-let stopping = false;
-
-cluster.on( 'disconnect', () => {
-	if( production ) {
-		if( !stopping ) {
-			cluster.fork();
-		}
-	} else {
-		process.exit( 1 );
-	}
-} );
-
 if( cluster.isMaster ) {
+	const stopping = new Subject<number>();
+
+	fromNodeEvent( cluster, 'disconnect' )
+	.pipe( takeUntil( stopping ) )
+	.subscribe( () => {
+		cluster.fork();
+	} );
+
 	console.log( `Starting ${workers} workers...` );
 	for( let i = 0; i < workers; ++i ) {
 		cluster.fork();
 	}
-	if( production ) {
-		stopSignals.forEach( signal => {
-			process.on( signal, () => {
-				console.log( `Got ${signal}, stopping workers...` );
-				stopping = true;
-				cluster.disconnect( () => {
-					console.log( 'All workers stopped, exiting.' );
-					process.exit( 0 );
-				} );
-			} );
+	of( 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' )
+	.pipe(
+		mergeMap<NodeJS.Signals, NodeJS.Signals>( sig =>
+			fromNodeEvent( process, sig )
+			.pipe( mapTo( sig ) )
+		),
+		takeUntil( stopping )
+	)
+	.subscribe( signal => {
+		console.log( `Got ${signal}, stopping workers...` );
+		stopping.next( 0 );
+		stopping.complete();
+	} );
+
+	stopping
+	.subscribe( code => {
+		cluster.disconnect( () => {
+			console.log( `All workers stopped, exiting with code ${code}.` );
+			process.exit( code );
 		} );
-	}
+	} );
 } else {
 	import( /* webpackChunkName: "main~server" */ './main' );
 }

@@ -1,6 +1,7 @@
+import { EventEmitter } from 'events';
 import { fromEventPattern } from 'rxjs';
 
-type EventTarget = NodeJS.EventEmitter;
+type EventTarget = NodeJS.EventEmitter|EventEmitter;
 
 export const fromNodeEvent = <T>( target: EventTarget, event: string ) =>
 	fromEventPattern<T>(
