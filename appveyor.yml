@@ -16,9 +16,8 @@ cache:
 
 install:
 - ps: Install-Product node $env:nodejs_version x64
-- ps: Update-NodeJsInstallation (Get-NodeJsLatestBuild 1.0)
 - git checkout master
-- yarn install --non-interactive --frozen-lockfile --production false
+- yarn install --non-interactive --frozen-lockfile --production=false
 
 test_script:
 - node --version
