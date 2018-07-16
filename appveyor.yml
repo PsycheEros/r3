@@ -22,6 +22,7 @@ install:
 test_script:
 - node --version
 - yarn --version
+- env
 
 build_script:
 - yarn build
