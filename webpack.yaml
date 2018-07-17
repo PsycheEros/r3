@@ -84,6 +84,9 @@ configuration:
     <<: *sharedConfig
     entry:
       client: client/main
+    node:
+      fs: empty
+      global: true
     optimization:
       splitChunks:
         chunks: all
@@ -91,9 +94,9 @@ configuration:
     output:
       crossOriginLoading: anonymous
       path: [ dist, www ]
-    node:
-      fs: empty
-      global: true
+    performance:
+      maxAssetSize: 2097152 # 2MiB
+      maxEntrypointSize: 4194304 # 4MiB
   server:
     <<: *sharedConfig
     entry:
@@ -105,4 +108,6 @@ configuration:
       runtimeChunk: false
     output:
       path: [ dist ]
+    performance:
+      hints: false
     target: node
