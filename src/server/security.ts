@@ -1,12 +1,16 @@
-import { compare, genSalt, hash } from 'bcrypt';
+import { compare, genSalt, hash } from 'bcrypt-nodejs';
+import { promisify } from 'util';
 
 export async function hashPassword( password: string ) {
-	const salt = await genSalt();
-	const passwordHash = await hash( password, salt );
+	if( !password ) return '';
+	const salt = await promisify( genSalt )( null );
+	const passwordHash = await promisify( hash )( password, salt, null );
 	return passwordHash;
 }
 
 export async function checkPassword( password: string, passwordHash: string ) {
-	const result = await compare( password, passwordHash );
+	// if a password is specified but hash is empty, go ahead and compare anyway to prevent timing attacks
+	if( !password && !passwordHash ) return true;
+	const result = await promisify( compare )( password, passwordHash );
 	return result;
 }
