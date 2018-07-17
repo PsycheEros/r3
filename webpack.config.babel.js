@@ -13,7 +13,7 @@ import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
 import yaml from 'js-yaml';
 
 const config = yaml.safeLoad( fs.readFileSync( path.resolve( 'webpack.yaml' ) ) );
-if( String( process.env.CI || '' ) === 'true' ) config.devMode = false;
+if( String( process.env.CI || '' ).toLowerCase() === 'true' ) config.devMode = false;
 
 const mode = config.devMode ? 'development' : 'production';
 

@@ -16,6 +16,8 @@ import { ruleSetMap } from 'src/rule-sets';
 import { app } from './app';
 import { connectionOptions, cleanup as cleanupConfig } from 'data/config.yaml';
 import { colors } from 'data/colors.yaml';
+import { hashPassword, checkPassword } from './security';
+
 import uuid from 'uuid/v4';
 import moment from 'moment';
 import assert from 'assert';
@@ -209,7 +211,7 @@ async function createRoom( manager: EntityManager, sessionId: string, name: stri
 		const roomEntity =
 			await manager.create( RoomEntity, {
 				name,
-				password
+				passwordHash: await hashPassword( password )
 			} );
 		await manager.save( roomEntity );
 		await joinRoom( manager, roomEntity.id, sessionId );
@@ -243,7 +245,7 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 			} ) );
 			scores.sort( ( c1, c2 ) => {
 				const r1 = rules.compareScores( c1.score, c2.score );
-				return r1 === 0 ? c1.color.localeCompare( c2.color ) : r1;
+				return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
 			} );
 			const bestScore = scores[ 0 ].score;
 			const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
@@ -425,10 +427,9 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 			handleCallbackEvent<{ roomId: string; password: string; }>( 'joinRoom', async ( { manager, roomId, password } ) => {
 				const roomEntity = await manager.findOne( RoomEntity, roomId );
 				if( !roomEntity ) throw new Error( 'Failed to join room.' );
-				if( roomEntity.password ) {
+				if( roomEntity.passwordHash ) {
 					if( !password ) throw new Error( 'Room requires a password.' );
-					// TODO: hash
-					if( roomEntity.password !== password ) throw new Error( 'Incorrect password.' );
+					if( !await checkPassword( password, roomEntity.passwordHash ) ) throw new Error( 'Incorrect password.' );
 				}
 				manager.update( RoomEntity, roomId, { expires: null } );
 				await joinRoom( manager, roomId, sessionId );

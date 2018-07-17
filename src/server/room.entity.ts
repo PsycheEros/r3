@@ -17,7 +17,7 @@ export class RoomEntity {
 	public expires: Date;
 
 	@Column()
-	public password: string;
+	public passwordHash: string;
 
 	@Column( 'uuid', { nullable: true} )
 	public gameId: string;
@@ -27,6 +27,6 @@ export class RoomEntity {
 	public game: GameEntity;
 
 	public static toRoom( roomEntity: RoomEntity ) {
-		return { roomId: roomEntity.id, gameId: roomEntity.gameId, name: roomEntity.name, hasPassword: !!roomEntity.password };
+		return { roomId: roomEntity.id, gameId: roomEntity.gameId, name: roomEntity.name, hasPassword: !!roomEntity.passwordHash };
 	}
 }

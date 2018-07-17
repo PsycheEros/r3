@@ -19,10 +19,10 @@ connectionOptions:
   type: sqlite
   database: ':memory:'
   synchronize: true
-  logging:
-  - schema
-  - warn
-  - error
+  logging: true
+# - schema
+# - warn
+# - error
 validation:
   maxNickLength: 32
   maxRoomNameLength: 64
