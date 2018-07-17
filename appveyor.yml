@@ -1,6 +1,7 @@
 environment:
   access_token:
     secure: QmvdmXy3CdTojdtsWPqH7IzlXDCpnWP3P5XjsVtulciz2aa6wUVYR+qb088RWexv
+  YARN_CACHE_FOLDER: .yarn
 
 branches:
   only:
@@ -13,7 +14,7 @@ skip_commits:
 
 cache:
 - node_modules
-- "%LOCALAPPDATA%\\Yarn"
+- .yarn
 
 image: Ubuntu
 
@@ -23,9 +24,10 @@ init:
 - ps: Add-Content "$HOME\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
 - git config --global user.name "AppVeyor"
 - git config --global user.email "error@error-unlimited.net"
+- nvm install latest
+- nvm use latest
 
 install:
-- ps: Install-Product node $env:nodejs_version x64
 - git checkout master
 - yarn install --non-interactive --frozen-lockfile --production=false
 
