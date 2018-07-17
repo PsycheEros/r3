@@ -12,6 +12,7 @@ skip_commits:
   author: AppVeyor
 
 cache:
+- node_modules
 - "%LOCALAPPDATA%\\Yarn"
 
 init:
