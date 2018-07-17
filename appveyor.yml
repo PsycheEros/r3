@@ -1,6 +1,7 @@
 environment:
   access_token:
     secure: QmvdmXy3CdTojdtsWPqH7IzlXDCpnWP3P5XjsVtulciz2aa6wUVYR+qb088RWexv
+  NODE_VERSION: 10.6.0
   YARN_CACHE_FOLDER: .yarn
 
 branches:
@@ -24,8 +25,7 @@ init:
 - ps: Add-Content "$HOME\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
 - git config --global user.name "AppVeyor"
 - git config --global user.email "error@error-unlimited.net"
-- nvm install latest
-- nvm use latest
+- nvm install $NODE_VERSION && nvm use $NODE_VERSION
 
 install:
 - git checkout master
