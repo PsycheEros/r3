@@ -19,10 +19,10 @@ connectionOptions:
   type: sqlite
   database: ':memory:'
   synchronize: true
-  logging: true
+  logging:
 # - schema
-# - warn
-# - error
+  - warn
+  - error
 validation:
   maxNickLength: 32
   maxRoomNameLength: 64
@@ -38,3 +38,7 @@ cleanup:
   rooms:
     checkSeconds: 15
     expireSeconds: 300
+redis:
+  host: localhost
+  port: 6379
+  showFriendlyErrorStack: true

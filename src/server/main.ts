@@ -1,7 +1,7 @@
 import './error-handler';
 import './polyfills';
 
-import { createConnection, EntityManager, DeepPartial } from 'typeorm';
+import { createConnection, EntityManager } from 'typeorm';
 import { Subject, interval, of } from 'rxjs';
 import { onErrorResumeNext, mergeMap, take, tap, takeUntil } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
@@ -13,7 +13,7 @@ import { RoomEntity } from './room.entity';
 import { SessionEntity } from './session.entity';
 import { UserEntity } from './user.entity';
 import { ruleSetMap } from 'src/rule-sets';
-import { app } from './app';
+import { io } from './socket';
 import { connectionOptions, cleanup as cleanupConfig } from 'data/config.yaml';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
@@ -22,26 +22,9 @@ import uuid from 'uuid/v4';
 import moment from 'moment';
 import assert from 'assert';
 
-const { OPENSHIFT_REDIS_HOST,
-		OPENSHIFT_REDIS_PASSWORD,
-		OPENSHIFT_REDIS_PORT
-} = process.env;
-
 type CallbackEvent<T = {}, U = {}> = [ T, ( error: Error|null, value: U|null ) => void ];
 
-const server = require( 'http' ).Server( app ),
-	io = require( 'socket.io' )( server ) as SocketIO.Server & NodeJS.EventEmitter;
 
-io.engine[ 'generateId' ] = uuid;
-
-if( OPENSHIFT_REDIS_HOST ) {
-	const redis = require( 'redis' ).createClient,
-		adapter = require( 'socket.io-redis' ),
-		pub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { auth_pass: OPENSHIFT_REDIS_PASSWORD } ),
-		sub = redis( OPENSHIFT_REDIS_PORT, OPENSHIFT_REDIS_HOST, { return_buffers: true, auth_pass: OPENSHIFT_REDIS_PASSWORD } );
-
-	io.adapter( adapter( { pubClient: pub, subClient: sub } ) );
-}
 
 function getSocket( sessionId: string ) {
 	return Object.entries( io.of( '/' ).connected )
@@ -446,12 +429,3 @@ async function makeMove( manager: EntityManager, roomId: string, position: Point
 		console.error( ex );
 	}
 } )();
-
-server.listen( app.get( 'port' ), app.get( 'host' ), err => {
-	if( err ) {
-		console.error( err );
-		return;
-	}
-	const { address, port } = server.address();
-	console.log( `Process ${process.pid} listening at ${address}:${port}...` );
-} );

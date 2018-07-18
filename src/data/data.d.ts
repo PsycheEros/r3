@@ -13,10 +13,11 @@ declare module 'data/enums.yaml' {
 }
 
 declare module 'data/config.yaml' {
-	import { ConnectionOptions } from 'typeorm';
+	import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionOptions';
+	import { RedisOptions } from 'ioredis';
 	export const workers: number;
 	export const cspPolicy: object;
-	export const connectionOptions: ConnectionOptions;
+	export const connectionOptions: PickPartial<SqliteConnectionOptions, 'database'|'type'>;
 	export const validation: {
 		maxNickLength: number;
 		maxRoomNameLength: number;
@@ -27,5 +28,6 @@ declare module 'data/config.yaml' {
 			checkSeconds: number;
 			expireSeconds: number;
 		}
-	}
+	};
+	export const redis: Partial<RedisOptions>;
 }

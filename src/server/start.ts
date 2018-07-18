@@ -1,19 +1,18 @@
 import './error-handler';
 import './polyfills';
 
-import { Subject, of } from 'rxjs';
-import { takeUntil, mapTo, mergeMap } from 'rxjs/operators';
+import { takeUntil, concatMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
+import { shuttingDown } from './shut-down';
 
 import cluster from 'cluster';
 
 import { workers } from 'data/config.yaml';
+import { promisify } from 'util';
 
 if( cluster.isMaster ) {
-	const stopping = new Subject<number>();
-
 	fromNodeEvent( cluster, 'disconnect' )
-	.pipe( takeUntil( stopping ) )
+	.pipe( takeUntil( shuttingDown ) )
 	.subscribe( () => {
 		cluster.fork();
 	} );
@@ -22,26 +21,12 @@ if( cluster.isMaster ) {
 	for( let i = 0; i < workers; ++i ) {
 		cluster.fork();
 	}
-	of( 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' )
-	.pipe(
-		mergeMap<NodeJS.Signals, NodeJS.Signals>( sig =>
-			fromNodeEvent( process, sig )
-			.pipe( mapTo( sig ) )
-		),
-		takeUntil( stopping )
-	)
-	.subscribe( signal => {
-		console.log( `Got ${signal}, stopping workers...` );
-		stopping.next( 0 );
-		stopping.complete();
-	} );
 
-	stopping
+	shuttingDown
+	.pipe( concatMap( () => promisify( cluster.disconnect )() ) )
 	.subscribe( code => {
-		cluster.disconnect( () => {
-			console.log( `All workers stopped, exiting with code ${code}.` );
-			process.exit( code );
-		} );
+		console.log( `All workers stopped, exiting...` );
+		process.exit( 0 );
 	} );
 } else {
 	import( /* webpackChunkName: "main~server" */ './main' );
