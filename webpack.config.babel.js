@@ -63,7 +63,8 @@ const env = {
 	'process.env.NODE_ENV': JSON.stringify( mode )
 };
 
-export default /** @type {webpack.Configuration[]} */ ( [ {
+/** @type {webpack.Configuration} */
+export const clientConfig = {
 	...config.configuration.client,
 	module: {
 		rules: [
@@ -118,7 +119,10 @@ export default /** @type {webpack.Configuration[]} */ ( [ {
 		new HtmlWebpackInlineSourcePlugin
 	],
 	resolve
-}, {
+};
+
+/** @type {webpack.Configuration} */
+export const serverConfig = {
 	...config.configuration.server,
 	module: {
 		rules: [
@@ -146,4 +150,6 @@ export default /** @type {webpack.Configuration[]} */ ( [ {
 		} )
 	],
 	resolve
-} ] );
+};
+
+export default [ clientConfig, serverConfig ];
