@@ -6,7 +6,6 @@ import { Server } from 'http';
 import { AddressInfo } from 'net';
 import { appSettings, cspPolicy } from 'data/config.yaml';
 import { shutDown, shuttingDown } from './shut-down';
-import './health.endpoint';
 
 export const app = express();
 for( const [ key, value ] of Object.entries( appSettings ) ) {
@@ -31,3 +30,5 @@ server.listen( app.get( 'port' ), app.get( 'host' ), err => {
 shuttingDown.subscribe( () => {
 	server.close( () => {} );
 } );
+
+require( './health.endpoint' ).register( app );

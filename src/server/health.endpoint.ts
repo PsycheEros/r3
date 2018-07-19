@@ -1,6 +1,8 @@
-import { app } from './app';
+import { Express } from 'express';
 
-app.get( '/health', ( req, res ) => {
-	res.writeHead( 200 );
-	res.end();
-} );
+export function register( app: Express ) {
+	app.get( '/health', ( req, res ) => {
+		res.writeHead( 200 );
+		res.end();
+	} );
+}
