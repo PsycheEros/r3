@@ -5,6 +5,6 @@
 !.eslintrc.json
 *.orig
 *.log
-!.openshift/
+!.circleci
 node_modules/
 dist/
