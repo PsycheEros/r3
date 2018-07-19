@@ -27,8 +27,6 @@ jobs:
         path: package.json
     - store_artifacts:
         path: yarn.lock
-    - run: git config credential.helper cache
-    - run: echo "https://${GITHUB_TOKEN}:x-oauth-basic@github.com" > ~\.git-credentials
     - run: git config --global user.name "CircleCI"
     - run: git config --global user.email "error@error-unlimited.net"
     - run: yarn deploy
