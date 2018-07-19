@@ -93,7 +93,7 @@ gulp.task( 'deploy', () =>
 		'dist/**/*'
 	], { base: '.' } )
 	.pipe( ghPages( {
-		branch: 'openshift',
+		branch: 'heroku',
 		remote: 'origin'
 	} ) )
 );
