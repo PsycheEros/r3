@@ -37,7 +37,7 @@ jobs:
     - save_cache:
         paths:
         - node_modules
-        - {{ .Environment.YARN_CACHE_FOLDER }}
+        - "{{ .Environment.YARN_CACHE_FOLDER }}"
         key: v1-dependencies-{{ checksum "yarn.lock" }}
     - run: yarn build
     - store_artifacts:
