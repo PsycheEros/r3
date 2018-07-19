@@ -4,8 +4,6 @@ defaults: &defaults
   docker:
   - image: circleci/node:latest
   working_directory: ~/src/github.com/errorx666/r3
-  environment:
-    YARN_CACHE_FOLDER: ~/.yarn
 
 jobs:
   build:
@@ -17,16 +15,11 @@ jobs:
         keys:
         - v1-dependencies-{{ checksum "yarn.lock" }}
         - v1-dependencies-
-        - yarn
     - run: yarn install --non-interactive --frozen-lockfile --production=false
     - save_cache:
         paths:
         - node_modules
         key: v1-dependencies-{{ checksum "yarn.lock" }}
-    - save_cache:
-        paths:
-        - "{{ .Environment.YARN_CACHE_FOLDER }}"
-        key: yarn
     - run: yarn build
     - store_artifacts:
         path: dist
