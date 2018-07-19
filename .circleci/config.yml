@@ -8,6 +8,7 @@ defaults: &defaults
 jobs:
   build:
     <<: *defaults
+    context: github
     steps:
     - run: git config --global core.autocrlf false
     - checkout
@@ -27,9 +28,8 @@ jobs:
         path: package.json
     - store_artifacts:
         path: yarn.lock
-    - add_ssh_keys:
-        fingerprints:
-        - '8c:7b:60:71:cb:10:d4:ae:30:ad:af:47:f6:30:ba:ad'
+    - run: git config credential.helper cache
+    - run: echo "https://${GITHUB_TOKEN}:x-oauth-basic@github.com" > ~\.git-credentials
     - run: git config --global user.name "CircleCI"
     - run: git config --global user.email "error@error-unlimited.net"
     - run: yarn deploy
