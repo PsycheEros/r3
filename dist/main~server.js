@@ -1,2 +1,2065 @@
-exports.ids=[1],exports.modules=[,,,,,,,,,,,,,,,,function(e,t,o){"use strict";o(17),o(6),o(7);var n=o(12),i=o(2),r=o(0),a=o(1),s=o(38),c=o(32),l=o(34),u=o(36),d=o(35),y=o(37),f=o(33),p=o(41),m=o(46),g=o(4),h=o(49),w=o(50),b=O(o(15)),v=O(o(29)),S=O(o(30));function O(e){return e&&e.__esModule?e:{default:e}}function E(e){for(var t=1;t<arguments.length;t++){var o=null!=arguments[t]?arguments[t]:{},n=Object.keys(o);"function"==typeof Object.getOwnPropertySymbols&&(n=n.concat(Object.getOwnPropertySymbols(o).filter(function(e){return Object.getOwnPropertyDescriptor(o,e).enumerable}))),n.forEach(function(t){R(e,t,o[t])})}return e}function R(e,t,o){return t in e?Object.defineProperty(e,t,{value:o,enumerable:!0,configurable:!0,writable:!0}):e[t]=o,e}function j(e){return Object.entries(m.io.of("/").connected).filter(([t,o])=>t===e).map(([e,t])=>t)[0]||null}async function x(e,t){const o=j(t);return o?(await e.findByIds(d.RoomEntity,Object.keys(o.rooms))).map(e=>e.id):[]}async function M(e,t,o){const n=j(o);await new Promise((e,o)=>{n.join(t,t=>{t?o(t):e()})}),await P(e,o),await N(e,t,o);const{nick:i}=await e.findOne(y.SessionEntity,o,{select:["nick"]});await _(t,`${i} has joined the room.`)}async function P(e,t){const o=await x(e,t);m.io.to(t).emit("joinedRooms",o)}async function k(e,t){const o=(await e.find(d.RoomEntity)).map(d.RoomEntity.toRoom);(t?m.io.to(t):m.io).emit("rooms",o)}async function C(e,t,o){const n=j(t);await new Promise((e,t)=>{n.leave(o,o=>{o?t(o):e()})}),await P(e,t);const{nick:i}=await e.findOne(y.SessionEntity,t,{select:["nick"]});await _(o,`${i} has left the room.`)}function _(e,t,o){return m.io.to(o||t).emit("message",{roomId:t,message:e}),!0}async function N(e,t,o){await F(e,async e=>{const n=await e.findOne(d.RoomEntity,t);if(!n)return;const i=await e.findOne(c.GameEntity,n.gameId,{relations:["gameStates"]});i&&m.io.to(o||n.id).emit("update",c.GameEntity.toGame(i))})}async function G(e,t,o){_("New game",t);const n=p.ruleSetMap.get(o);return await F(e,async e=>{const o=n.newGame((0,b.default)()),i=await e.create(c.GameEntity,{id:o.gameId,colors:[...o.colors],mask:o.mask.map(e=>e?"1":"0").join(""),size:E({},o.size),ruleSet:o.ruleSet});return await e.save(i),await I(e,o),await e.update(d.RoomEntity,t,{gameId:i.id}),k(e),N(e,t),o})}async function I(e,t){return await F(e,async e=>{await Promise.all(t.gameStates.map(async(o,n)=>{let i=await e.findOne(l.GameStateEntity,{gameId:t.gameId,index:n});i||(i=await e.create(l.GameStateEntity,{gameId:t.gameId,index:n})),i.turn=o.turn,i.data=o.data.map(e=>null==e?"x":String(e)),i.lastMove=E({},o.lastMove),await e.save(i)}))})}const F=(()=>{let e=null;return(t,o)=>((0,S.default)(t),e?o(e):t.transaction(async t=>{e=t;try{return await o(e)}finally{e=null}}))})();(async()=>{try{const{manager:e}=await(0,n.createConnection)(E({},g.connectionOptions,{entities:[c.GameEntity,l.GameStateEntity,u.LoginEntity,d.RoomEntity,y.SessionEntity,f.UserEntity]}));(0,i.interval)(v.default.duration(g.cleanup.rooms.checkSeconds,"s").asMilliseconds()).subscribe(async()=>{!async function(e){await F(e,async e=>{let t=0;await Promise.all((await e.find(d.RoomEntity,{select:["id","expires"]})).map(async o=>{if(0===(await new Promise((e,t)=>{m.io.in(o.id).clients((o,n)=>{o?t(o):e(n)})})).length)if(o.expires)(0,v.default)(o.expires).isSameOrBefore()&&(console.log(`Deleting room ${o.id}...`),await e.remove(o),++t);else{const t=(0,v.default)().add(g.cleanup.rooms.expireSeconds,"s");console.log(`Queuing room ${o.id} for deletion ${t.fromNow()}...`),o.expires=t.toDate(),await e.save(o)}})),t&&await k(e)})}(e)});let t=0;(0,a.fromNodeEvent)(m.io,"connection").subscribe(async o=>{console.log(`User connected, ${++t} connected, ${o.id}`);const n=(0,a.fromNodeEvent)(o,"disconnecting").pipe((0,r.take)(1)),l=(0,a.fromNodeEvent)(o,"disconnect").pipe((0,r.take)(1));function u(t,n){const s=new i.Subject;return(0,a.fromNodeEvent)(o,t).pipe((0,r.takeUntil)(l),(0,r.mergeMap)(([t,o])=>(0,i.of)(t).pipe((0,r.mergeMap)(t=>F(e,async e=>n(E({manager:e},t)))),(0,r.tap)({next(e){o(null,null==e?{}:e)},error(e){console.error(e),o(null==e?{}:e.message,null)}}),(0,r.onErrorResumeNext)()))).subscribe(s),s}const g=o.id;await e.save(await e.create(y.SessionEntity,{id:g,nick:"Guest"})),n.subscribe(async()=>{await F(e,async e=>{try{const t=await x(e,g);if(t.length>0){const{nick:o}=await e.findOne(y.SessionEntity,g,{select:["nick"]});await Promise.all(t.map(e=>_(`${o} has disconnected.`,e)))}}finally{e.delete(y.SessionEntity,g)}})}),l.subscribe(async()=>{console.log(`User disconnected, ${--t} connected`)});const b={async help(e){await _("Available commands:\n/?\n/help\n/nick <name>\n/quit\n/who\n",e,g)},async"?"(e){await b.help(e)},async nick(t,o){if(!(0,s.isValidNick)(o))throw new Error("Invalid nick.");let n;await F(e,async e=>{const t=await e.findOne(y.SessionEntity,g),i=await e.count(y.SessionEntity,{nick:o})>0,r=await e.count(f.UserEntity,{nick:o})>0;if(i||r)throw new Error("Nick is already in use.");n=t.nick,t.nick=o,t.userId&&await e.update(f.UserEntity,t.userId,{nick:o}),await e.save(t)}),await _(`${n} is now known as ${o}.`,t)},async quit(t){await C(e,g,t)},async who(t){const o=await new Promise((e,o)=>{m.io.in(t).clients((t,n)=>{t?o(t):e(n)})}),n=(await e.findByIds(y.SessionEntity,o)).map(e=>e.nick).sort();await _(`Users in room:\n${n.join("\n")}`,t,g)}};u("makeMove",async({roomId:t,position:o})=>{if(!await async function(e,t,o){return await F(e,async e=>{const n=await e.findOne(d.RoomEntity,t),i=await e.findOne(c.GameEntity,n.gameId,{relations:["gameStates"]}),r=p.ruleSetMap.get(i.ruleSet);let a=c.GameEntity.toGame(i);const s=a.gameStates.slice(-1)[0],l=r.makeMove(a,s,o);if(!l)return!1;if(a=E({},a,{gameStates:[...a.gameStates,l]}),await I(e,a),r.isGameOver(a,l)){const e=Array.from({length:r.colors}).map((e,t)=>({color:h.colors[a.colors[t]].displayName,score:r.getScore(a,l,t)}));e.sort((e,t)=>{const o=r.compareScores(e.score,t.score);return 0===o?e.color.localeCompare(t.color):o});const o=e[0].score,n=e.filter(({score:e})=>r.compareScores(e,o));let i;i=1!==n.length?"Draw game.":`${n[0].color} wins.`,await _(`${i}:\n${e.map(({color:e,score:t})=>`${e}: ${t}`).join("\n")}`,t)}return await N(e,t),!0})}(e,t,o))throw new Error("Failed to make move.")}),u("newGame",async({roomId:t,ruleSet:o})=>{const n=await G(e,t,o);if(!n)throw new Error("Failed to create game.");return{game:n}}),u("sendMessage",async({roomId:t,message:o})=>{if(o.startsWith("/"))return void await async function(t,o){const[n,...i]=o.trim().split(/\s+/g);try{if(!b.hasOwnProperty(n))throw new Error("Unknown command.");if(!(await x(e,g)).includes(t))throw new Error("Not in room.");await b[n](t,...i)}catch(e){throw e&&e.message&&await _(e.message,t,g),e}}(t,o.slice(1));const{nick:n}=await e.findOne(y.SessionEntity,g,{select:["nick"]});if(!await function(e,t,o){return m.io.to(o).emit("message",{roomId:o,user:e,message:t}),!0}(n,o,t))throw new Error("Failed to send message.")}),u("createRoom",async({manager:e,name:t,password:o})=>{const n=await async function(e,t,o,n){if(!(0,s.isValidRoomName)(o))throw new Error("Invalid room name.");return await F(e,async e=>{const i=await e.create(d.RoomEntity,{name:o,passwordHash:await(0,w.hashPassword)(n)});return await e.save(i),await M(e,i.id,t),await G(e,i.id,"standard"),i})}(e,g,t,o);return d.RoomEntity.toRoom(n)}),u("joinRoom",async({manager:e,roomId:t,password:o})=>{const n=await e.findOne(d.RoomEntity,t);if(!n)throw new Error("Failed to join room.");if(n.passwordHash){if(!o)throw new Error("Room requires a password.");if(!await(0,w.checkPassword)(o,n.passwordHash))throw new Error("Incorrect password.")}return e.update(d.RoomEntity,t,{expires:null}),await M(e,t,g),d.RoomEntity.toRoom(n)}),u("leaveRoom",async({manager:e,roomId:t})=>{await C(e,g,t)}),k(e,g)})}catch(e){console.error(e)}})()},,,,,,,,,,,,,,,function(e,t,o){"use strict";t.__esModule=!0,t.MetadataField=void 0;var n=o(12),i=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},r=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};class a{}t.MetadataField=a,i([(0,n.CreateDateColumn)({select:!1}),r("design:type",Date)],a.prototype,"created",void 0),i([(0,n.UpdateDateColumn)({select:!1}),r("design:type",Date)],a.prototype,"updated",void 0)},function(e,t,o){"use strict";t.__esModule=!0,t.GameEntity=void 0;var n=o(12),i=o(34),r=o(35),a=o(31),s=o(13),c=o(40);function l(e){for(var t=1;t<arguments.length;t++){var o=null!=arguments[t]?arguments[t]:{},n=Object.keys(o);"function"==typeof Object.getOwnPropertySymbols&&(n=n.concat(Object.getOwnPropertySymbols(o).filter(function(e){return Object.getOwnPropertyDescriptor(o,e).enumerable}))),n.forEach(function(t){u(e,t,o[t])})}return e}function u(e,t,o){return t in e?Object.defineProperty(e,t,{value:o,enumerable:!0,configurable:!0,writable:!0}):e[t]=o,e}var d=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},y=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let f=class{static toGame(e){const t=(0,s.sortBy)(e.gameStates,e=>e.index);return{gameId:e.id,size:l({},e.size),colors:[...e.colors],mask:e.mask.split("").map(e=>"1"===e),ruleSet:e.ruleSet,gameStates:t.map(e=>({index:e.index,turn:e.turn,data:e.data.map(e=>"x"===e?null:parseInt(e,10)),lastMove:null==e.lastMove.x||null==e.lastMove.y?null:l({},e.lastMove)}))}}};t.GameEntity=f,d([(0,n.PrimaryGeneratedColumn)("uuid"),y("design:type",String)],f.prototype,"id",void 0),d([(0,n.Column)(()=>a.MetadataField),y("design:type",a.MetadataField)],f.prototype,"meta",void 0),d([(0,n.Column)("simple-array"),y("design:type",Array)],f.prototype,"colors",void 0),d([(0,n.OneToMany)(()=>i.GameStateEntity,e=>e.game,{cascade:!0}),y("design:type",Array)],f.prototype,"gameStates",void 0),d([(0,n.Column)(()=>c.SizeField),y("design:type",c.SizeField)],f.prototype,"size",void 0),d([(0,n.Column)(),y("design:type",String)],f.prototype,"mask",void 0),d([(0,n.OneToOne)(()=>r.RoomEntity,{nullable:!0}),y("design:type",r.RoomEntity)],f.prototype,"room",void 0),d([(0,n.Column)(),y("design:type",String)],f.prototype,"ruleSet",void 0),t.GameEntity=f=d([(0,n.Entity)("Game")],f)},function(e,t,o){"use strict";t.__esModule=!0,t.UserEntity=void 0;var n=o(12),i=o(36),r=o(37),a=o(31),s=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},c=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let l=class{};t.UserEntity=l,s([(0,n.PrimaryGeneratedColumn)("uuid"),c("design:type",String)],l.prototype,"id",void 0),s([(0,n.Column)(()=>a.MetadataField),c("design:type",a.MetadataField)],l.prototype,"meta",void 0),s([(0,n.Column)({unique:!0}),c("design:type",String)],l.prototype,"nick",void 0),s([(0,n.OneToMany)(()=>r.SessionEntity,e=>e.user),c("design:type",Array)],l.prototype,"sessions",void 0),s([(0,n.OneToOne)(()=>i.LoginEntity,e=>e.user,{cascade:!0}),(0,n.JoinColumn)(),c("design:type",i.LoginEntity)],l.prototype,"login",void 0),t.UserEntity=l=s([(0,n.Entity)("User")],l)},function(e,t,o){"use strict";t.__esModule=!0,t.GameStateEntity=void 0;var n=o(12),i=o(32),r=o(39),a=o(31),s=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},c=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let l=class{};t.GameStateEntity=l,s([(0,n.PrimaryColumn)("uuid"),c("design:type",String)],l.prototype,"gameId",void 0),s([(0,n.PrimaryColumn)({type:"integer"}),c("design:type",Number)],l.prototype,"index",void 0),s([(0,n.Column)(()=>a.MetadataField),c("design:type",a.MetadataField)],l.prototype,"meta",void 0),s([(0,n.ManyToOne)(()=>i.GameEntity,e=>e.gameStates),c("design:type",i.GameEntity)],l.prototype,"game",void 0),s([(0,n.Column)({type:"integer",nullable:!0}),c("design:type",Number)],l.prototype,"turn",void 0),s([(0,n.Column)(()=>r.PointFieldNull),c("design:type",r.PointFieldNull)],l.prototype,"lastMove",void 0),s([(0,n.Column)({type:"simple-array"}),c("design:type",Array)],l.prototype,"data",void 0),t.GameStateEntity=l=s([(0,n.Entity)("GameState")],l)},function(e,t,o){"use strict";t.__esModule=!0,t.RoomEntity=void 0;var n=o(12),i=o(32),r=o(31),a=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},s=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let c=class{static toRoom(e){return{roomId:e.id,gameId:e.gameId,name:e.name,hasPassword:!!e.passwordHash}}};t.RoomEntity=c,a([(0,n.PrimaryGeneratedColumn)("uuid"),s("design:type",String)],c.prototype,"id",void 0),a([(0,n.Column)(()=>r.MetadataField),s("design:type",r.MetadataField)],c.prototype,"meta",void 0),a([(0,n.Column)(),s("design:type",String)],c.prototype,"name",void 0),a([(0,n.Column)({nullable:!0}),s("design:type",Date)],c.prototype,"expires",void 0),a([(0,n.Column)(),s("design:type",String)],c.prototype,"passwordHash",void 0),a([(0,n.Column)("uuid",{nullable:!0}),s("design:type",String)],c.prototype,"gameId",void 0),a([(0,n.OneToOne)(()=>i.GameEntity,{nullable:!0}),(0,n.JoinColumn)(),s("design:type",i.GameEntity)],c.prototype,"game",void 0),t.RoomEntity=c=a([(0,n.Entity)("Room")],c)},function(e,t,o){"use strict";t.__esModule=!0,t.LoginEntity=void 0;var n=o(12),i=o(33),r=o(31),a=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},s=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let c=class{};t.LoginEntity=c,a([(0,n.PrimaryGeneratedColumn)("uuid"),s("design:type",String)],c.prototype,"id",void 0),a([(0,n.Column)(()=>r.MetadataField),s("design:type",r.MetadataField)],c.prototype,"meta",void 0),a([(0,n.Column)(),(0,n.Index)({unique:!0}),s("design:type",String)],c.prototype,"username",void 0),a([(0,n.Column)(),s("design:type",String)],c.prototype,"passwordHash",void 0),a([(0,n.OneToOne)(()=>i.UserEntity,e=>e.login),s("design:type",i.UserEntity)],c.prototype,"user",void 0),a([(0,n.Column)("uuid",{nullable:!0}),s("design:type",String)],c.prototype,"userId",void 0),t.LoginEntity=c=a([(0,n.Entity)("Login")],c)},function(e,t,o){"use strict";t.__esModule=!0,t.SessionEntity=void 0;var n=o(12),i=o(33),r=o(31),a=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},s=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};let c=class{};t.SessionEntity=c,a([(0,n.PrimaryColumn)("uuid"),s("design:type",String)],c.prototype,"id",void 0),a([(0,n.Column)(()=>r.MetadataField),s("design:type",r.MetadataField)],c.prototype,"meta",void 0),a([(0,n.Column)(),s("design:type",String)],c.prototype,"nick",void 0),a([(0,n.ManyToOne)(()=>i.UserEntity,e=>e.sessions),s("design:type",i.UserEntity)],c.prototype,"user",void 0),a([(0,n.Column)("uuid",{nullable:!0}),s("design:type",String)],c.prototype,"userId",void 0),t.SessionEntity=c=a([(0,n.Entity)("Session")],c)},function(e,t,o){"use strict";t.__esModule=!0,t.isValidNick=function(e){return!!e&&!(e.length>n.validation.maxNickLength)&&/^[_a-z][-_a-z0-9]+[_a-z0-9]+/i.test(e)},t.isValidRoomName=function(e){return!(!e||e.length>n.validation.maxRoomNameLength)};var n=o(4)},function(e,t,o){"use strict";t.__esModule=!0,t.PointFieldNull=t.PointField=void 0;var n=o(12),i=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},r=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};class a{}t.PointField=a,i([(0,n.Column)({type:"integer"}),r("design:type",Number)],a.prototype,"x",void 0),i([(0,n.Column)({type:"integer"}),r("design:type",Number)],a.prototype,"y",void 0);class s{}t.PointFieldNull=s,i([(0,n.Column)({type:"integer",nullable:!0}),r("design:type",Number)],s.prototype,"x",void 0),i([(0,n.Column)({type:"integer",nullable:!0}),r("design:type",Number)],s.prototype,"y",void 0)},function(e,t,o){"use strict";t.__esModule=!0,t.SizeFieldNull=t.SizeField=void 0;var n=o(12),i=function(e,t,o,n){var i,r=arguments.length,a=r<3?t:null===n?n=Object.getOwnPropertyDescriptor(t,o):n;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,o,n);else for(var s=e.length-1;s>=0;s--)(i=e[s])&&(a=(r<3?i(a):r>3?i(t,o,a):i(t,o))||a);return r>3&&a&&Object.defineProperty(t,o,a),a},r=function(e,t){if("object"==typeof Reflect&&"function"==typeof Reflect.metadata)return Reflect.metadata(e,t)};class a{}t.SizeField=a,i([(0,n.Column)({type:"integer"}),r("design:type",Number)],a.prototype,"width",void 0),i([(0,n.Column)({type:"integer"}),r("design:type",Number)],a.prototype,"height",void 0);class s{}t.SizeFieldNull=s,i([(0,n.Column)({type:"integer",nullable:!0}),r("design:type",Number)],s.prototype,"width",void 0),i([(0,n.Column)({type:"integer",nullable:!0}),r("design:type",Number)],s.prototype,"height",void 0)},function(e,t,o){"use strict";t.__esModule=!0,t.ruleSetMap=t.ruleSets=t.rulesReversed=t.rulesStandard=void 0;var n=o(42);function i(e){for(var t=1;t<arguments.length;t++){var o=null!=arguments[t]?arguments[t]:{},n=Object.keys(o);"function"==typeof Object.getOwnPropertySymbols&&(n=n.concat(Object.getOwnPropertySymbols(o).filter(function(e){return Object.getOwnPropertyDescriptor(o,e).enumerable}))),n.forEach(function(t){r(e,t,o[t])})}return e}function r(e,t,o){return t in e?Object.defineProperty(e,t,{value:o,enumerable:!0,configurable:!0,writable:!0}):e[t]=o,e}const a=[{x:0,y:-1},{x:1,y:-1},{x:1,y:0},{x:1,y:1},{x:0,y:1},{x:-1,y:1},{x:-1,y:0},{x:-1,y:-1}];function s(e,t,o){if(!e.boundsCheck(t))return[];const n=e.get(t);if(!n||!n.empty||!n.enabled)return[];function i({x:t,y:n},i){const r=[];for(;;){if(t+=i.x,n+=i.y,!e.boundsCheck({x:t,y:n}))return[];const a=e.get({x:t,y:n});if(!a||a.empty||!a.enabled)return[];if(a.color===o)return r;r.push(a)}}let r=[n];for(const e of a)r=[...r,...i(t,e)];return r.length<=1?[]:r}class c{constructor(){this.name="Standard",this.ruleSet="standard",this.colors=2,this.boardSize=Object.freeze({width:8,height:8})}isValid(e,t,o,i){return s(n.Board.fromGame(e,t),o,i).length>0}compareScores(e,t){return e-t}getValidMoves(e,t,o){const n=[],{size:{width:i,height:r}}=e;for(let a=0;a<i;++a)for(let i=0;i<r;++i){const r={x:a,y:i};this.isValid(e,t,r,o)&&n.push(r)}return n}isGameOver(e,t){const{colors:o}=this;for(let n=0;n<o;++n)if(this.getValidMoves(e,t,n).length>0)return!1;return!0}makeMove(e,t,o){const{turn:r,index:a}=t,c=n.Board.fromGame(e,t),l=s(c,o,r);if(0===l.length)return null;for(const e of l)e.color=r;const u=a+1,d=Object.freeze(i({},o)),y=c.getData(),{colors:f}=this;let p=null;for(let t=0;t<f;++t){const o=(r+1+t)%f;if(this.getValidMoves(e,{turn:o,index:u,data:y,lastMove:d},o).length>0){p=o;break}}return{turn:p,index:u,data:y,lastMove:d}}getScore(e,t,o){const i=n.Board.fromGame(e,t);let r=0;for(const e of i)e&&e.enabled&&e.color===o&&++r;return r}newGame(e){const{boardSize:t}=this,o=new n.Board;o.reset(t),o.get({x:3,y:3}).color=0,o.get({x:4,y:3}).color=1,o.get({x:3,y:4}).color=1,o.get({x:4,y:4}).color=0;const r=[{turn:0,index:0,data:o.getData(),lastMove:null}];return{gameId:e,ruleSet:this.ruleSet,mask:o.getMask(),colors:Object.freeze(["black","white"]),size:Object.freeze(i({},t)),gameStates:Object.freeze(r)}}}const l=new c;t.rulesStandard=l;const u=new class extends c{constructor(){super(...arguments),this.name="Reversed",this.ruleSet="reversed"}compareScores(e,t){return t-e}};t.rulesReversed=u;const d=[l,u];t.ruleSets=d;const y=new Map;t.ruleSetMap=y;for(const e of d)y.set(e.ruleSet,e)},function(e,t,o){"use strict";t.__esModule=!0,t.Board=void 0,o(18),o(14);var n=o(43),i=o(44),r=o(45),a=o(13);class s{constructor(){this.bounds=new i.Bounds(0,0,0,0),this.grid=new n.Grid(0,0)}reset({width:e,height:t}){const o=new n.Grid(e,t),a=64,s=64,c=6,l=6,u=new i.Bounds(.5,.5,1+e*(a+c)+c,1+t*(s+l)+l);for(let n=0;n<e;++n)for(let e=0;e<t;++e){const t={x:n,y:e},u=new i.Bounds(.5+n*(a+c)+c,.5+e*(s+l)+l,.5+a,.5+s);o.set({x:n,y:e},new r.Square(t,u))}Object.assign(this,{grid:o,bounds:u})}get width(){const{grid:{width:e}}=this;return e}get height(){const{grid:{height:e}}=this;return e}get({x:e,y:t}){const{grid:o}=this;return o.get({x:e,y:t})}boundsCheck({x:e,y:t}){const{grid:o}=this;return o.boundsCheck({x:e,y:t})}getData(){return Object.freeze(Array.from(this.grid).map(e=>e.empty?null:e.color))}setData(e){for(const[t,o]of(0,a.zip)(e,Array.from(this.grid)))o.color=t}getGameState(e){return{index:e,data:this.getData()}}getMask(){return Object.freeze(Array.from(this.grid).map(e=>e.enabled))}setMask(e){for(const[t,o]of(0,a.zip)(e,Array.from(this.grid)))o.enabled=t}static fromGame(e,t){const o=new s;return o.reset(e.size),o.setData(t.data),o.setMask(e.mask),o}[Symbol.iterator](){const{grid:e}=this;return e[Symbol.iterator]()}hitTest(e){for(const t of this)if(t.bounds.hitTest(e))return t;return null}}t.Board=s},function(e,t,o){"use strict";function n(e,{x:t,y:o}){if(!Number.isSafeInteger(t)||!Number.isSafeInteger(o))throw new Error(`(${t}, ${o}) is not valid`);if(!e.boundsCheck({x:t,y:o}))throw new Error(`(${t}, ${o}) is out of bounds`)}t.__esModule=!0,t.Grid=void 0,o(14);t.Grid=class{constructor(e,t){this.width=e,this.height=t,this.data=new Map}boundsCheck({x:e,y:t}){const{width:o,height:n}=this;return e>=0&&e<o&&t>=0&&t<n}get({x:e,y:t}){n(this,{x:e,y:t});const o=JSON.stringify({x:e,y:t});return this.data.get(o)}set({x:e,y:t},o){n(this,{x:e,y:t});const i=JSON.stringify({x:e,y:t});this.data.set(i,o)}[Symbol.iterator](){return function*(){const{width:e,height:t}=this;for(let o=0;o<e;++o)for(let e=0;e<t;++e)yield this.get({x:o,y:e})}.call(this)}}},function(e,t,o){"use strict";t.__esModule=!0,t.Bounds=void 0;t.Bounds=class{constructor(e,t,o,n){this.left=e,this.top=t,this.width=o,this.height=n}get bottom(){const{top:e,height:t}=this;return e+t}get right(){const{left:e,width:t}=this;return e+t}get center(){const{left:e,top:t,width:o,height:n}=this;return{x:e+.5*o,y:t+.5*n}}get n(){const{left:e,top:t,width:o}=this;return{x:e+.5*o,y:t}}get ne(){const{left:e,top:t,width:o}=this;return{x:e+o,y:t}}get e(){const{left:e,top:t,width:o,height:n}=this;return{x:e+o,y:t+.5*n}}get se(){const{left:e,top:t,width:o,height:n}=this;return{x:e+o,y:t+n}}get s(){const{left:e,top:t,width:o,height:n}=this;return{x:e+.5*o,y:t+n}}get sw(){const{left:e,top:t,height:o}=this;return{x:e,y:t+o}}get w(){const{left:e,top:t,height:o}=this;return{x:e,y:t+.5*o}}get nw(){const{left:e,top:t}=this;return{x:e,y:t}}hitTest({x:e,y:t}){const{top:o,right:n,bottom:i,left:r}=this;return e>=r&&e<=n&&t>=o&&t<=i}}},function(e,t,o){"use strict";t.__esModule=!0,t.Square=void 0;t.Square=class{constructor(e,t){this.position=e,this.bounds=t,this.enabled=!0,this.color=null}get empty(){return null===this.color}}},function(e,t,o){"use strict";t.__esModule=!0,t.io=void 0;var n=o(4),i=l(o(19)),r=l(o(20)),a=l(o(15)),s=o(5),c=o(47);function l(e){return e&&e.__esModule?e:{default:e}}function u(e){for(var t=1;t<arguments.length;t++){var o=null!=arguments[t]?arguments[t]:{},n=Object.keys(o);"function"==typeof Object.getOwnPropertySymbols&&(n=n.concat(Object.getOwnPropertySymbols(o).filter(function(e){return Object.getOwnPropertyDescriptor(o,e).enumerable}))),n.forEach(function(t){d(e,t,o[t])})}return e}function d(e,t,o){return t in e?Object.defineProperty(e,t,{value:o,enumerable:!0,configurable:!0,writable:!0}):e[t]=o,e}const y=new i.default(u({},n.redis,{db:0,dropBufferSupport:!0})),f=new i.default(u({},n.redis,{db:0}));s.shuttingDown.subscribe(async()=>{await Promise.all([y.quit(),f.quit()])});const p=o(27)(c.server);t.io=p,p.engine.generateId=a.default,p.adapter((0,r.default)({pubClient:y,subClient:f}))},function(e,t,o){"use strict";t.__esModule=!0,t.server=t.app=void 0;var n=u(o(21)),i=u(o(22)),r=u(o(23)),a=u(o(24)),s=o(25),c=o(4),l=o(5);function u(e){return e&&e.__esModule?e:{default:e}}const d=(0,n.default)();t.app=d;for(const[e,t]of Object.entries(c.appSettings))d.set(e,t);d.use((0,a.default)(),n.default.static(r.default.join(__dirname,"www"))),i.default.extend(d,c.cspPolicy),d.use(o(26).json());const y=new s.Server(d);t.server=y,y.listen(d.get("port"),d.get("host"),e=>{if(e)return console.error(e),void(0,l.shutDown)();const{address:t,port:o}=y.address();console.log(`Process ${process.pid} listening at ${t}:${o}...`)}),l.shuttingDown.subscribe(()=>{y.close(()=>{})}),o(48).register(d)},function(e,t,o){"use strict";t.__esModule=!0,t.register=function(e){e.get("/health",(e,t)=>{t.writeHead(200),t.end()})}},function(e){e.exports={colors:{aqua:{displayName:"Aqua",color:[180,90,55]},black:{displayName:"Black",color:[0,0,0]},blue:{displayName:"Blue",color:[240,90,55]},fuschsia:{displayName:"Fuchsia",color:[300,90,55]},gray:{displayName:"Gray",color:[0,0,55]},green:{displayName:"Green",color:[120,90,55]},orange:{displayName:"Orange",color:[30,90,55]},pink:{displayName:"Pink",color:[330,90,55]},purple:{displayName:"Purple",color:[270,90,55]},red:{displayName:"Red",color:[0,90,55]},white:{displayName:"White",color:[0,0,100]},yellow:{displayName:"Yellow",color:[55,90,55]}}}},function(e,t,o){"use strict";t.__esModule=!0,t.hashPassword=async function(e){if(!e)return"";const t=await(0,i.promisify)(n.genSalt)(null);return await(0,i.promisify)(n.hash)(e,t,null)},t.checkPassword=async function(e,t){if(!e&&!t)return!0;return await(0,i.promisify)(n.compare)(e,t)};var n=o(28),i=o(8)}];
+exports.ids = ["main~server"];
+exports.modules = {
+
+/***/ "./src/board.ts":
+/*!**********************!*\
+  !*** ./src/board.ts ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.Board = void 0;
+
+__webpack_require__(/*! core-js/modules/web.dom.iterable */ "core-js/modules/web.dom.iterable");
+
+__webpack_require__(/*! core-js/modules/es7.symbol.async-iterator */ "core-js/modules/es7.symbol.async-iterator");
+
+var _grid = __webpack_require__(/*! src/grid */ "./src/grid.ts");
+
+var _bounds = __webpack_require__(/*! src/bounds */ "./src/bounds.ts");
+
+var _square = __webpack_require__(/*! src/square */ "./src/square.ts");
+
+var _lodash = __webpack_require__(/*! lodash */ "lodash");
+
+class Board {
+  constructor() {
+    this.bounds = new _bounds.Bounds(0, 0, 0, 0);
+    this.grid = new _grid.Grid(0, 0);
+  }
+
+  reset({
+    width,
+    height
+  }) {
+    const grid = new _grid.Grid(width, height),
+          squareSize = {
+      width: 64,
+      height: 64
+    },
+          gutterSize = {
+      width: 6,
+      height: 6
+    },
+          bounds = new _bounds.Bounds(0.5, 0.5, 1 + width * (squareSize.width + gutterSize.width) + gutterSize.width, 1 + height * (squareSize.height + gutterSize.height) + gutterSize.height);
+
+    for (let x = 0; x < width; ++x) {
+      for (let y = 0; y < height; ++y) {
+        const position = {
+          x,
+          y
+        },
+              bounds = new _bounds.Bounds(0.5 + x * (squareSize.width + gutterSize.width) + gutterSize.width, 0.5 + y * (squareSize.height + gutterSize.height) + gutterSize.height, 0.5 + squareSize.width, 0.5 + squareSize.height);
+        grid.set({
+          x,
+          y
+        }, new _square.Square(position, bounds));
+      }
+    }
+
+    Object.assign(this, {
+      grid,
+      bounds
+    });
+  }
+
+  get width() {
+    const {
+      grid: {
+        width
+      }
+    } = this;
+    return width;
+  }
+
+  get height() {
+    const {
+      grid: {
+        height
+      }
+    } = this;
+    return height;
+  }
+
+  get({
+    x,
+    y
+  }) {
+    const {
+      grid
+    } = this;
+    return grid.get({
+      x,
+      y
+    });
+  }
+
+  boundsCheck({
+    x,
+    y
+  }) {
+    const {
+      grid
+    } = this;
+    return grid.boundsCheck({
+      x,
+      y
+    });
+  }
+
+  getData() {
+    return Object.freeze(Array.from(this.grid).map(sq => sq.empty ? null : sq.color));
+  }
+
+  setData(data) {
+    for (const [color, square] of (0, _lodash.zip)(data, Array.from(this.grid))) {
+      square.color = color;
+    }
+  }
+
+  getGameState(index) {
+    return {
+      index,
+      data: this.getData()
+    };
+  }
+
+  getMask() {
+    return Object.freeze(Array.from(this.grid).map(sq => sq.enabled));
+  }
+
+  setMask(mask) {
+    for (const [enabled, square] of (0, _lodash.zip)(mask, Array.from(this.grid))) {
+      square.enabled = enabled;
+    }
+  }
+
+  static fromGame(game, gameState) {
+    const board = new Board();
+    board.reset(game.size);
+    board.setData(gameState.data);
+    board.setMask(game.mask);
+    return board;
+  }
+
+  [Symbol.iterator]() {
+    const {
+      grid
+    } = this;
+    return grid[Symbol.iterator]();
+  }
+
+  hitTest(pt) {
+    for (const square of this) {
+      if (square.bounds.hitTest(pt)) {
+        return square;
+      }
+    }
+
+    return null;
+  }
+
+}
+
+exports.Board = Board;
+
+/***/ }),
+
+/***/ "./src/bounds.ts":
+/*!***********************!*\
+  !*** ./src/bounds.ts ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.Bounds = void 0;
+
+class Bounds {
+  constructor(left, top, width, height) {
+    this.left = left;
+    this.top = top;
+    this.width = width;
+    this.height = height;
+  }
+
+  get bottom() {
+    const {
+      top,
+      height
+    } = this;
+    return top + height;
+  }
+
+  get right() {
+    const {
+      left,
+      width
+    } = this;
+    return left + width;
+  }
+
+  get center() {
+    const {
+      left,
+      top,
+      width,
+      height
+    } = this,
+          x = left + width * .5,
+          y = top + height * .5;
+    return {
+      x,
+      y
+    };
+  }
+
+  get n() {
+    const {
+      left,
+      top,
+      width
+    } = this,
+          x = left + width * .5,
+          y = top;
+    return {
+      x,
+      y
+    };
+  }
+
+  get ne() {
+    const {
+      left,
+      top,
+      width
+    } = this,
+          x = left + width,
+          y = top;
+    return {
+      x,
+      y
+    };
+  }
+
+  get e() {
+    const {
+      left,
+      top,
+      width,
+      height
+    } = this,
+          x = left + width,
+          y = top + height * .5;
+    return {
+      x,
+      y
+    };
+  }
+
+  get se() {
+    const {
+      left,
+      top,
+      width,
+      height
+    } = this,
+          x = left + width,
+          y = top + height;
+    return {
+      x,
+      y
+    };
+  }
+
+  get s() {
+    const {
+      left,
+      top,
+      width,
+      height
+    } = this,
+          x = left + width * .5,
+          y = top + height;
+    return {
+      x,
+      y
+    };
+  }
+
+  get sw() {
+    const {
+      left,
+      top,
+      height
+    } = this,
+          x = left,
+          y = top + height;
+    return {
+      x,
+      y
+    };
+  }
+
+  get w() {
+    const {
+      left,
+      top,
+      height
+    } = this,
+          x = left,
+          y = top + height * .5;
+    return {
+      x,
+      y
+    };
+  }
+
+  get nw() {
+    const {
+      left,
+      top
+    } = this,
+          x = left,
+          y = top;
+    return {
+      x,
+      y
+    };
+  }
+
+  hitTest({
+    x,
+    y
+  }) {
+    const {
+      top,
+      right,
+      bottom,
+      left
+    } = this;
+    return x >= left && x <= right && y >= top && y <= bottom;
+  }
+
+}
+
+exports.Bounds = Bounds;
+
+/***/ }),
+
+/***/ "./src/data/colors.yaml":
+/*!******************************!*\
+  !*** ./src/data/colors.yaml ***!
+  \******************************/
+/*! exports provided: colors, default */
+/***/ (function(module) {
+
+module.exports = {"colors":{"aqua":{"displayName":"Aqua","color":[180,90,55]},"black":{"displayName":"Black","color":[0,0,0]},"blue":{"displayName":"Blue","color":[240,90,55]},"fuschsia":{"displayName":"Fuchsia","color":[300,90,55]},"gray":{"displayName":"Gray","color":[0,0,55]},"green":{"displayName":"Green","color":[120,90,55]},"orange":{"displayName":"Orange","color":[30,90,55]},"pink":{"displayName":"Pink","color":[330,90,55]},"purple":{"displayName":"Purple","color":[270,90,55]},"red":{"displayName":"Red","color":[0,90,55]},"white":{"displayName":"White","color":[0,0,100]},"yellow":{"displayName":"Yellow","color":[55,90,55]}}};
+
+/***/ }),
+
+/***/ "./src/grid.ts":
+/*!*********************!*\
+  !*** ./src/grid.ts ***!
+  \*********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.Grid = void 0;
+
+__webpack_require__(/*! core-js/modules/es7.symbol.async-iterator */ "core-js/modules/es7.symbol.async-iterator");
+
+function validate(grid, {
+  x,
+  y
+}) {
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y)) {
+    throw new Error(`(${x}, ${y}) is not valid`);
+  }
+
+  if (!grid.boundsCheck({
+    x,
+    y
+  })) {
+    throw new Error(`(${x}, ${y}) is out of bounds`);
+  }
+}
+
+class Grid {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+    this.data = new Map();
+  }
+
+  boundsCheck({
+    x,
+    y
+  }) {
+    const {
+      width,
+      height
+    } = this;
+    return x >= 0 && x < width && y >= 0 && y < height;
+  }
+
+  get({
+    x,
+    y
+  }) {
+    validate(this, {
+      x,
+      y
+    });
+    const key = JSON.stringify({
+      x,
+      y
+    });
+    return this.data.get(key);
+  }
+
+  set({
+    x,
+    y
+  }, value) {
+    validate(this, {
+      x,
+      y
+    });
+    const key = JSON.stringify({
+      x,
+      y
+    });
+    this.data.set(key, value);
+  }
+
+  [Symbol.iterator]() {
+    function* iterator() {
+      const {
+        width,
+        height
+      } = this;
+
+      for (let x = 0; x < width; ++x) {
+        for (let y = 0; y < height; ++y) {
+          yield this.get({
+            x,
+            y
+          });
+        }
+      }
+    }
+
+    return iterator.call(this);
+  }
+
+}
+
+exports.Grid = Grid;
+
+/***/ }),
+
+/***/ "./src/rule-sets.ts":
+/*!**************************!*\
+  !*** ./src/rule-sets.ts ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.ruleSetMap = exports.ruleSets = exports.rulesReversed = exports.rulesStandard = void 0;
+
+var _board = __webpack_require__(/*! ./board */ "./src/board.ts");
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+const directions = [{
+  x: 0,
+  y: -1
+}, {
+  x: 1,
+  y: -1
+}, {
+  x: 1,
+  y: 0
+}, {
+  x: 1,
+  y: 1
+}, {
+  x: 0,
+  y: 1
+}, {
+  x: -1,
+  y: 1
+}, {
+  x: -1,
+  y: 0
+}, {
+  x: -1,
+  y: -1
+}];
+
+function getAffectedSquares(board, position, color) {
+  if (!board.boundsCheck(position)) {
+    return [];
+  }
+
+  const square = board.get(position);
+
+  if (!square || !square.empty || !square.enabled) {
+    return [];
+  }
+
+  function direction({
+    x,
+    y
+  }, delta) {
+    const squares = [];
+
+    for (;;) {
+      x += delta.x;
+      y += delta.y;
+
+      if (!board.boundsCheck({
+        x,
+        y
+      })) {
+        return [];
+      }
+
+      const square = board.get({
+        x,
+        y
+      });
+
+      if (!square || square.empty || !square.enabled) {
+        return [];
+      }
+
+      if (square.color === color) {
+        return squares;
+      }
+
+      squares.push(square);
+    }
+  }
+
+  let squares = [square];
+
+  for (const delta of directions) {
+    squares = [...squares, ...direction(position, delta)];
+  }
+
+  if (squares.length <= 1) {
+    return [];
+  }
+
+  return squares;
+}
+
+class RulesStandard {
+  constructor() {
+    this.name = 'Standard';
+    this.ruleSet = "standard"
+    /* standard */
+    ;
+    this.colors = 2;
+    this.boardSize = Object.freeze({
+      width: 8,
+      height: 8
+    });
+  }
+
+  isValid(game, gameState, position, color) {
+    return getAffectedSquares(_board.Board.fromGame(game, gameState), position, color).length > 0;
+  }
+
+  compareScores(score1, score2) {
+    return score1 - score2;
+  }
+
+  getValidMoves(game, gameState, color) {
+    const points = [];
+    const {
+      size: {
+        width,
+        height
+      }
+    } = game;
+
+    for (let x = 0; x < width; ++x) {
+      for (let y = 0; y < height; ++y) {
+        const point = {
+          x,
+          y
+        };
+        if (this.isValid(game, gameState, point, color)) points.push(point);
+      }
+    }
+
+    return points;
+  }
+
+  isGameOver(game, gameState) {
+    const {
+      colors
+    } = this;
+
+    for (let color = 0; color < colors; ++color) {
+      if (this.getValidMoves(game, gameState, color).length > 0) return false;
+    }
+
+    return true;
+  }
+
+  makeMove(game, gameState, position) {
+    const {
+      turn: prevTurn,
+      index: prevIndex
+    } = gameState;
+
+    const board = _board.Board.fromGame(game, gameState);
+
+    const squares = getAffectedSquares(board, position, prevTurn);
+    if (squares.length === 0) return null;
+
+    for (const square of squares) {
+      square.color = prevTurn;
+    }
+
+    const index = prevIndex + 1;
+    const lastMove = Object.freeze(_objectSpread({}, position));
+    const data = board.getData();
+    const {
+      colors
+    } = this;
+    let turn = null;
+
+    for (let i = 0; i < colors; ++i) {
+      const t = (prevTurn + 1 + i) % colors;
+
+      if (this.getValidMoves(game, {
+        turn: t,
+        index,
+        data,
+        lastMove
+      }, t).length > 0) {
+        turn = t;
+        break;
+      }
+    }
+
+    return {
+      turn,
+      index,
+      data,
+      lastMove
+    };
+  }
+
+  getScore(game, gameState, color) {
+    const board = _board.Board.fromGame(game, gameState);
+
+    let score = 0;
+
+    for (const square of board) {
+      if (square && square.enabled && square.color === color) {
+        ++score;
+      }
+    }
+
+    return score;
+  }
+
+  newGame(gameId) {
+    const {
+      boardSize
+    } = this;
+    const board = new _board.Board();
+    board.reset(boardSize); // TODO: center? gets ugly with an odd dimension
+
+    board.get({
+      x: 3,
+      y: 3
+    }).color = 0;
+    board.get({
+      x: 4,
+      y: 3
+    }).color = 1;
+    board.get({
+      x: 3,
+      y: 4
+    }).color = 1;
+    board.get({
+      x: 4,
+      y: 4
+    }).color = 0;
+    const gameStates = [{
+      turn: 0,
+      index: 0,
+      data: board.getData(),
+      lastMove: null
+    }];
+    return {
+      gameId,
+      ruleSet: this.ruleSet,
+      mask: board.getMask(),
+      colors: Object.freeze(['black', 'white']),
+      size: Object.freeze(_objectSpread({}, boardSize)),
+      gameStates: Object.freeze(gameStates)
+    };
+  }
+
+}
+
+class RulesReversed extends RulesStandard {
+  constructor() {
+    super(...arguments);
+    this.name = 'Reversed';
+    this.ruleSet = "reversed"
+    /* reversed */
+    ;
+  }
+
+  compareScores(score1, score2) {
+    return score2 - score1;
+  }
+
+}
+
+const rulesStandard = new RulesStandard();
+exports.rulesStandard = rulesStandard;
+const rulesReversed = new RulesReversed();
+exports.rulesReversed = rulesReversed;
+const ruleSets = [rulesStandard, rulesReversed];
+exports.ruleSets = ruleSets;
+const ruleSetMap = new Map();
+exports.ruleSetMap = ruleSetMap;
+
+for (const ruleSet of ruleSets) {
+  ruleSetMap.set(ruleSet.ruleSet, ruleSet);
+}
+
+/***/ }),
+
+/***/ "./src/server/app.ts":
+/*!***************************!*\
+  !*** ./src/server/app.ts ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.server = exports.app = void 0;
+
+var _express = _interopRequireDefault(__webpack_require__(/*! express */ "express"));
+
+var _expressCsp = _interopRequireDefault(__webpack_require__(/*! express-csp */ "express-csp"));
+
+var _path = _interopRequireDefault(__webpack_require__(/*! path */ "path"));
+
+var _compression = _interopRequireDefault(__webpack_require__(/*! compression */ "compression"));
+
+var _http = __webpack_require__(/*! http */ "http");
+
+var _config = __webpack_require__(/*! data/config.yaml */ "./src/data/config.yaml");
+
+var _shutDown = __webpack_require__(/*! ./shut-down */ "./src/server/shut-down.ts");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+const app = (0, _express.default)();
+exports.app = app;
+
+for (const [key, value] of Object.entries(_config.appSettings)) {
+  app.set(key, value);
+}
+
+app.use((0, _compression.default)(), _express.default.static(_path.default.join(__dirname, 'www')));
+
+_expressCsp.default.extend(app, _config.cspPolicy);
+
+app.use(__webpack_require__(/*! body-parser */ "body-parser").json());
+const server = new _http.Server(app);
+exports.server = server;
+server.listen(app.get('port'), app.get('host'), err => {
+  if (err) {
+    console.error(err);
+    (0, _shutDown.shutDown)();
+    return;
+  }
+
+  const {
+    address,
+    port
+  } = server.address();
+  console.log(`Process ${process.pid} listening at ${address}:${port}...`);
+});
+
+_shutDown.shuttingDown.subscribe(() => {
+  server.close(() => {});
+});
+
+__webpack_require__(/*! ./health.endpoint */ "./src/server/health.endpoint.ts").register(app);
+
+/***/ }),
+
+/***/ "./src/server/game-state.entity.ts":
+/*!*****************************************!*\
+  !*** ./src/server/game-state.entity.ts ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.GameStateEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _game = __webpack_require__(/*! ./game.entity */ "./src/server/game.entity.ts");
+
+var _point = __webpack_require__(/*! ./point.field */ "./src/server/point.field.ts");
+
+var _metadata = __webpack_require__(/*! ./metadata.field */ "./src/server/metadata.field.ts");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let GameStateEntity = class GameStateEntity {};
+exports.GameStateEntity = GameStateEntity;
+
+__decorate([(0, _typeorm.PrimaryColumn)('uuid'), __metadata("design:type", String)], GameStateEntity.prototype, "gameId", void 0);
+
+__decorate([(0, _typeorm.PrimaryColumn)({
+  type: 'integer'
+}), __metadata("design:type", Number)], GameStateEntity.prototype, "index", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], GameStateEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.ManyToOne)(() => _game.GameEntity, game => game.gameStates), __metadata("design:type", _game.GameEntity)], GameStateEntity.prototype, "game", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer',
+  nullable: true
+}), __metadata("design:type", Number)], GameStateEntity.prototype, "turn", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _point.PointFieldNull), __metadata("design:type", _point.PointFieldNull)], GameStateEntity.prototype, "lastMove", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'simple-array'
+}), __metadata("design:type", Array)], GameStateEntity.prototype, "data", void 0);
+
+exports.GameStateEntity = GameStateEntity = __decorate([(0, _typeorm.Entity)('GameState')], GameStateEntity);
+
+/***/ }),
+
+/***/ "./src/server/game.entity.ts":
+/*!***********************************!*\
+  !*** ./src/server/game.entity.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.GameEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _gameState = __webpack_require__(/*! ./game-state.entity */ "./src/server/game-state.entity.ts");
+
+var _room = __webpack_require__(/*! ./room.entity */ "./src/server/room.entity.ts");
+
+var _metadata = __webpack_require__(/*! ./metadata.field */ "./src/server/metadata.field.ts");
+
+var _lodash = __webpack_require__(/*! lodash */ "lodash");
+
+var _size = __webpack_require__(/*! server/size.field */ "./src/server/size.field.ts");
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let GameEntity = class GameEntity {
+  static toGame(gameEntity) {
+    const gameStates = (0, _lodash.sortBy)(gameEntity.gameStates, gs => gs.index);
+    return {
+      gameId: gameEntity.id,
+      size: _objectSpread({}, gameEntity.size),
+      colors: [...gameEntity.colors],
+      mask: gameEntity.mask.split('').map(m => m === '1'),
+      ruleSet: gameEntity.ruleSet,
+      gameStates: gameStates.map(gs => ({
+        index: gs.index,
+        turn: gs.turn,
+        data: gs.data.map(v => v === 'x' ? null : parseInt(v, 10)),
+        lastMove: gs.lastMove.x == null || gs.lastMove.y == null ? null : _objectSpread({}, gs.lastMove)
+      }))
+    };
+  }
+
+};
+exports.GameEntity = GameEntity;
+
+__decorate([(0, _typeorm.PrimaryGeneratedColumn)('uuid'), __metadata("design:type", String)], GameEntity.prototype, "id", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], GameEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.Column)('simple-array'), __metadata("design:type", Array)], GameEntity.prototype, "colors", void 0);
+
+__decorate([(0, _typeorm.OneToMany)(() => _gameState.GameStateEntity, gameState => gameState.game, {
+  cascade: true
+}), __metadata("design:type", Array)], GameEntity.prototype, "gameStates", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _size.SizeField), __metadata("design:type", _size.SizeField)], GameEntity.prototype, "size", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], GameEntity.prototype, "mask", void 0);
+
+__decorate([(0, _typeorm.OneToOne)(() => _room.RoomEntity, {
+  nullable: true
+}), __metadata("design:type", _room.RoomEntity)], GameEntity.prototype, "room", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], GameEntity.prototype, "ruleSet", void 0);
+
+exports.GameEntity = GameEntity = __decorate([(0, _typeorm.Entity)('Game')], GameEntity);
+
+/***/ }),
+
+/***/ "./src/server/health.endpoint.ts":
+/*!***************************************!*\
+  !*** ./src/server/health.endpoint.ts ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.register = register;
+
+function register(app) {
+  app.get('/health', (req, res) => {
+    res.writeHead(200);
+    res.end();
+  });
+}
+
+/***/ }),
+
+/***/ "./src/server/login.entity.ts":
+/*!************************************!*\
+  !*** ./src/server/login.entity.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.LoginEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _user = __webpack_require__(/*! ./user.entity */ "./src/server/user.entity.ts");
+
+var _metadata = __webpack_require__(/*! server/metadata.field */ "./src/server/metadata.field.ts");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let LoginEntity = class LoginEntity {};
+exports.LoginEntity = LoginEntity;
+
+__decorate([(0, _typeorm.PrimaryGeneratedColumn)('uuid'), __metadata("design:type", String)], LoginEntity.prototype, "id", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], LoginEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.Column)(), (0, _typeorm.Index)({
+  unique: true
+}), __metadata("design:type", String)], LoginEntity.prototype, "username", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], LoginEntity.prototype, "passwordHash", void 0);
+
+__decorate([(0, _typeorm.OneToOne)(() => _user.UserEntity, user => user.login), __metadata("design:type", _user.UserEntity)], LoginEntity.prototype, "user", void 0);
+
+__decorate([(0, _typeorm.Column)('uuid', {
+  nullable: true
+}), __metadata("design:type", String)], LoginEntity.prototype, "userId", void 0);
+
+exports.LoginEntity = LoginEntity = __decorate([(0, _typeorm.Entity)('Login')], LoginEntity);
+
+/***/ }),
+
+/***/ "./src/server/main.ts":
+/*!****************************!*\
+  !*** ./src/server/main.ts ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+__webpack_require__(/*! core-js/modules/es6.array.sort */ "core-js/modules/es6.array.sort");
+
+__webpack_require__(/*! ./error-handler */ "./src/server/error-handler.ts");
+
+__webpack_require__(/*! ./polyfills */ "./src/server/polyfills.ts");
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _rxjs = __webpack_require__(/*! rxjs */ "rxjs");
+
+var _operators = __webpack_require__(/*! rxjs/operators */ "rxjs/operators");
+
+var _rxjs2 = __webpack_require__(/*! ./rxjs */ "./src/server/rxjs.ts");
+
+var _validation = __webpack_require__(/*! src/validation */ "./src/validation.ts");
+
+var _game = __webpack_require__(/*! ./game.entity */ "./src/server/game.entity.ts");
+
+var _gameState = __webpack_require__(/*! ./game-state.entity */ "./src/server/game-state.entity.ts");
+
+var _login = __webpack_require__(/*! ./login.entity */ "./src/server/login.entity.ts");
+
+var _room = __webpack_require__(/*! ./room.entity */ "./src/server/room.entity.ts");
+
+var _session = __webpack_require__(/*! ./session.entity */ "./src/server/session.entity.ts");
+
+var _user = __webpack_require__(/*! ./user.entity */ "./src/server/user.entity.ts");
+
+var _ruleSets = __webpack_require__(/*! src/rule-sets */ "./src/rule-sets.ts");
+
+var _socket = __webpack_require__(/*! ./socket */ "./src/server/socket.ts");
+
+var _config = __webpack_require__(/*! data/config.yaml */ "./src/data/config.yaml");
+
+var _colors = __webpack_require__(/*! data/colors.yaml */ "./src/data/colors.yaml");
+
+var _security = __webpack_require__(/*! ./security */ "./src/server/security.ts");
+
+var _sleepPromise = _interopRequireDefault(__webpack_require__(/*! sleep-promise */ "sleep-promise"));
+
+var _v = _interopRequireDefault(__webpack_require__(/*! uuid/v4 */ "uuid/v4"));
+
+var _moment = _interopRequireDefault(__webpack_require__(/*! moment */ "moment"));
+
+var _assert = _interopRequireDefault(__webpack_require__(/*! assert */ "assert"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+function getSocket(sessionId) {
+  return Object.entries(_socket.io.of('/').connected).filter(([id, socket]) => id === sessionId).map(([id, socket]) => socket)[0] || null;
+}
+
+async function getJoinedRoomIds(manager, sessionId) {
+  const socket = getSocket(sessionId);
+  if (!socket) return [];
+  const rooms = await manager.findByIds(_room.RoomEntity, Object.keys(socket.rooms));
+  return rooms.map(room => room.id);
+}
+
+async function joinRoom(manager, roomId, sessionId) {
+  const socket = getSocket(sessionId);
+  await new Promise((resolve, reject) => {
+    socket.join(roomId, err => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+  await flushJoinedRooms(manager, sessionId);
+  await flushUpdate(manager, roomId, sessionId);
+  const {
+    nick
+  } = await manager.findOne(_session.SessionEntity, sessionId, {
+    select: ['nick']
+  });
+  await statusMessage(roomId, `${nick} has joined the room.`); // HACK
+
+  await (0, _sleepPromise.default)(100);
+  await flushUpdate(manager, roomId, sessionId);
+}
+
+async function flushJoinedRooms(manager, sessionId) {
+  const roomIds = await getJoinedRoomIds(manager, sessionId);
+
+  _socket.io.to(sessionId).emit('joinedRooms', roomIds);
+}
+
+async function flushRooms(manager, sessionId) {
+  const rooms = (await manager.find(_room.RoomEntity)).map(_room.RoomEntity.toRoom);
+  const emitter = sessionId ? _socket.io.to(sessionId) : _socket.io;
+  emitter.emit('rooms', rooms);
+}
+
+async function leaveRoom(manager, sessionId, roomId) {
+  const socket = getSocket(sessionId);
+  await new Promise((resolve, reject) => {
+    socket.leave(roomId, err => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+  await flushJoinedRooms(manager, sessionId);
+  const {
+    nick
+  } = await manager.findOne(_session.SessionEntity, sessionId, {
+    select: ['nick']
+  });
+  await statusMessage(roomId, `${nick} has left the room.`);
+}
+
+function statusMessage(message, roomId, sessionId) {
+  _socket.io.to(sessionId || roomId).emit('message', {
+    roomId,
+    message
+  });
+
+  return true;
+}
+
+function chatMessage(user, message, roomId) {
+  _socket.io.to(roomId).emit('message', {
+    roomId,
+    user,
+    message
+  });
+
+  return true;
+}
+
+async function flushUpdate(manager, roomId, sessionId) {
+  await transaction(manager, async manager => {
+    const room = await manager.findOne(_room.RoomEntity, roomId);
+    if (!room) return;
+    const game = await manager.findOne(_game.GameEntity, room.gameId, {
+      relations: ['gameStates']
+    });
+    if (!game) return;
+
+    _socket.io.to(sessionId || room.id).emit('update', _game.GameEntity.toGame(game));
+  });
+}
+
+async function cleanupRooms(manager) {
+  await transaction(manager, async manager => {
+    let removed = 0;
+    await Promise.all((await manager.find(_room.RoomEntity, {
+      select: ['id', 'expires']
+    })).map(async room => {
+      const clients = await new Promise((resolve, reject) => {
+        _socket.io.in(room.id).clients((err, clients) => {
+          if (err) reject(err);else resolve(clients);
+        });
+      });
+
+      if (clients.length === 0) {
+        if (room.expires) {
+          if ((0, _moment.default)(room.expires).isSameOrBefore()) {
+            console.log(`Deleting room ${room.id}...`);
+            await manager.remove(room);
+            ++removed;
+          }
+        } else {
+          const expires = (0, _moment.default)().add(_config.cleanup.rooms.expireSeconds, 's');
+          console.log(`Queuing room ${room.id} for deletion ${expires.fromNow()}...`);
+          room.expires = expires.toDate();
+          await manager.save(room);
+        }
+      }
+    }));
+    if (removed) await flushRooms(manager);
+  });
+}
+
+async function newGame(manager, roomId, ruleSet) {
+  statusMessage('New game', roomId);
+
+  const rules = _ruleSets.ruleSetMap.get(ruleSet);
+
+  return await transaction(manager, async manager => {
+    const game = rules.newGame((0, _v.default)());
+    const gameEntity = await manager.create(_game.GameEntity, {
+      id: game.gameId,
+      colors: [...game.colors],
+      mask: game.mask.map(v => v ? '1' : '0').join(''),
+      size: _objectSpread({}, game.size),
+      ruleSet: game.ruleSet
+    });
+    await manager.save(gameEntity);
+    await saveGameStates(manager, game);
+    await manager.update(_room.RoomEntity, roomId, {
+      gameId: gameEntity.id
+    });
+    flushRooms(manager);
+    flushUpdate(manager, roomId);
+    return game;
+  });
+}
+
+async function saveGameStates(manager, game) {
+  return await transaction(manager, async manager => {
+    await Promise.all(game.gameStates.map(async (gs, index) => {
+      let gameState = await manager.findOne(_gameState.GameStateEntity, {
+        gameId: game.gameId,
+        index
+      });
+      if (!gameState) gameState = await manager.create(_gameState.GameStateEntity, {
+        gameId: game.gameId,
+        index
+      });
+      gameState.turn = gs.turn;
+      gameState.data = gs.data.map(v => v == null ? 'x' : String(v));
+      gameState.lastMove = _objectSpread({}, gs.lastMove);
+      await manager.save(gameState);
+    }));
+  });
+}
+
+const transaction = (() => {
+  let m = null;
+  return (manager, fn) => {
+    (0, _assert.default)(manager);
+
+    if (m) {
+      return fn(m);
+    } else {
+      return manager.transaction(async manager => {
+        m = manager;
+
+        try {
+          return await fn(m);
+        } finally {
+          m = null;
+        }
+      });
+    }
+  };
+})();
+
+async function createRoom(manager, sessionId, name, password) {
+  if (!(0, _validation.isValidRoomName)(name)) throw new Error('Invalid room name.');
+  return await transaction(manager, async manager => {
+    const roomEntity = await manager.create(_room.RoomEntity, {
+      name,
+      passwordHash: await (0, _security.hashPassword)(password)
+    });
+    await manager.save(roomEntity);
+    await joinRoom(manager, roomEntity.id, sessionId);
+    await newGame(manager, roomEntity.id, "standard"
+    /* standard */
+    );
+    return roomEntity;
+  });
+}
+
+async function makeMove(manager, roomId, position) {
+  return await transaction(manager, async manager => {
+    const roomEntity = await manager.findOne(_room.RoomEntity, roomId);
+    const gameEntity = await manager.findOne(_game.GameEntity, roomEntity.gameId, {
+      relations: ['gameStates']
+    });
+
+    const rules = _ruleSets.ruleSetMap.get(gameEntity.ruleSet);
+
+    let game = _game.GameEntity.toGame(gameEntity);
+
+    const prevGameState = game.gameStates.slice(-1)[0];
+    const nextGameState = rules.makeMove(game, prevGameState, position);
+
+    if (!nextGameState) {
+      return false;
+    }
+
+    game = _objectSpread({}, game, {
+      gameStates: [...game.gameStates, nextGameState]
+    });
+    await saveGameStates(manager, game);
+
+    if (rules.isGameOver(game, nextGameState)) {
+      const scores = Array.from({
+        length: rules.colors
+      }).map((_, color) => ({
+        color: _colors.colors[game.colors[color]].displayName,
+        score: rules.getScore(game, nextGameState, color)
+      }));
+      scores.sort((c1, c2) => {
+        const r1 = rules.compareScores(c1.score, c2.score);
+        return r1 === 0 ? c1.color.localeCompare(c2.color) : r1;
+      });
+      const bestScore = scores[0].score;
+      const winners = scores.filter(({
+        score
+      }) => rules.compareScores(score, bestScore));
+      let message;
+
+      if (winners.length !== 1) {
+        message = 'Draw game.';
+      } else {
+        message = `${winners[0].color} wins.`;
+      }
+
+      await statusMessage(`${message}:\n${scores.map(({
+        color,
+        score
+      }) => `${color}: ${score}`).join('\n')}`, roomId);
+    }
+
+    await flushUpdate(manager, roomId);
+    return true;
+  });
+}
+
+(async () => {
+  try {
+    const {
+      manager
+    } = await (0, _typeorm.createConnection)(_objectSpread({}, _config.connectionOptions, {
+      entities: [_game.GameEntity, _gameState.GameStateEntity, _login.LoginEntity, _room.RoomEntity, _session.SessionEntity, _user.UserEntity]
+    }));
+    (0, _rxjs.interval)(_moment.default.duration(_config.cleanup.rooms.checkSeconds, 's').asMilliseconds()).subscribe(async () => {
+      cleanupRooms(manager);
+    });
+    let connections = 0;
+    (0, _rxjs2.fromNodeEvent)(_socket.io, 'connection').subscribe(async socket => {
+      console.log(`User connected, ${++connections} connected, ${socket.id}`);
+      const disconnecting = (0, _rxjs2.fromNodeEvent)(socket, 'disconnecting').pipe((0, _operators.take)(1));
+      const disconnected = (0, _rxjs2.fromNodeEvent)(socket, 'disconnect').pipe((0, _operators.take)(1));
+
+      function handleCallbackEvent(eventName, fn) {
+        const result = new _rxjs.Subject();
+        (0, _rxjs2.fromNodeEvent)(socket, eventName).pipe((0, _operators.takeUntil)(disconnected), (0, _operators.mergeMap)(([value, callback]) => (0, _rxjs.of)(value).pipe((0, _operators.mergeMap)(value => transaction(manager, async manager => fn(_objectSpread({
+          manager
+        }, value)))), (0, _operators.tap)({
+          next(value) {
+            callback(null, value == null ? {} : value);
+          },
+
+          error(err) {
+            console.error(err);
+            callback(err == null ? {} : err.message, null);
+          }
+
+        }), (0, _operators.onErrorResumeNext)()))).subscribe(result);
+        return result;
+      }
+
+      const sessionId = socket.id;
+      await manager.save((await manager.create(_session.SessionEntity, {
+        id: sessionId,
+        nick: 'Guest'
+      })));
+      disconnecting.subscribe(async () => {
+        await transaction(manager, async manager => {
+          try {
+            const roomIds = await getJoinedRoomIds(manager, sessionId);
+
+            if (roomIds.length > 0) {
+              const {
+                nick
+              } = await manager.findOne(_session.SessionEntity, sessionId, {
+                select: ['nick']
+              });
+              await Promise.all(roomIds.map(roomId => statusMessage(`${nick} has disconnected.`, roomId)));
+            }
+          } finally {
+            manager.delete(_session.SessionEntity, sessionId);
+          }
+        });
+      });
+      disconnected.subscribe(async () => {
+        console.log(`User disconnected, ${--connections} connected`);
+      });
+      const commands = {
+        async help(roomId) {
+          await statusMessage(`Available commands:
+/?
+/help
+/nick <name>
+/quit
+/who
+`, roomId, sessionId);
+        },
+
+        async '?'(roomId) {
+          await commands.help(roomId);
+        },
+
+        async nick(roomId, nick) {
+          if (!(0, _validation.isValidNick)(nick)) throw new Error('Invalid nick.');
+          let previousNick;
+          await transaction(manager, async manager => {
+            const session = await manager.findOne(_session.SessionEntity, sessionId);
+            const existingSession = (await manager.count(_session.SessionEntity, {
+              nick
+            })) > 0;
+            const existingUser = (await manager.count(_user.UserEntity, {
+              nick
+            })) > 0;
+
+            if (existingSession || existingUser) {
+              throw new Error('Nick is already in use.');
+            }
+
+            previousNick = session.nick;
+            session.nick = nick;
+
+            if (session.userId) {
+              await manager.update(_user.UserEntity, session.userId, {
+                nick
+              });
+            }
+
+            await manager.save(session);
+          });
+          await statusMessage(`${previousNick} is now known as ${nick}.`, roomId);
+        },
+
+        async quit(roomId) {
+          await leaveRoom(manager, sessionId, roomId);
+        },
+
+        async who(roomId) {
+          const clients = await new Promise((resolve, reject) => {
+            _socket.io.in(roomId).clients((err, clients) => {
+              if (err) reject(err);else resolve(clients);
+            });
+          });
+          const sessions = await manager.findByIds(_session.SessionEntity, clients);
+          const nicks = sessions.map(s => s.nick).sort();
+          await statusMessage(`Users in room:\n${nicks.join('\n')}`, roomId, sessionId);
+        }
+
+      };
+
+      async function command(roomId, raw) {
+        const [cmd, ...params] = raw.trim().split(/\s+/g);
+
+        try {
+          if (!commands.hasOwnProperty(cmd)) throw new Error('Unknown command.');
+          const joinedRoomIds = await getJoinedRoomIds(manager, sessionId);
+          if (!joinedRoomIds.includes(roomId)) throw new Error('Not in room.');
+          await commands[cmd](roomId, ...params);
+        } catch (ex) {
+          if (ex && ex.message) {
+            await statusMessage(ex.message, roomId, sessionId);
+          }
+
+          throw ex;
+        }
+      }
+
+      handleCallbackEvent('makeMove', async ({
+        roomId,
+        position
+      }) => {
+        if (!(await makeMove(manager, roomId, position))) throw new Error('Failed to make move.');
+      });
+      handleCallbackEvent('newGame', async ({
+        roomId,
+        ruleSet
+      }) => {
+        const game = await newGame(manager, roomId, ruleSet);
+        if (!game) throw new Error('Failed to create game.');
+        return {
+          game
+        };
+      });
+      handleCallbackEvent('sendMessage', async ({
+        roomId,
+        message
+      }) => {
+        if (message.startsWith('/')) {
+          await command(roomId, message.slice(1));
+          return;
+        }
+
+        const {
+          nick
+        } = await manager.findOne(_session.SessionEntity, sessionId, {
+          select: ['nick']
+        });
+        if (!(await chatMessage(nick, message, roomId))) throw new Error('Failed to send message.');
+      });
+      handleCallbackEvent('createRoom', async ({
+        manager,
+        name,
+        password
+      }) => {
+        const roomEntity = await createRoom(manager, sessionId, name, password);
+        return _room.RoomEntity.toRoom(roomEntity);
+      });
+      handleCallbackEvent('joinRoom', async ({
+        manager,
+        roomId,
+        password
+      }) => {
+        const roomEntity = await manager.findOne(_room.RoomEntity, roomId);
+        if (!roomEntity) throw new Error('Failed to join room.');
+
+        if (roomEntity.passwordHash) {
+          if (!password) throw new Error('Room requires a password.');
+          if (!(await (0, _security.checkPassword)(password, roomEntity.passwordHash))) throw new Error('Incorrect password.');
+        }
+
+        manager.update(_room.RoomEntity, roomId, {
+          expires: null
+        });
+        await joinRoom(manager, roomId, sessionId);
+        return _room.RoomEntity.toRoom(roomEntity);
+      });
+      handleCallbackEvent('leaveRoom', async ({
+        manager,
+        roomId
+      }) => {
+        await leaveRoom(manager, sessionId, roomId);
+      });
+      flushRooms(manager, sessionId);
+    });
+  } catch (ex) {
+    console.error(ex);
+  }
+})();
+
+/***/ }),
+
+/***/ "./src/server/metadata.field.ts":
+/*!**************************************!*\
+  !*** ./src/server/metadata.field.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.MetadataField = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+class MetadataField {}
+
+exports.MetadataField = MetadataField;
+
+__decorate([(0, _typeorm.CreateDateColumn)({
+  select: false
+}), __metadata("design:type", Date)], MetadataField.prototype, "created", void 0);
+
+__decorate([(0, _typeorm.UpdateDateColumn)({
+  select: false
+}), __metadata("design:type", Date)], MetadataField.prototype, "updated", void 0);
+
+/***/ }),
+
+/***/ "./src/server/point.field.ts":
+/*!***********************************!*\
+  !*** ./src/server/point.field.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.PointFieldNull = exports.PointField = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+class PointField {}
+
+exports.PointField = PointField;
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer'
+}), __metadata("design:type", Number)], PointField.prototype, "x", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer'
+}), __metadata("design:type", Number)], PointField.prototype, "y", void 0);
+
+class PointFieldNull {}
+
+exports.PointFieldNull = PointFieldNull;
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer',
+  nullable: true
+}), __metadata("design:type", Number)], PointFieldNull.prototype, "x", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer',
+  nullable: true
+}), __metadata("design:type", Number)], PointFieldNull.prototype, "y", void 0);
+
+/***/ }),
+
+/***/ "./src/server/room.entity.ts":
+/*!***********************************!*\
+  !*** ./src/server/room.entity.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.RoomEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _game = __webpack_require__(/*! ./game.entity */ "./src/server/game.entity.ts");
+
+var _metadata = __webpack_require__(/*! server/metadata.field */ "./src/server/metadata.field.ts");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let RoomEntity = class RoomEntity {
+  static toRoom(roomEntity) {
+    return {
+      roomId: roomEntity.id,
+      gameId: roomEntity.gameId,
+      name: roomEntity.name,
+      hasPassword: !!roomEntity.passwordHash
+    };
+  }
+
+};
+exports.RoomEntity = RoomEntity;
+
+__decorate([(0, _typeorm.PrimaryGeneratedColumn)('uuid'), __metadata("design:type", String)], RoomEntity.prototype, "id", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], RoomEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], RoomEntity.prototype, "name", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  nullable: true
+}), __metadata("design:type", Date)], RoomEntity.prototype, "expires", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], RoomEntity.prototype, "passwordHash", void 0);
+
+__decorate([(0, _typeorm.Column)('uuid', {
+  nullable: true
+}), __metadata("design:type", String)], RoomEntity.prototype, "gameId", void 0);
+
+__decorate([(0, _typeorm.OneToOne)(() => _game.GameEntity, {
+  nullable: true
+}), (0, _typeorm.JoinColumn)(), __metadata("design:type", _game.GameEntity)], RoomEntity.prototype, "game", void 0);
+
+exports.RoomEntity = RoomEntity = __decorate([(0, _typeorm.Entity)('Room')], RoomEntity);
+
+/***/ }),
+
+/***/ "./src/server/security.ts":
+/*!********************************!*\
+  !*** ./src/server/security.ts ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.hashPassword = hashPassword;
+exports.checkPassword = checkPassword;
+
+var _bcryptNodejs = __webpack_require__(/*! bcrypt-nodejs */ "bcrypt-nodejs");
+
+var _util = __webpack_require__(/*! util */ "util");
+
+async function hashPassword(password) {
+  if (!password) return '';
+  const salt = await (0, _util.promisify)(_bcryptNodejs.genSalt)(null);
+  const passwordHash = await (0, _util.promisify)(_bcryptNodejs.hash)(password, salt, null);
+  return passwordHash;
+}
+
+async function checkPassword(password, passwordHash) {
+  // if a password is specified but hash is empty, go ahead and compare anyway to prevent timing attacks
+  if (!password && !passwordHash) return true;
+  const result = await (0, _util.promisify)(_bcryptNodejs.compare)(password, passwordHash);
+  return result;
+}
+
+/***/ }),
+
+/***/ "./src/server/session.entity.ts":
+/*!**************************************!*\
+  !*** ./src/server/session.entity.ts ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.SessionEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _user = __webpack_require__(/*! ./user.entity */ "./src/server/user.entity.ts");
+
+var _metadata = __webpack_require__(/*! server/metadata.field */ "./src/server/metadata.field.ts");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let SessionEntity = class SessionEntity {};
+exports.SessionEntity = SessionEntity;
+
+__decorate([(0, _typeorm.PrimaryColumn)('uuid'), __metadata("design:type", String)], SessionEntity.prototype, "id", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], SessionEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.Column)(), __metadata("design:type", String)], SessionEntity.prototype, "nick", void 0);
+
+__decorate([(0, _typeorm.ManyToOne)(() => _user.UserEntity, userEntity => userEntity.sessions), __metadata("design:type", _user.UserEntity)], SessionEntity.prototype, "user", void 0);
+
+__decorate([(0, _typeorm.Column)('uuid', {
+  nullable: true
+}), __metadata("design:type", String)], SessionEntity.prototype, "userId", void 0);
+
+exports.SessionEntity = SessionEntity = __decorate([(0, _typeorm.Entity)('Session')], SessionEntity);
+
+/***/ }),
+
+/***/ "./src/server/size.field.ts":
+/*!**********************************!*\
+  !*** ./src/server/size.field.ts ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.SizeFieldNull = exports.SizeField = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+class SizeField {}
+
+exports.SizeField = SizeField;
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer'
+}), __metadata("design:type", Number)], SizeField.prototype, "width", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer'
+}), __metadata("design:type", Number)], SizeField.prototype, "height", void 0);
+
+class SizeFieldNull {}
+
+exports.SizeFieldNull = SizeFieldNull;
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer',
+  nullable: true
+}), __metadata("design:type", Number)], SizeFieldNull.prototype, "width", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  type: 'integer',
+  nullable: true
+}), __metadata("design:type", Number)], SizeFieldNull.prototype, "height", void 0);
+
+/***/ }),
+
+/***/ "./src/server/socket.ts":
+/*!******************************!*\
+  !*** ./src/server/socket.ts ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.io = void 0;
+
+var _config = __webpack_require__(/*! data/config.yaml */ "./src/data/config.yaml");
+
+var _ioredis = _interopRequireDefault(__webpack_require__(/*! ioredis */ "ioredis"));
+
+var _socket = _interopRequireDefault(__webpack_require__(/*! socket.io-redis */ "socket.io-redis"));
+
+var _v = _interopRequireDefault(__webpack_require__(/*! uuid/v4 */ "uuid/v4"));
+
+var _shutDown = __webpack_require__(/*! ./shut-down */ "./src/server/shut-down.ts");
+
+var _app = __webpack_require__(/*! ./app */ "./src/server/app.ts");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+const pub = new _ioredis.default(_config.redis.url, _objectSpread({}, _config.redis.config, {
+  db: 0,
+  dropBufferSupport: true
+}));
+const redis = new _ioredis.default(_config.redis.url, _objectSpread({}, _config.redis.config, {
+  db: 0
+}));
+
+_shutDown.shuttingDown.subscribe(async () => {
+  await Promise.all([pub.quit(), redis.quit()]);
+});
+
+const io = __webpack_require__(/*! socket.io */ "socket.io")(_app.server);
+
+exports.io = io;
+io.engine['generateId'] = _v.default;
+io.adapter((0, _socket.default)({
+  pubClient: pub,
+  subClient: redis
+}));
+
+/***/ }),
+
+/***/ "./src/server/user.entity.ts":
+/*!***********************************!*\
+  !*** ./src/server/user.entity.ts ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.UserEntity = void 0;
+
+var _typeorm = __webpack_require__(/*! typeorm */ "typeorm");
+
+var _login = __webpack_require__(/*! ./login.entity */ "./src/server/login.entity.ts");
+
+var _session = __webpack_require__(/*! ./session.entity */ "./src/server/session.entity.ts");
+
+var _metadata = __webpack_require__(/*! server/metadata.field */ "./src/server/metadata.field.ts");
+
+var __decorate = void 0 && (void 0).__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+var __metadata = void 0 && (void 0).__metadata || function (k, v) {
+  if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+let UserEntity = class UserEntity {};
+exports.UserEntity = UserEntity;
+
+__decorate([(0, _typeorm.PrimaryGeneratedColumn)('uuid'), __metadata("design:type", String)], UserEntity.prototype, "id", void 0);
+
+__decorate([(0, _typeorm.Column)(() => _metadata.MetadataField), __metadata("design:type", _metadata.MetadataField)], UserEntity.prototype, "meta", void 0);
+
+__decorate([(0, _typeorm.Column)({
+  unique: true
+}), __metadata("design:type", String)], UserEntity.prototype, "nick", void 0);
+
+__decorate([(0, _typeorm.OneToMany)(() => _session.SessionEntity, session => session.user), __metadata("design:type", Array)], UserEntity.prototype, "sessions", void 0);
+
+__decorate([(0, _typeorm.OneToOne)(() => _login.LoginEntity, login => login.user, {
+  cascade: true
+}), (0, _typeorm.JoinColumn)(), __metadata("design:type", _login.LoginEntity)], UserEntity.prototype, "login", void 0);
+
+exports.UserEntity = UserEntity = __decorate([(0, _typeorm.Entity)('User')], UserEntity);
+
+/***/ }),
+
+/***/ "./src/square.ts":
+/*!***********************!*\
+  !*** ./src/square.ts ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.Square = void 0;
+
+class Square {
+  constructor(position, bounds) {
+    this.position = position;
+    this.bounds = bounds;
+    this.enabled = true;
+    this.color = null;
+  }
+
+  get empty() {
+    return this.color === null;
+  }
+
+}
+
+exports.Square = Square;
+
+/***/ }),
+
+/***/ "./src/validation.ts":
+/*!***************************!*\
+  !*** ./src/validation.ts ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+exports.isValidNick = isValidNick;
+exports.isValidRoomName = isValidRoomName;
+
+var _config = __webpack_require__(/*! data/config.yaml */ "./src/data/config.yaml");
+
+function isValidNick(nick) {
+  if (!nick) return false;
+  if (nick.length > _config.validation.maxNickLength) return false;
+  return /^[_a-z][-_a-z0-9]+[_a-z0-9]+/i.test(nick);
+}
+
+function isValidRoomName(roomName) {
+  if (!roomName) return false;
+  if (roomName.length > _config.validation.maxRoomNameLength) return false;
+  return true;
+}
+
+/***/ })
+
+};;
 //# sourceMappingURL=main~server.js.map
