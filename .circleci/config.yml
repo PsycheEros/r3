@@ -8,7 +8,6 @@ defaults: &defaults
 jobs:
   build_and_deploy:
     <<: *defaults
-    context: github
     steps:
     - run: git config --global core.autocrlf false
     - checkout
