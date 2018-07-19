@@ -6,7 +6,7 @@ defaults: &defaults
   working_directory: ~/src/github.com/errorx666/r3
 
 jobs:
-  build:
+  build-and-deploy:
     <<: *defaults
     steps:
     - run: git config --global core.autocrlf false
@@ -30,3 +30,12 @@ jobs:
     - run: git config --global user.name "CircleCI"
     - run: git config --global user.email "error@error-unlimited.net"
     - run: yarn deploy
+
+workflows:
+  version: 2
+  master:
+    jobs:
+    - build-and-deploy:
+        filter:
+          branches:
+            only: master
