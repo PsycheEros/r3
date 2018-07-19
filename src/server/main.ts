@@ -17,6 +17,7 @@ import { io } from './socket';
 import { connectionOptions, cleanup as cleanupConfig } from 'data/config.yaml';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
+import sleep from 'sleep-promise';
 
 import uuid from 'uuid/v4';
 import moment from 'moment';
@@ -52,6 +53,10 @@ async function joinRoom( manager: EntityManager, roomId: string, sessionId: stri
 	await flushUpdate( manager, roomId, sessionId );
 	const { nick } = await manager.findOne( SessionEntity, sessionId, { select: [ 'nick' ] } );
 	await statusMessage( roomId, `${nick} has joined the room.` );
+
+	// HACK
+	await sleep( 100 );
+	await flushUpdate( manager, roomId, sessionId );
 }
 
 async function flushJoinedRooms( manager: EntityManager, sessionId: string ) {
