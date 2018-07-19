@@ -40,6 +40,12 @@ jobs:
         - {{ .Environment.YARN_CACHE_FOLDER }}
         key: v1-dependencies-{{ checksum "yarn.lock" }}
     - run: yarn build
+    - store_artifacts:
+        path: ~/r3/dist
+    - store_artifacts:
+        path: ~/r3/package.json
+    - store_artifacts:
+        path: ~/r3/yarn.lock
   deploy:
     docker:
     - image: circleci/node:latest
