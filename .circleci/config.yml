@@ -6,7 +6,7 @@ defaults: &defaults
   working_directory: ~/src/github.com/errorx666/r3
 
 jobs:
-  build-and-deploy:
+  build:
     <<: *defaults
     steps:
     - run: git config --global core.autocrlf false
@@ -27,15 +27,21 @@ jobs:
         path: package.json
     - store_artifacts:
         path: yarn.lock
+    - persist_to_workspace:
+        root: .
+        paths:
+        - dist
+        - package.json
+        - yarn.lock
+  deploy:
+    <<: *defaults
+    steps:
+    - run: git config --global core.autocrlf false
     - run: git config --global user.name "CircleCI"
     - run: git config --global user.email "error@error-unlimited.net"
-    - run: yarn deploy
-
-workflows:
-  version: 2
-  master:
-    jobs:
-    - build-and-deploy:
-        filter:
-          branches:
-            only: master
+    - run: git clone https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
+    - attach_workspace:
+        at: .
+    - run: git add . -A
+    - run: git commit -m "deploy ${CIRCLE_WORKFLOW_ID}"
+    - run: git push origin master
