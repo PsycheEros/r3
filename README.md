@@ -1,1 +1,1 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/r0iea3wslrtrmxf3?svg=true)](https://ci.appveyor.com/project/errorx666/r3)
+[![CircleCI](https://circleci.com/gh/errorx666/r3.svg?style=svg)](https://circleci.com/gh/errorx666/r3)
