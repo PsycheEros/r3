@@ -28,13 +28,6 @@ jobs:
         - "{{ .Environment.YARN_CACHE_FOLDER }}"
         key: yarn
     - run: yarn build
-    - persist_to_workspace:
-        root: .
-        paths:
-        - dist
-        - node_modules
-        - package.json
-        - yarn.lock
     - store_artifacts:
         path: dist
     - store_artifacts:
