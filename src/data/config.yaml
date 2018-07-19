@@ -39,6 +39,6 @@ cleanup:
     checkSeconds: 15
     expireSeconds: 300
 redis:
-  host: localhost
-  port: 6379
-  showFriendlyErrorStack: true
+  url: //localhost:6379
+  config:
+    showFriendlyErrorStack: true

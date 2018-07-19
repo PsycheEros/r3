@@ -1,9 +1,9 @@
-import { redis as redisConfig } from 'data/config.yaml';
+import { redis as redisSettings } from 'data/config.yaml';
 import Redis from 'ioredis';
 import { shuttingDown } from './shut-down';
 
-export const pub = new Redis( { ...redisConfig, db: 1, dropBufferSupport: true } );
-export const redis = new Redis( { ...redisConfig, db: 1, dropBufferSupport: true } );
+export const pub = new Redis( redisSettings.url, { ...redisSettings.config, db: 1, dropBufferSupport: true } );
+export const redis = new Redis( redisSettings.url, { ...redisSettings.config, db: 1, dropBufferSupport: true } );
 
 shuttingDown.subscribe( async () => {
 	await Promise.all( [

@@ -29,5 +29,8 @@ declare module 'data/config.yaml' {
 			expireSeconds: number;
 		}
 	};
-	export const redis: Partial<RedisOptions>;
+	export const redis: {
+		url: string;
+		config: Partial<RedisOptions>
+	};
 }
