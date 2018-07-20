@@ -42,13 +42,9 @@ jobs:
     - attach_workspace:
         at: .
     - run: git init
-    - run: git remote add origin https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git
-    - run: git fetch
-#   - run: git branch master origin/master
-    - run: git checkout master
     - run: git add . -A
     - run: git commit -m "deploy ${CIRCLE_WORKFLOW_ID}"
-    - run: git push origin master
+    - run: git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
 
 workflows:
   version: 2
