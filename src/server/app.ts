@@ -8,6 +8,7 @@ import { appSettings, cspPolicy } from 'data/config.yaml';
 import { shutDown, shuttingDown } from './shut-down';
 
 export const app = express();
+if( process.env.PORT ) appSettings[ 'port' ] = parseInt( process.env.PORT, 10 );
 for( const [ key, value ] of Object.entries( appSettings ) ) {
 	app.set( key, value );
 }
