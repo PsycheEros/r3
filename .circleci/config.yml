@@ -24,6 +24,8 @@ jobs:
     - store_artifacts:
         path: dist
     - store_artifacts:
+        path: stats
+    - store_artifacts:
         path: package.json
     - store_artifacts:
         path: yarn.lock
@@ -31,6 +33,7 @@ jobs:
         root: .
         paths:
         - dist
+        - stats
         - package.json
         - yarn.lock
   deploy:
