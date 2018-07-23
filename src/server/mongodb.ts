@@ -17,7 +17,7 @@ let connection: Promise<{
 }>;
 export function connectMongodb() {
 	if( !connection ) connection = ( async () => {
-		const client = await MongoClient.connect( url, clientOptions );
+		const client = await MongoClient.connect( process.env.MONGODB_URI || url, clientOptions );
 		const db = client.db( dbName, dbOptions );
 		const collections = {
 			expirations: db.collection( 'expiration' ),
