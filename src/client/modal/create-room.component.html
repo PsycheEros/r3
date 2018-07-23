@@ -1,7 +1,7 @@
-<div bsModal #createRoomModal="bs-modal" (onHidden)="roomName = ''; password = '';" (onShown)="roomNameText.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+<div bsModal #createRoomModal="bs-modal" (onHidden)="createRoomForm.resetForm()" (onShown)="roomNameText.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
-			<modal-header (closeClick)="createRoomModal.hide()">
+			<modal-header (closeClick)="hide()">
 				Create Room
 			</modal-header>
 			<div class="modal-body">
@@ -13,7 +13,7 @@
 									<fa-icon icon="door-open"></fa-icon>
 								</div>
 							</div>
-							<input type="text" class="form-control" placeholder="Room Name" required="required" [(ngModel)]="roomName" #roomNameText name="room-name" autocomplete="off"/>
+							<input type="text" class="form-control" placeholder="Room Name" [stringValidationRules]="roomNameRules" [(ngModel)]="roomName" #roomNameText name="room-name" autocomplete="off"/>
 						</div>
 					</div>
 					<div class="form-group">
@@ -23,7 +23,7 @@
 									<fa-icon icon="lock"></fa-icon>
 								</div>
 							</div>
-							<input type="password" class="form-control" placeholder="Password (optional)" [(ngModel)]="password" name="room-password" autocomplete="off"/>
+							<input type="password" class="form-control" placeholder="Password (optional)" [stringValidationRules]="roomPasswordRules" [(ngModel)]="password" name="room-password" autocomplete="off"/>
 						</div>
 					</div>
 					<button class="btn float-right" [disabled]="!createRoomForm.form.valid">

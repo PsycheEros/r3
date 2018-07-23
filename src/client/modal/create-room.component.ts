@@ -1,6 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { RoomService } from 'client/room.service';
 import { ModalDirective } from 'ngx-bootstrap';
+import { roomNameRules, roomPasswordRules } from 'src/validation';
 
 @Component( {
 	selector: 'modal-create-room',
@@ -23,13 +24,14 @@ export class ModalCreateRoomComponent {
 		createRoomModal.hide();
 	}
 
-	public rooms = [] as Room[];
+	public readonly roomNameRules: StringValidationRules = roomNameRules;
+	public readonly roomPasswordRules: StringValidationRules = roomPasswordRules;
+	public rooms = [] as ClientRoom[];
 	public roomName = '';
 	public password = '';
 
 	public async createRoom() {
 		const { roomService, roomName, password } = this;
-		if( !roomName ) { return; }
 		this.hide();
 		await roomService.createRoom( roomName, password );
 	}

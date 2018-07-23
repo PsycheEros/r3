@@ -4,18 +4,18 @@
 		<li class="nav-item">
 			<a class="nav-link" href="javascript:"
 				(click)="setRoom(null)"
-				[class.active]="!currentRoom"
+				[class.active]="!currentRoomId"
 			>Lobby</a>
 		</li>
 		<li class="nav-item" *ngFor="let room of rooms">
 			<a class="nav-link" href="javascript:"
-				(click)="setRoom(room)"
-				[class.active]="currentRoom?.roomId===room.roomId"
+				(click)="setRoom(room.id)"
+				[class.active]="currentRoomId===room.id"
 			>
 				<span class="text-truncate">
 					{{room.name}}
 				</span>
-				<button class="close ml-2" (click)="leaveRoom(room)">
+				<button class="close ml-2" (click)="leaveRoom(room.id)">
 					<fa-icon icon="times" size="xs" transform="up-2"></fa-icon>
 				</button>
 			</a>

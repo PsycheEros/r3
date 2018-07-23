@@ -1,15 +1,14 @@
 import { rulesStandard } from 'src/rule-sets';
 
-import { combineLatest, SchedulerLike, Subject } from 'rxjs';
+import { combineLatest, from, SchedulerLike, Subject } from 'rxjs';
 
 import { Component, Inject, OnInit, ViewChild, OnDestroy } from '@angular/core';
 
 import { GameService } from './game.service';
 import { RoomService } from './room.service';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
-import { observeOn, takeUntil } from 'rxjs/operators';
+import { filter, observeOn, takeUntil, switchMap } from 'rxjs/operators';
 import { ModalNewGameComponent } from './modal/new-game.component';
-import { Board } from 'src/board';
 import { colors } from 'data/colors.yaml';
 
 const rules = rulesStandard;
@@ -31,17 +30,21 @@ export class GameComponent implements OnInit, OnDestroy {
 	public newGameModal: ModalNewGameComponent;
 
 	public ngOnInit() {
-		const { gameService, roomService, destroyed, scheduler } = this;
-		const currentRoom = roomService.getCurrentRoom();
-		currentRoom.subscribe( room => {
-			this.room = room || null;
+		const { destroyed, gameService, roomService, scheduler } = this;
+
+		roomService.getCurrentRoomId()
+		.pipe( takeUntil( destroyed ) )
+		.subscribe( roomId => {
+			this.roomId = roomId;
 		} );
-		combineLatest( gameService.getGames(), currentRoom,
-			( games, room ) => room
-			? games.filter( game => game.gameId === room.gameId )[ 0 ] || null
-			: null
-		)
+
+		combineLatest( gameService.getGames(), roomService.getCurrentRoom() )
 		.pipe(
+			switchMap( ( [ games, room ] ) =>
+				from( games ).pipe(
+					filter( game => room.gameId === game.id )
+				)
+			),
 			takeUntil( destroyed ),
 			observeOn( scheduler )
 		)
@@ -49,15 +52,11 @@ export class GameComponent implements OnInit, OnDestroy {
 			this.game = game;
 			if( game ) {
 				const gameState = this.gameState = game.gameStates.slice( -1 )[ 0 ];
-				this.board = Board.fromGame( game, gameState );
-				this.lastMove = gameState.lastMove;
 				const c = this.colors = [ ...game.colors ];
 				if( gameState.turn == null ) this.turn = null;
 				else this.turn = colors[ c[ gameState.turn ] ].displayName;
 			} else {
 				this.gameState = null;
-				this.board = null;
-				this.lastMove = null;
 				this.turn = null;
 			}
 		} );
@@ -70,33 +69,32 @@ export class GameComponent implements OnInit, OnDestroy {
 
 	public colors = null as string[];
 	public turn = null as string|null;
-	public room = null as Room|null;
-	public game = null as Game|null;
-	public gameState = null as GameState|null;
+	public roomId = null as string|null;
+	public game = null as ClientGame|null;
+	public gameState = null as ClientGameState|null;
 	public lastMove = null as Point|null;
-	public board = new Board;
 	public rules = null as Rules|null;
 
 	private readonly destroyed = new Subject<true>();
 
 	public onMouseMove( { square }: BoardMouseEvent ) {
 		if( !square ) return;
-		const { game, gameState } = this;
+		const { gameState } = this;
 
 		document.documentElement.style.cursor =
-			( rules.isGameOver( game, gameState )
-		||	rules.isValid( game, gameState, square.position, gameState.turn ) )
+			( rules.isGameOver( gameState )
+		||	rules.isValid( gameState, square.position, gameState.turn ) )
 		?   'pointer'
 			: null;
 	}
 
 	public onClick( { square }: BoardMouseEvent ) {
 		if( !square ) return;
-		const { room, game, gameState, gameService, newGameModal } = this;
-		if( rules.isGameOver( game, gameState ) ) {
-			newGameModal.show( room );
+		const { roomId, gameState, gameService, newGameModal } = this;
+		if( rules.isGameOver( gameState ) ) {
+			newGameModal.show( roomId );
 		} else {
-			gameService.makeMove( room.roomId, square.position );
+			gameService.makeMove( roomId, square.position );
 		}
 	}
 }

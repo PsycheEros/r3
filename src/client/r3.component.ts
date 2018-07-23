@@ -10,18 +10,23 @@ import { GameService } from './game.service';
 } )
 export class R3Component implements AfterViewInit, OnInit, OnDestroy {
 	public constructor(
-		// HACK: if we don't initialize this service before joining a room, there's a race condition
-		//       where we may not be listening in time for the first update event.
 		private readonly gameService: GameService,
 		private readonly roomService: RoomService
 	) {}
 
 	public ngOnInit() {
-		const { destroyed, roomService } = this;
-		roomService.getCurrentRoom()
+		const { destroyed, gameService, roomService } = this;
+
+		// HACK: if we don't initialize this service before joining a room, there's a race condition
+		//       where we may not be listening in time for the first update event.
+		gameService.getGames()
 		.pipe( takeUntil( destroyed ) )
-		.subscribe( room => {
-			this.currentRoom = room;
+		.subscribe();
+
+		roomService.getCurrentRoomId()
+		.pipe( takeUntil( destroyed ) )
+		.subscribe( roomId => {
+			this.currentRoomId = roomId;
 		} );
 	}
 
@@ -59,6 +64,6 @@ export class R3Component implements AfterViewInit, OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
-	public currentRoom = null as Room|null;
+	public currentRoomId = null as string|null;
 	private readonly destroyed = new Subject<true>();
 }

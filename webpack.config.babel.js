@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import nodeExternals from 'webpack-node-externals';
 import webpack from 'webpack';
+import { merge } from 'lodash';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 import { PurifyPlugin } from '@angular-devkit/build-optimizer';
@@ -9,17 +10,44 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
 import SriPlugin from 'webpack-subresource-integrity';
 import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import yargs from 'yargs';
 
 import yaml from 'js-yaml';
 
 const config = yaml.safeLoad( fs.readFileSync( path.resolve( 'webpack.yaml' ) ) );
-if( String( process.env.CI || '' ).toLowerCase() === 'true' ) config.devMode = false;
+const argv =
+	yargs
+	.options( {
+		prod: {
+			alias: 'p',
+			boolean: true,
+			coerce: v => v || undefined,
+			conflicts: 'dev',
+			type: 'boolean'
+		},
+		dev: {
+			alias: 'd',
+			boolean: true,
+			coerce: v => v || undefined,
+			conflicts: 'prod'
+		}
+	} )
+	.argv;
 
-const mode = config.devMode ? 'development' : 'production';
+const devMode =
+	argv.dev ? true
+:	argv.prod ? false
+:  ( String( process.env.CI || '' ).toLowerCase() === 'true' ) ? false
+:	config.devMode;
 
-const postCssOptions = { ...config.options.postcss,
-	plugins: Object.entries( config.options.postcss.plugins ).map( ( [ name, options ] ) => require( name )( options ) )
-};
+
+const mode = devMode ? 'development' : 'production';
+
+merge( config.options.postcss, {
+	plugins: Object.entries( config.options.postcss.plugins )
+			.map( ( [ name, options ] ) => require( name )( options ) )
+} );
 
 const loader = {
 	angular: { loader: '@ngtools/webpack' },
@@ -30,8 +58,7 @@ const loader = {
 	html: { loader: 'html-loader' },
 	raw: { loader: 'raw-loader' },
 	null: { loader: 'null-loader' },
-	postcss: { loader: 'postcss-loader', options: postCssOptions },
-	babelPre: { loader: 'babel-loader' },
+	postcss: { loader: 'postcss-loader' },
 	optimizer: { loader: '@angular-devkit/build-optimizer/webpack-loader' },
 	sass: { loader: 'sass-loader' },
 	style: { loader: MiniCssExtractPlugin.loader },
@@ -59,13 +86,15 @@ const resolve = {
 const angularPattern = /\.(?:ng)?(?:component|directive|factory|pipe|module|service|style)\./i
 
 const env = {
-	'process.env.DEBUG': JSON.stringify( config.devMode ),
+	'process.env.DEBUG': JSON.stringify( devMode ),
 	'process.env.NODE_ENV': JSON.stringify( mode )
 };
 
 /** @type {webpack.Configuration} */
-export const clientConfig = {
-	...config.configuration.client,
+export const clientConfig = merge( {}, config.configuration.client, { mode, resolve }, /** @type {webpack.Configuration} */ {
+	entry: {
+		client: path.resolve( __dirname, 'src', 'client', 'main' )
+	},
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src', 'client' ) ], exclude: [ /\.ng\w+\./ ], enforce: 'pre', use: [ loader.tslint ] },
@@ -82,17 +111,12 @@ export const clientConfig = {
 			{ test: /(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/i, use: [ loader.angular ] }
 		]
 	},
-	mode,
 	output: {
-		...config.configuration.client.output,
 		path: path.resolve( __dirname, ...config.configuration.client.output.path )
 	},
 	plugins: [
-		new PurifyPlugin,
 		new AngularCompilerPlugin( config.options.angular ),
-		new MiniCssExtractPlugin({
-			filename: '[name].css'
-		} ),
+		new MiniCssExtractPlugin( { filename: '[name].css' } ),
 		new webpack.DefinePlugin( {
 			'process.browser': JSON.stringify( true ),
 			'process.platform': JSON.stringify( 'browser' ),
@@ -112,18 +136,26 @@ export const clientConfig = {
 		new ScriptExtHtmlWebpackPlugin( {
 			defaultAttribute: 'async'
 		} ),
-		new SriPlugin( {
-			hashFuncNames: [ 'sha256' ],
-			enabled: true
-		} ),
-		new HtmlWebpackInlineSourcePlugin
-	],
-	resolve
-};
+		new HtmlWebpackInlineSourcePlugin,
+		...( devMode ? [] : [
+			new PurifyPlugin,
+			new BundleAnalyzerPlugin( {
+				analyzerMode: 'static',
+				reportFilename: path.resolve( __dirname, 'stats', 'client.html' )
+			} ),
+			new SriPlugin( {
+				hashFuncNames: [ 'sha256' ],
+				enabled: true
+			} )
+		] )
+	]
+} );
 
 /** @type {webpack.Configuration} */
-export const serverConfig = {
-	...config.configuration.server,
+export const serverConfig = merge( {}, config.configuration.server, { mode, resolve }, /** @type {webpack.Configuration} */ {
+	entry: {
+		server: path.resolve( __dirname, 'src', 'server', devMode ? 'main' : 'start' )
+	},
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src' ) ], exclude: [ path.resolve( __dirname, 'src', 'client' ) ], enforce: 'pre', use: [ loader.tslint ] },
@@ -132,24 +164,27 @@ export const serverConfig = {
 			{ test: /\.ts$/i, use: [ loader.typescript ] }
 		]
 	},
-	mode,
 	output: {
-		...config.configuration.server.output,
 		path: path.resolve( __dirname, ...config.configuration.server.output.path )
 	},
 	externals: [
 		nodeExternals( {
 			modulesFromFile: {
-				include: [ 'dependencies' ]
+				exclude: [ 'devDependencies' ]
 			}
 		} )
 	],
 	plugins: [
 		new webpack.DefinePlugin( {
 			...env
-		} )
-	],
-	resolve
-};
+		} ),
+		...( devMode ? [] : [
+			new BundleAnalyzerPlugin( {
+				analyzerMode: 'static',
+				reportFilename: path.resolve( __dirname, 'stats', 'server.html' )
+			} )
+		] )
+	]
+} );
 
 export default [ clientConfig, serverConfig ];

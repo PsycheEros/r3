@@ -22,10 +22,10 @@ export class NavigationComponent implements OnInit, OnDestroy {
 			this.rooms = rooms;
 		} );
 
-		roomService.getCurrentRoom()
+		roomService.getCurrentRoomId()
 		.pipe( takeUntil( destroyed ) )
-		.subscribe( room => {
-			this.currentRoom = room;
+		.subscribe( roomId => {
+			this.currentRoomId = roomId;
 		} );
 	}
 
@@ -34,16 +34,16 @@ export class NavigationComponent implements OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
-	public rooms = [] as Room[];
+	public rooms = [] as ClientRoom[];
 
-	public currentRoom = null as Room|null;
+	public currentRoomId = null as string|null;
 
-	public async setRoom( room: Room|null ) {
+	public async setRoom( roomId: string|null ) {
 		const { roomService } = this;
-		await roomService.setRoom( room );
+		await roomService.setRoom( roomId );
 	}
 
-	public async leaveRoom( { roomId }: Room ) {
+	public async leaveRoom( roomId: string|null ) {
 		const { roomService } = this;
 		await roomService.leaveRoom( roomId );
 	}

@@ -1,9 +1,6 @@
-import { redis as redisSettings } from 'data/config.yaml';
+import { url, options } from 'data/redis.config.yaml';
 import Redis from 'ioredis';
 
-let url = redisSettings.url;
-if( process.env.REDIS_URL ) url = process.env.REDIS_URL;
-
 export function redis( options: Partial<Redis.RedisOptions> ) {
-	return new Redis( url, { ...redisSettings.config, ...options } );
+	return new Redis( process.env.REDIS_URL || url, { ...options, ...options } );
 }

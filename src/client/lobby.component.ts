@@ -1,6 +1,6 @@
 import { Component, ViewChild, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
-import { take, takeUntil } from 'rxjs/operators';
+import { take, takeUntil, map } from 'rxjs/operators';
 import { RoomService } from './room.service';
 import { ModalCreateRoomComponent } from './modal/create-room.component';
 import { ModalJoinRoomComponent } from './modal/join-room.component';
@@ -21,12 +21,20 @@ export class LobbyComponent implements OnInit, OnDestroy {
 	@ViewChild( 'joinRoomModal' )
 	public joinRoomModal: ModalJoinRoomComponent;
 
+	public joinedRoomIds = [] as string[];
+
 	public ngOnInit() {
 		const { destroyed, roomService } = this;
 		roomService.getRooms()
 		.pipe( takeUntil( destroyed ) )
 		.subscribe( rooms => {
 			this.rooms = rooms;
+		} );
+
+		roomService.getJoinedRooms()
+		.pipe( map( r => r.map( r => r.id ) ), takeUntil( destroyed ) )
+		.subscribe( roomIds => {
+			this.joinedRoomIds = roomIds;
 		} );
 	}
 
@@ -35,17 +43,23 @@ export class LobbyComponent implements OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
-	public rooms = [] as Room[];
+	public rooms = [] as ClientRoom[];
 
-	public async joinRoom( room: Room ) {
-		const { roomService } = this;
-		const joinedRooms = await roomService.getJoinedRooms().pipe( take( 1 ) ).toPromise();
-		if( joinedRooms.some( r => r.roomId === room.roomId ) ) {
-			await roomService.setRoom( room );
+	public async joinRoom( room: ClientRoom ) {
+		const { joinedRoomIds, roomService } = this;
+		if( joinedRoomIds.includes( room.id ) ) {
+			await this.showRoom( room );
 		} else if( room.hasPassword ) {
 			this.joinRoomModal.show( room );
 		} else {
-			await roomService.joinRoom( room, '' );
+			await roomService.joinRoom( room.id, '' );
+		}
+	}
+
+	public async showRoom( room: ClientRoom ) {
+		const { joinedRoomIds, roomService } = this;
+		if( joinedRoomIds.includes( room.id ) ) {
+			await roomService.setRoom( room.id );
 		}
 	}
 

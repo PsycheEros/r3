@@ -1,5 +1,5 @@
-import { Observable, Subject, of, fromEvent } from 'rxjs';
-import { mergeMap, mapTo, take } from 'rxjs/operators';
+import { Observable, Subject, of } from 'rxjs';
+import { delay, mergeMap, mapTo, take } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import cluster from 'cluster';
 
@@ -24,3 +24,9 @@ if( cluster.isWorker ) {
 	.pipe( take( 1 ) )
 	.subscribe( shutDown );
 }
+
+shuttingDown
+.pipe( delay( 5000 ) )
+.subscribe( () => {
+	process.exit( 0 );
+} );

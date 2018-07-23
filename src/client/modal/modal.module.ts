@@ -9,9 +9,10 @@ import { ModalNewGameComponent } from './new-game.component';
 import { ModalJoinRoomComponent } from './join-room.component';
 import { ModalModule as NgxModalModule } from 'ngx-bootstrap';
 import { ComponentLoaderFactory } from 'ngx-bootstrap/component-loader';
+import { ValidatorModule } from 'client/validator/validator.module';
 
 @NgModule( {
-	imports:      [ CommonModule, FormsModule, NgxModalModule.forRoot(), FontAwesomeModule ],
+	imports:      [ CommonModule, FormsModule, NgxModalModule.forRoot(), FontAwesomeModule, ValidatorModule ],
 	exports:      [ ModalChooseComponent, ModalCreateRoomComponent, ModalNewGameComponent, ModalJoinRoomComponent ],
 	declarations: [ ModalChooseComponent, ModalCreateRoomComponent, ModalHeaderComponent, ModalNewGameComponent, ModalJoinRoomComponent ],
 	providers:    [ ComponentLoaderFactory ]

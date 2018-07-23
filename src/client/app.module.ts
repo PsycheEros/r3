@@ -15,12 +15,14 @@ import { ModalModule } from './modal/modal.module';
 import { NavigationComponent } from './navigation.component';
 import { R3Component } from './r3.component';
 import { RoomComponent } from './room.component';
+import { ScoreboardComponent } from './scoreboard.component';
 import { RoomService } from './room.service';
 import { SessionService } from './session.service';
+import { ValidatorModule } from './validator/validator.module';
 
 @NgModule( {
-	imports:      [ BrowserModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule ],
-	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, NavigationComponent, R3Component, RoomComponent ],
+	imports:      [ BrowserModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule, ValidatorModule ],
+	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, NavigationComponent, R3Component, RoomComponent, ScoreboardComponent ],
 	providers:    [ GameService, RoomService, SessionService ],
 	bootstrap:    [ R3Component ]
 } )

@@ -1,0 +1,7 @@
+shared: &rxdbShared
+clientDatabase:
+  <<: *rxdbShared
+  name: r3client
+serverDatabase:
+  <<: *rxdbShared
+  name: r3server

@@ -3,11 +3,11 @@ declare interface Rules {
 	readonly ruleSet: RuleSet;
 	readonly colors: number;
 	readonly boardSize: Readonly<Size>;
-	isValid( game: Game, gameState: GameState, position: Point, color: number ): boolean;
+	isValid( gameState: ClientGameState, position: Point, color: number ): boolean;
 	compareScores( score1: number, score2: number ): number;
-	getValidMoves( game: Game, gameState: GameState, color: number ): Point[];
-	isGameOver( game: Game, gameState: GameState ): boolean;
-	makeMove( game: Game, gameState: GameState, position: Point ): GameState|null;
-	getScore( game: Game, gameState: GameState, color: number ): number;
-	newGame( gameId: string ): Game;
+	getValidMoves( gameState: ClientGameState, color: number ): Point[];
+	isGameOver( gameState: ClientGameState ): boolean;
+	makeMove( gameState: ClientGameState, position: Point ): ClientGameState|null;
+	getScore( gameState: ClientGameState, color: number ): number;
+	getInitialState(): ClientGameState;
 }

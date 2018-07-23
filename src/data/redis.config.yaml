@@ -1,0 +1,3 @@
+url: //localhost:6379
+options:
+  showFriendlyErrorStack: true

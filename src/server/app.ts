@@ -4,7 +4,7 @@ import path from 'path';
 import compression from 'compression';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
-import { appSettings, cspPolicy } from 'data/config.yaml';
+import { appSettings, cspPolicy } from 'data/app.config.yaml';
 import { shutDown, shuttingDown } from './shut-down';
 
 export const app = express();
@@ -31,5 +31,3 @@ server.listen( app.get( 'port' ), app.get( 'host' ), err => {
 shuttingDown.subscribe( () => {
 	server.close( () => {} );
 } );
-
-require( './health.endpoint' ).register( app );

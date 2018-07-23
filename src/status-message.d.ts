@@ -1,4 +1,4 @@
 declare interface StatusMessage {
-	roomId: number;
+	roomId: string;
 	message: string;
 }

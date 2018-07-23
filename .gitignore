@@ -8,3 +8,4 @@
 !.circleci
 node_modules/
 dist/
+stats/

@@ -1,0 +1,41 @@
+<div class="row" *ngIf="game">
+	<div class="col-xs-4 col-12">
+		<div class="card my-2">
+			<div class="card-body" *ngIf="turn == null">
+				Game Over
+			</div>
+			<div class="card-body" *ngIf="turn != null">
+				{{turn}}’s Turn
+			</div>
+		</div>
+	</div>
+<!--
+	<div class="col-xs-8 col-12">
+		<table class="table table-sm table-striped text-right my-2">
+			<thead>
+				<tr>
+					<th scope="col">Color</th>
+					<th scope="col">Score</th>
+					<th scope="col">Player</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Black</td>
+					<td>31</td>
+					<td>error</td>
+				</tr>
+				<tr>
+					<td>White</td>
+					<td>34</td>
+					<td>
+						<button class="btn btn-sm">
+							Play
+						</button>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+-->
+</div>

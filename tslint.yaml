@@ -46,7 +46,8 @@ rules:
   switch-final-break: false
   trailing-comma:
   - true
-  - never
+  - multiline: never
+    singleline: never
   triple-equals:
   - true
   - allow-null-check

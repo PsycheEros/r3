@@ -57,15 +57,6 @@ export class Board {
 			square.color = color;
 		}
 	}
-
-	public getGameState( index: number ) {
-		return {
-			index,
-
-			data: this.getData()
-		} as GameState;
-	}
-
 	public getMask() {
 		return Object.freeze( Array.from( this.grid ).map( sq => sq.enabled ) );
 	}
@@ -76,11 +67,11 @@ export class Board {
 		}
 	}
 
-	public static fromGame( game: Game, gameState: GameState ) {
+	public static fromGameState( gameState: Pick<ClientGameState,'size'|'data'|'mask'> ) {
 		const board = new Board;
-		board.reset( game.size );
+		board.reset( gameState.size );
 		board.setData( gameState.data );
-		board.setMask( game.mask );
+		board.setMask( gameState.mask );
 		return board;
 	}
 

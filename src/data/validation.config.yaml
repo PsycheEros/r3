@@ -1,0 +1,44 @@
+nick:
+  length:
+    min: 3
+    max: 24
+  matches: '^[$_A-Za-z](?:[-$_A-Za-z0-9]*[_$A-Za-z0-9])?$'
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'
+  - \s
+roomName:
+  length:
+    min: 3
+    max: 64
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'
+  - ^\s
+  - \s$
+roomPassword:
+  length:
+    max: 32
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'
+userPassword:
+  length:
+    min: 8
+    max: 256
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'
+  nonEquals:
+  - password
+chatMessage:
+  required: true
+  length:
+    max: 280
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'
+  - ^\s*$
+command:
+  required: true
+  length:
+    max: 64
+  matches:
+  - '^/'
+  nonMatches:
+  - '[^\x20-\xAD\x7F]'

@@ -1,0 +1,24 @@
+appSettings:
+  'case sensitive routing': true
+  host: 0.0.0.0
+  'json escape': true
+  'json spaces': '\t'
+  port: 8080
+  'strict routing': true
+  'x-powered-by': false
+cspPolicy:
+  policy:
+    directives:
+      default-src:
+      - self
+      script-src:
+      - self
+    reportPolicy:
+      useScriptNonce: true
+      useStyleNonce: true
+      directives:
+        default-src:
+        - self
+        script-src:
+        - self
+        plugin-types: []

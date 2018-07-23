@@ -60,6 +60,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	}
 
 	public ngOnChanges() {
+		const { gameState } = this;
+		this.board = gameState ? Board.fromGameState( gameState ) : null;
 		this.dirty.next( true );
 	}
 
@@ -83,11 +85,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	@Input()
 	public colors: string[] = [];
 
-	@Input()
-	public board: Board;
+	public board: null|Board = null;
 
 	@Input()
-	public lastMove: null|Point = null;
+	public gameState: null|ClientGameState = null;
 
 	@Output()
 	public click = new EventEmitter<BoardMouseEvent>();
@@ -97,13 +98,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 	private render() {
 		const { board } = this;
+		const { canvas, c2d } = this;
+		const { width, height } = canvas;
+		c2d.clearRect( 0, 0, width, height );
 		if( !board ) return;
-		const { canvas, c2d } = this,
-			{ width, height } = canvas,
-			lightSource: Point = {
-				x: board.bounds.left + board.bounds.width * .25,
-				y: board.bounds.top + board.bounds.height * .25
-			};
+		const lightSource: Point = {
+			x: board.bounds.left + board.bounds.width * .25,
+			y: board.bounds.top + board.bounds.height * .25
+		};
 		c2d.clearRect( 0, 0, width, height );
 
 		const squareGradient = c2d.createRadialGradient(
@@ -246,7 +248,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			}
 			c2d.restore();
 		}
-		const { lastMove } = this;
+		const { lastMove } = this.gameState;
 		if( lastMove ) {
 			const { bounds } = board.get( lastMove );
 			c2d.save();

@@ -1,7 +1,7 @@
-<div bsModal #joinRoomModal="bs-modal" (onHidden)="password = '';" (onShown)="roomPasswordText.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+<div bsModal #joinRoomModal="bs-modal" (onHidden)="joinRoomForm.resetForm()" (onShown)="roomPasswordText.focus();" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
-			<modal-header (closeClick)="joinRoomModal.hide()">
+			<modal-header (closeClick)="hide()">
 				Join Room
 			</modal-header>
 			<div class="modal-body">
@@ -23,7 +23,7 @@
 									<fa-icon icon="key"></fa-icon>
 								</div>
 							</div>
-							<input type="password" class="form-control" placeholder="Password" required="required" #roomPasswordText [(ngModel)]="password" name="room-password" autocomplete="off"/>
+							<input type="password" class="form-control" placeholder="Password" [stringValidationRules]="roomPasswordRules" #roomPasswordText [(ngModel)]="password" name="room-password" autocomplete="off"/>
 						</div>
 					</div>
 					<button class="btn float-right" [disabled]="!joinRoomForm.form.valid">

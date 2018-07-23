@@ -1,7 +1,7 @@
-<div bsModal #newGameModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+<div bsModal #newGameModal="bs-modal" (onHidden)="newGameForm.resetForm()" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
-			<modal-header (closeClick)="newGameModal.hide()">
+			<modal-header (closeClick)="hide()">
 				New Game
 			</modal-header>
 			<div class="modal-body">

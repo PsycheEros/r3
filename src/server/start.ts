@@ -7,7 +7,7 @@ import { shuttingDown } from './shut-down';
 
 import cluster from 'cluster';
 
-import { workers } from 'data/config.yaml';
+import { workers } from 'data/cluster.config.yaml';
 import { promisify } from 'util';
 
 if( cluster.isMaster ) {

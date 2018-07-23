@@ -3,10 +3,15 @@
 		<form (ngSubmit)="sendMessage()" #messageForm="ngForm" autocomplete="off">
 			<div class="form-group">
 				<div class="input-group">
-					<input type="text" class="form-control" required="required" placeholder="Enter message" [(ngModel)]="text" name="text" autocomplete="off"/>
+					<input type="text" class="form-control" required="required" placeholder="Enter message" [(ngModel)]="text" name="text" autocomplete="off"
+						#textbox
+						[stringValidationRules]="isCommand ? commandRules : chatMessageRules"
+						commandValidation
+					/>
 					<div class="input-group-append">
 						<button [disabled]="!messageForm.form.valid">
-							<fa-icon [icon]="[ 'far', 'comment' ]" transform="up-2"></fa-icon>
+							<fa-icon [icon]="[ 'far', 'comment' ]" transform="up-2" *ngIf="!isCommand"></fa-icon>
+							<fa-icon icon="terminal" transform="up-2" *ngIf="isCommand"></fa-icon>
 						</button>
 					</div>
 				</div>

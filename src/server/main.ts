@@ -1,435 +1,341 @@
 import './error-handler';
 import './polyfills';
 
-import { createConnection, EntityManager } from 'typeorm';
-import { Subject, interval, of } from 'rxjs';
-import { onErrorResumeNext, mergeMap, take, tap, takeUntil } from 'rxjs/operators';
+import { interval } from 'rxjs';
+import { take, takeUntil, share, exhaustMap, concatMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
-import { isValidNick, isValidRoomName } from 'src/validation';
-import { GameEntity } from './game.entity';
-import { GameStateEntity } from './game-state.entity';
-import { LoginEntity } from './login.entity';
-import { RoomEntity } from './room.entity';
-import { SessionEntity } from './session.entity';
-import { UserEntity } from './user.entity';
+import { promisify } from 'util';
+import { isValidRoomName } from 'src/validation';
 import { ruleSetMap } from 'src/rule-sets';
 import { io } from './socket';
-import { connectionOptions, cleanup as cleanupConfig } from 'data/config.yaml';
+import cleanupConfig from 'data/cleanup.config.yaml';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
-import sleep from 'sleep-promise';
+import _ from 'lodash';
 
 import uuid from 'uuid/v4';
-import moment from 'moment';
-import assert from 'assert';
-
-type CallbackEvent<T = {}, U = {}> = [ T, ( error: Error|null, value: U|null ) => void ];
-
-
-
-function getSocket( sessionId: string ) {
-	return Object.entries( io.of( '/' ).connected )
-	.filter( ( [ id, socket ] ) => id === sessionId )
-	.map( ( [ id, socket ] ) => socket )[ 0 ]
-	|| null;
-}
-
-async function getJoinedRoomIds( manager: EntityManager, sessionId: string ) {
-	const socket = getSocket( sessionId );
-	if( !socket ) return [];
-	const rooms = await manager.findByIds( RoomEntity, Object.keys( socket.rooms ) );
-	return rooms.map( room => room.id );
-}
-
-async function joinRoom( manager: EntityManager, roomId: string, sessionId: string ) {
-	const socket = getSocket( sessionId );
-	await new Promise( ( resolve, reject ) => {
-		socket.join( roomId, err => {
-			if( err ) { reject( err ); }
-			else { resolve(); }
-		} );
-	} );
-	await flushJoinedRooms( manager, sessionId );
-	await flushUpdate( manager, roomId, sessionId );
-	const { nick } = await manager.findOne( SessionEntity, sessionId, { select: [ 'nick' ] } );
-	await statusMessage( roomId, `${nick} has joined the room.` );
-
-	// HACK
-	await sleep( 100 );
-	await flushUpdate( manager, roomId, sessionId );
-}
-
-async function flushJoinedRooms( manager: EntityManager, sessionId: string ) {
-	const roomIds = await getJoinedRoomIds( manager, sessionId );
-	io.to( sessionId ).emit( 'joinedRooms', roomIds );
-}
-
-async function flushRooms( manager: EntityManager, sessionId?: string ) {
-	const rooms = ( await manager.find( RoomEntity ) ).map( RoomEntity.toRoom );
-	const emitter = sessionId ? io.to( sessionId ) : io;
-	emitter.emit( 'rooms', rooms );
-}
-
-async function leaveRoom( manager: EntityManager, sessionId: string, roomId: string ) {
-	const socket = getSocket( sessionId );
-	await new Promise( ( resolve, reject ) => {
-		socket.leave( roomId, err => {
-			if( err ) {
-				reject( err );
-			} else {
-				resolve();
-			}
-		} );
-	} );
-	await flushJoinedRooms( manager, sessionId );
-	const { nick } = await manager.findOne( SessionEntity, sessionId, { select: [ 'nick' ] } );
-	await statusMessage( roomId, `${nick} has left the room.` );
-}
-
-function statusMessage( message: string, roomId: string, sessionId?: string ) {
-	io.to( sessionId || roomId ).emit( 'message', { roomId, message } );
-	return true;
-}
-
-function chatMessage( user: string, message: string, roomId: string ) {
-	io.to( roomId ).emit( 'message', { roomId, user, message } );
-	return true;
-}
-
-async function flushUpdate( manager: EntityManager, roomId: string, sessionId?: string ) {
-	await transaction( manager, async manager => {
-		const room = await manager.findOne( RoomEntity, roomId);
-		if( !room ) return;
-		const game = await manager.findOne( GameEntity, room.gameId, { relations: [ 'gameStates' ] } );
-		if( !game ) return;
-		io.to( sessionId || room.id ).emit( 'update', GameEntity.toGame( game ) );
-	} );
-}
-
-async function cleanupRooms( manager: EntityManager ) {
-	await transaction( manager, async manager => {
-		let removed = 0;
-		await Promise.all(
-			( await manager.find( RoomEntity, { select: [ 'id', 'expires' ] } ) )
-			.map( async room => {
-				const clients = await new Promise<string[]>( ( resolve, reject ) => {
-					io.in( room.id ).clients( ( err, clients ) => {
-						if( err ) reject( err );
-						else resolve( clients );
-					} );
-				} );
-				if( clients.length === 0 ) {
-					if( room.expires ) {
-						if( moment( room.expires ).isSameOrBefore() ) {
-							console.log( `Deleting room ${room.id}...` );
-							await manager.remove( room );
-							++removed;
-						}
-					} else {
-						const expires = moment().add( cleanupConfig.rooms.expireSeconds, 's' );
-						console.log( `Queuing room ${room.id} for deletion ${expires.fromNow()}...` );
-						room.expires = expires.toDate();
-						await manager.save( room );
-					}
-				}
-			} )
-		);
-		if( removed ) await flushRooms( manager );
-	} );
-}
-
-async function newGame( manager: EntityManager, roomId: string, ruleSet: RuleSet ) {
-	statusMessage( 'New game', roomId );
-	const rules = ruleSetMap.get( ruleSet );
-	return await transaction( manager, async manager => {
-		const game = rules.newGame( uuid() );
-		const gameEntity = await manager.create( GameEntity, {
-			id: game.gameId,
-			colors: [ ...game.colors ],
-			mask: game.mask.map( v => v ? '1' : '0' ).join( '' ),
-			size: { ...game.size },
-			ruleSet: game.ruleSet
-		} );
-		await manager.save( gameEntity );
-		await saveGameStates( manager, game );
-		await manager.update( RoomEntity, roomId, { gameId: gameEntity.id } );
-		flushRooms( manager );
-		flushUpdate( manager, roomId );
-		return game;
-	} );
-}
-
-async function saveGameStates( manager: EntityManager, game: Game ) {
-	return await transaction( manager, async manager => {
-		await Promise.all(
-			game.gameStates.map( async ( gs, index ) => {
-				let gameState = await manager.findOne( GameStateEntity, { gameId: game.gameId, index } );
-				if( !gameState ) gameState = await manager.create( GameStateEntity, { gameId: game.gameId, index } );
-				gameState.turn = gs.turn;
-				gameState.data = gs.data.map( v => ( v == null ) ? 'x' : String(v) );
-				gameState.lastMove = { ...gs.lastMove };
-				await manager.save( gameState );
-			} )
-		);
-	} );
-}
-
-const transaction = ( () => {
-	let m: EntityManager = null;
-	return ( <T>( manager: EntityManager, fn: ( manager: EntityManager ) => Promise<T> ) => {
-		assert( manager );
-		if( m ) {
-			return fn( m );
-		} else {
-			return manager.transaction<T>( async manager => {
-				m = manager;
-				try {
-					return await fn( m );
-				} finally {
-					m = null;
-				}
-			} );
-		}
-	} );
-} )();
-
-async function createRoom( manager: EntityManager, sessionId: string, name: string, password: string ) {
-	if( !isValidRoomName( name ) ) throw new Error( 'Invalid room name.' );
-	return await transaction( manager, async manager => {
-		const roomEntity =
-			await manager.create( RoomEntity, {
-				name,
-				passwordHash: await hashPassword( password )
-			} );
-		await manager.save( roomEntity );
-		await joinRoom( manager, roomEntity.id, sessionId );
-		await newGame( manager, roomEntity.id, RuleSet.standard );
-		return roomEntity;
-	} );
-}
-
-async function makeMove( manager: EntityManager, roomId: string, position: Point ) {
-	return await transaction( manager, async manager => {
-		const roomEntity = await manager.findOne( RoomEntity, roomId );
-		const gameEntity = await manager.findOne( GameEntity, roomEntity.gameId, { relations: [ 'gameStates' ] } );
-		const rules = ruleSetMap.get( gameEntity.ruleSet );
-		let game = GameEntity.toGame( gameEntity );
-		const prevGameState = game.gameStates.slice( -1 )[ 0 ];
-		const nextGameState = rules.makeMove( game, prevGameState, position );
-		if( !nextGameState ) {
-			return false;
-		}
-		game = {
-			...game,
-			gameStates: [ ...game.gameStates, nextGameState ]
-		};
-		await saveGameStates( manager, game );
-		if( rules.isGameOver( game, nextGameState ) ) {
-			const scores =
-			Array.from( { length: rules.colors } )
-			.map( ( _, color ) => ( {
-				color: colors[ game.colors[ color ] ].displayName,
-				score: rules.getScore( game, nextGameState, color )
-			} ) );
-			scores.sort( ( c1, c2 ) => {
-				const r1 = rules.compareScores( c1.score, c2.score );
-				return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
-			} );
-			const bestScore = scores[ 0 ].score;
-			const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
-			let message: string;
-			if( winners.length !== 1 ) {
-				message = 'Draw game.';
-			} else {
-				message = `${winners[ 0 ].color} wins.`;
-			}
-			await statusMessage( `${message}:\n${scores.map(({color, score})=>`${color}: ${score}`).join('\n')}`, roomId );
-		}
-		await flushUpdate( manager, roomId );
-		return true;
-	} );
-}
+import { s2cRoom, s2cGame, s2cGameState } from './server-to-client';
+import { shuttingDown } from './shut-down';
+import { connectMongodb } from './mongodb';
 
 ( async () => {
 	try {
-		const { manager } = await createConnection( {
-			...connectionOptions,
-			entities: [ GameEntity, GameStateEntity, LoginEntity, RoomEntity, SessionEntity, UserEntity ]
-		} );
+		const { collections } = await connectMongodb();
 
-		interval( moment.duration( cleanupConfig.rooms.checkSeconds, 's' ).asMilliseconds() )
-		.subscribe( async () => {
-			cleanupRooms( manager );
-		} );
+		async function getNick( sessionId: string ) {
+			const { nick } = await collections.sessions.findOne( { _id: sessionId }, { projection: { _id: 0, nick: 1 } } );
+			return nick;
+		}
+
+		// remove ephemeral entities
+		// await Promise.all( [
+		// 	collections.expirations.deleteMany( {} ),
+		// 	collections.sessions.deleteMany( {} ),
+		// 	collections.rooms.deleteMany( {} ),
+		// 	collections.roomSessions.deleteMany( {} )
+		// ] );
+
+		async function sendRooms( emitter: Emitter = io ) {
+			emitter.emit( 'rooms',
+				( await collections.rooms.find( {} ).toArray() )
+				.map( s2cRoom )
+			);
+		}
+
+		async function sendJoinedRooms( sessionId: string ) {
+			io.to( `session:${sessionId}` )
+			.emit( 'joinedRooms',
+				( await collections.roomSessions.find( { sessionId } ).project( { roomId: 1 } ).toArray() )
+				.map( r => r.roomId )
+			);
+		}
 
 		let connections = 0;
 
 		fromNodeEvent<SocketIO.Socket>( io, 'connection' )
 		.subscribe( async socket => {
 			console.log( `User connected, ${++connections} connected, ${socket.id}` );
+			const sessionId = socket.id;
+			await collections.sessions.insertOne( { _id: sessionId, nick: 'Guest' } as ServerSession );
+			socket.join( `session:${sessionId}` );
 
-			const disconnecting = fromNodeEvent( socket, 'disconnecting' ).pipe( take( 1 ) );
-			const disconnected = fromNodeEvent( socket, 'disconnect' ).pipe( take( 1 ) );
+			sendRooms( io.to( `session:${sessionId}` ) );
+			sendJoinedRooms( sessionId );
 
-			function handleCallbackEvent<T extends object = {}, U = {}>( eventName: string, fn: ( value: T & { manager: EntityManager } ) => PromiseLike<U|void> ) {
-				const result = new Subject<U>();
-				fromNodeEvent<CallbackEvent<T, U>>( socket, eventName )
-				.pipe(
-					takeUntil( disconnected ),
-					mergeMap<CallbackEvent<T, U>, {}>( ( [ value, callback ] ) =>
-						of( value )
-						.pipe(
-							mergeMap( value => transaction( manager, async manager => fn( { manager, ...( value as any ) } ) ) ),
-							tap( {
-								next( value ) {
-									callback( null, ( value == null ) ? {} as any : value );
-								},
-								error( err ) {
-									console.error( err );
-									callback( ( err == null ) ? {} : err.message, null );
-								}
-							} ),
-							onErrorResumeNext()
-						)
-					),
-				)
-				.subscribe( result );
-				return result;
+			const disconnected = fromNodeEvent( socket, 'disconnect' ).pipe( share(), take( 1 ) );
+			const disconnecting = fromNodeEvent( socket, 'disconnecting' ).pipe( share(), take( 1 ), takeUntil( disconnected ) );
+
+			async function newGame( roomId: string, ruleSet: RuleSet ) {
+				const rules = ruleSetMap.get( ruleSet );
+				const gameId = uuid();
+				const gameState = rules.getInitialState();
+				const defaultColors = [ 'black', 'white', 'red', 'blue' ];
+
+				const game: ServerGame = {
+					_id: gameId,
+					colors: defaultColors.slice( 0, rules.colors ),
+					gameStates: [ gameState ],
+					ruleSet
+				};
+				await collections.games.insertOne( game );
+				await collections.rooms.updateOne( { _id: roomId }, { $set: { gameId } } as Partial<ServerRoom> );
+				await sendRooms();
+				return game;
 			}
 
-			const sessionId = socket.id;
-			await manager.save(
-				await manager.create( SessionEntity, { id: sessionId, nick: 'Guest' } )
-			);
-
-			disconnecting.subscribe( async () => {
-				await transaction( manager, async manager => {
+			fromNodeEvent( socket, 'createRoom' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { name, password }, callback ] ) => {
 					try {
-						const roomIds = await getJoinedRoomIds( manager, sessionId );
-						if( roomIds.length > 0 ) {
-							const { nick } = await manager.findOne( SessionEntity, sessionId, { select: [ 'nick' ] } );
-							await Promise.all(
-								roomIds.map( roomId => statusMessage( `${nick} has disconnected.`, roomId ) )
-							);
-						}
-					} finally {
-						manager.delete( SessionEntity, sessionId );
+						if( !isValidRoomName( name ) ) throw new Error( 'Invalid room name.' );
+						const roomId = uuid();
+						await collections.rooms.insertOne( {
+							_id: roomId,
+							name,
+							passwordHash: password ? await hashPassword( password ) : ''
+						} as ServerRoom );
+						await promisify( socket.join ).call( socket, `room:${roomId}` );
+						await collections.roomSessions.insert( { roomId, sessionId, colors: [ 0 ] } as ServerRoomSession );
+						const game = await newGame( roomId, RuleSet.standard );
+						await sendJoinedRooms( sessionId );
+						await io.to( `room:${roomId}` ).emit( 'update', s2cGame( game ) );
+						callback( null, roomId );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
 					}
-				} );
-			} );
+				} )
+			)
+			.subscribe();
+
+			fromNodeEvent( socket, 'newGame' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { roomId, ruleSet }, callback ] ) => {
+					try {
+						io.to( `room:${roomId}` ).emit( 'message', { roomId, message: 'New game' } );
+						callback( null, await newGame( roomId, ruleSet ) );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			)
+			.subscribe();
+
+			fromNodeEvent( socket, 'joinRoom' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { roomId, password }, callback ] ) => {
+					try {
+						const nick = await getNick( sessionId );
+						const room = await collections.rooms.findOne( { _id: roomId } );
+						if( !room ) throw new Error( 'No such room.' );
+						if( room.passwordHash ) {
+							if( !password ) throw new Error( 'Room requires a password.' );
+							if( !await checkPassword( password, room.passwordHash ) ) throw new Error( 'Incorrect password.' );
+						}
+						await promisify( socket.join ).call( socket, `room:${roomId}` );
+						await collections.roomSessions.insert( { roomId, sessionId, colors: [] } );
+						await collections.expirations.remove( { _id: roomId }, { single: true } );
+						if( room.gameId ) {
+							const game = await collections.games.findOne( { _id: room.gameId } );
+							if( game ) {
+								await io.to( `session:${sessionId}` ).emit( 'update', s2cGame( game ) );
+							}
+						}
+						await sendJoinedRooms( sessionId );
+						const message = `${nick} has joined the room.`;
+						io.to( `room:${roomId}` ).emit( 'message', { roomId, message } );
+						callback( null, room._id );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			)
+			.subscribe();
+
+			fromNodeEvent( socket, 'leaveRoom' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { roomId }, callback ] ) => {
+					try {
+						const nick = await getNick( sessionId );
+						await promisify( socket.leave ).call( socket, `room:${roomId}` );
+						const { result } = await collections.roomSessions.remove( { sessionId, roomId }, { single: true } );
+						if( result.n > 0 ) {
+							const message = `${nick} has left the room.`;
+							io.to( `room:${roomId}` ).emit( 'message', { roomId, message } );
+						}
+						await sendJoinedRooms( sessionId );
+						callback( null, {} );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			)
+			.subscribe();
+
+			fromNodeEvent( socket, 'sendMessage' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { roomId, message }, callback ] ) => {
+					try {
+						const nick = await getNick( sessionId );
+						if( !await collections.roomSessions.findOne( { roomId, sessionId }, { projection: { _id: 1 } } ) ) {
+							throw new Error( 'Not in room.' );
+						}
+						io.to( `room:${roomId}` ).emit( 'message', { roomId, user: nick, message } );
+						callback( null, {} );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			).subscribe();
+
+			fromNodeEvent( socket, 'setNick' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { nick }, callback ] ) => {
+					try {
+						const oldNick = await getNick( sessionId );
+						await collections.sessions.updateOne( { _id: sessionId }, { $set: { nick } } );
+						const roomIds = ( await collections.roomSessions.find( { sessionId } ).project( { roomId: 1 } ).toArray() ).map( r => r.roomId );
+						if( roomIds.length ) {
+							const message = `${oldNick} is now known as ${nick}.`;
+							for( const roomId of roomIds ) {
+								io.to( `room:${roomId}` ).emit( 'message', { roomId, message } );
+							}
+						}
+						callback( null, {} );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			)
+			.subscribe();
+
+			fromNodeEvent( socket, 'makeMove' )
+			.pipe(
+				takeUntil( disconnecting ),
+				concatMap( async ( [ { roomId, position }, callback ] ) => {
+					try {
+						const roomSession = await collections.roomSessions.findOne( { roomId, sessionId } );
+						if( !roomSession ) throw new Error( 'Not in room.' );
+						const room = await collections.rooms.findOne( { _id: roomId } );
+						if( !room ) throw new Error( 'Room not found.' );
+						const gameId = room.gameId;
+						const game = await collections.games.findOne( { _id: gameId } );
+						if( !game ) throw new Error( 'Game not found.' );
+						const rules = ruleSetMap.get( game.ruleSet );
+						let newGameState: ClientGameState;
+						const gameStates = [ ...game.gameStates ];
+						const oldGameState = s2cGameState( gameStates.slice( -1 )[ 0 ] );
+						if( !roomSession.colors.includes( oldGameState.turn ) ) {
+							// throw new Error( 'Wrong turn.' );
+						}
+						newGameState = rules.makeMove( oldGameState, position );
+						if( !newGameState ) throw new Error( 'Invalid move.' );
+						gameStates.push( newGameState );
+						await collections.games.updateOne( { _id: gameId }, { $set: { gameStates } } );
+						game.gameStates = gameStates;
+						io.to( `room:${roomId}` ).emit( 'update', s2cGame( game ) );
+						if( rules.isGameOver( newGameState ) ) {
+							const scores =
+							Array.from( { length: rules.colors } )
+							.map( ( _, color ) => ( {
+								color: colors[ game.colors[ color ] ].displayName,
+								score: rules.getScore( newGameState, color )
+							} ) );
+							scores.sort( ( c1, c2 ) => {
+								const r1 = rules.compareScores( c1.score, c2.score );
+								return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
+							} );
+							const bestScore = scores[ 0 ].score;
+							const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
+							let message: string;
+							if( winners.length !== 1 ) {
+								message = 'Draw game';
+							} else {
+								message = `${winners[ 0 ].color} wins`;
+							}
+							io.to( `room:${roomId}` ).emit( 'message', { roomId, message: `${message}:\n${scores.map(({color, score})=>`${color}: ${score}`).join('\n')}` } );
+						}
+						callback( null, {} );
+					} catch( ex ) {
+						console.error( ex );
+						callback( ex, null );
+					}
+				} )
+			)
+			.subscribe();
 
 			disconnected.subscribe( async () => {
+				try {
+					const nick = await getNick( sessionId );
+					const message = `${nick} has disconnected.`;
+					const roomIds = ( await collections.roomSessions.find( { sessionId }, { projection: { _id: 1 } } ).toArray() ).map( r => r._id );
+					for( const roomId of roomIds ) {
+						io.to( `room:${roomId}` ).emit( 'message', { roomId, message } );
+					}
+				} catch( ex ) {
+					console.error( ex );
+				}
+
+				await Promise.all( [
+					await collections.sessions.remove( { sessionId }, { single: true } ),
+					await collections.roomSessions.remove( { sessionId } )
+				] );
 				console.log( `User disconnected, ${--connections} connected` );
 			} );
-
-
-			const commands = {
-				async help( roomId: string ) {
-					await statusMessage( `Available commands:
-/?
-/help
-/nick <name>
-/quit
-/who
-`, roomId, sessionId );
-				},
-				async '?'( roomId: string ) {
-					await commands.help( roomId );
-				},
-				async nick( roomId: string, nick: string ) {
-					if( !isValidNick( nick ) ) throw new Error( 'Invalid nick.' );
-
-					let previousNick: string;
-					await transaction( manager, async manager => {
-						const session = await manager.findOne( SessionEntity, sessionId );
-						const existingSession = ( await manager.count( SessionEntity, { nick } ) ) > 0;
-						const existingUser = ( await manager.count( UserEntity, { nick } ) ) > 0;
-						if( existingSession || existingUser ) {
-							throw new Error( 'Nick is already in use.' );
-						}
-						previousNick = session.nick;
-						session.nick = nick;
-						if( session.userId ) {
-							await manager.update( UserEntity, session.userId, { nick } );
-						}
-						await manager.save( session );
-					} );
-
-					await statusMessage( `${previousNick} is now known as ${nick}.`, roomId );
-				},
-				async quit( roomId: string ) {
-					await leaveRoom( manager, sessionId, roomId );
-				},
-				async who( roomId: string ) {
-					const clients = await new Promise<string[]>( ( resolve, reject ) => {
-						io.in( roomId ).clients( ( err, clients ) => {
-							if( err ) reject( err );
-							else resolve( clients );
-						} );
-					} );
-					const sessions = await manager.findByIds( SessionEntity, clients );
-					const nicks = sessions.map( s => s.nick ).sort();
-					await statusMessage( `Users in room:\n${nicks.join('\n')}`, roomId, sessionId );
-				}
-			};
-
-			async function command( roomId: string, raw: string ) {
-				const [ cmd, ...params ] = raw.trim().split( /\s+/g );
-				try {
-					if( !commands.hasOwnProperty( cmd ) ) throw new Error( 'Unknown command.' );
-					const joinedRoomIds = await getJoinedRoomIds( manager, sessionId );
-					if( !joinedRoomIds.includes( roomId ) ) throw new Error( 'Not in room.' );
-					await commands[ cmd ]( roomId, ...params );
-				} catch( ex ) {
-					if( ex && ex.message ) {
-						await statusMessage( ex.message, roomId, sessionId );
-					}
-					throw ex;
-				}
-			}
-
-			handleCallbackEvent<{ roomId: string; position: Point; }>( 'makeMove', async ( { roomId, position } ) => {
-				if( !await makeMove( manager, roomId, position ) ) throw new Error( 'Failed to make move.' );
-			} );
-
-			handleCallbackEvent<{ roomId: string; ruleSet: RuleSet }>( 'newGame', async ( { roomId, ruleSet } ) => {
-				const game = await newGame( manager, roomId, ruleSet );
-				if( !game ) throw new Error( 'Failed to create game.' );
-				return { game };
-			} );
-
-			handleCallbackEvent<{ roomId: string; message: string; }>( 'sendMessage', async ( { roomId, message } ) => {
-				if( message.startsWith( '/' ) ) {
-					await command( roomId, message.slice( 1 ) );
-					return;
-				}
-				const { nick } = await manager.findOne( SessionEntity, sessionId, { select: [ 'nick' ] } );
-				if( !await chatMessage( nick, message, roomId ) ) throw new Error( 'Failed to send message.' );
-			} );
-
-			handleCallbackEvent<{ name: string; password: string; }>( 'createRoom', async ( { manager, name, password } ) => {
-				const roomEntity = await createRoom( manager, sessionId, name, password );
-				return RoomEntity.toRoom( roomEntity );
-			} );
-
-			handleCallbackEvent<{ roomId: string; password: string; }>( 'joinRoom', async ( { manager, roomId, password } ) => {
-				const roomEntity = await manager.findOne( RoomEntity, roomId );
-				if( !roomEntity ) throw new Error( 'Failed to join room.' );
-				if( roomEntity.passwordHash ) {
-					if( !password ) throw new Error( 'Room requires a password.' );
-					if( !await checkPassword( password, roomEntity.passwordHash ) ) throw new Error( 'Incorrect password.' );
-				}
-				manager.update( RoomEntity, roomId, { expires: null } );
-				await joinRoom( manager, roomId, sessionId );
-				return RoomEntity.toRoom( roomEntity );
-			} );
-
-			handleCallbackEvent<{ roomId: string; }>( 'leaveRoom', async ( { manager, roomId } ) => {
-				await leaveRoom( manager, sessionId, roomId );
-			} );
-
-			flushRooms( manager, sessionId );
 		} );
+
+		interval( cleanupConfig.checkSeconds * 1000 )
+		.pipe(
+			takeUntil( shuttingDown ),
+			exhaustMap( async () => {
+				const expires = Date.now() + cleanupConfig.expireSeconds * 1000;
+				const activeRoomIds = Array.from( new Set( ( await collections.roomSessions.find().project( { roomId: 1 } ).toArray() ).map( rs => rs.roomId ) ) );
+				await collections.expirations.remove( { _id: { $in: activeRoomIds } } );
+				const inactiveRoomIds = Array.from( new Set( ( await collections.rooms.find( { _id: { $nin: activeRoomIds } } ).project( { roomId: 1 } ).toArray() ).map( r => r._id ) ) );
+				if( inactiveRoomIds.length > 0 ) {
+					await collections.expirations.update(
+						{ _id: { $in: inactiveRoomIds } },
+						{ $setOnInsert: { expires } },
+						{ upsert: true }
+					);
+				}
+			} )
+		)
+		.subscribe();
+
+		interval( cleanupConfig.checkSeconds * 1000 )
+		.pipe(
+			takeUntil( shuttingDown ),
+			exhaustMap( async () => {
+				const now = Date.now();
+				const expiredIds = ( await collections.expirations.find( { expires: { $lte: now } } ).project( { _id: 1 } ).toArray() ).map( e => e._id );
+
+				let removedRooms = 0;
+				await Promise.all( [
+					async () => { await collections.expirations.remove( { _id: { $in: expiredIds } } ); },
+					async () => {
+						const r = await collections.rooms.remove( { _id: { $in: expiredIds } } );
+						removedRooms = r.result.n;
+					},
+					async () => { await collections.roomSessions.remove( { roomId: { $in: expiredIds } } ); }
+				].map( fn => fn() ) );
+				if( removedRooms > 0 ) {
+					await sendRooms();
+				}
+			} )
+		)
+		.subscribe();
 	} catch( ex ) {
 		console.error( ex );
 	}

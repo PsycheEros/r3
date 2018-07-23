@@ -17,20 +17,17 @@ export class ModalNewGameComponent {
 	@ViewChild( 'newGameModal' )
 	protected newGameModal: ModalDirective;
 
-	public show( room: Room ) {
+	public show( roomId: string ) {
 		const { newGameModal, zone } = this;
 		zone.run( () => {
-			this.roomId = room.roomId;
+			this.roomId = roomId;
 			newGameModal.show();
 		} );
 	}
 
 	public hide() {
-		const { newGameModal, zone } = this;
-		zone.run( () => {
-			this.roomId = null;
-			newGameModal.hide();
-		} );
+		const { newGameModal } = this;
+		newGameModal.hide();
 	}
 
 	public roomId: string|null;

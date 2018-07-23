@@ -11,7 +11,7 @@ gulp.task( 'browsersync:reload', done => {
 	done();
 } );
 
-gulp.task( 'clean', () => del( [ 'dist' ] ) );
+gulp.task( 'clean', () => del( [ 'dist', 'stats' ] ) );
 
 gulp.task( 'build:client', async () => {
 	const compiler = webpack( require( './webpack.config.js' ).clientConfig );
@@ -59,14 +59,16 @@ gulp.task( 'watch', gulp.parallel( 'watch:client', 'watch:server' ) );
 
 gulp.task( 'default', gulp.series( 'clean', 'build' ) );
 
-gulp.task( 'server:nodemon', () => {
+gulp.task( 'server:nodemon', () => new Promise( resolve => {
+	nodemon.once( 'start', () => { resolve(); } );
+
 	nodemon( {
 		script: './dist/server.js',
 		watch: [ './dist/*.js' ],
-		nodeArgs: [ '--inspect' ],
+		nodeArgs: [ '--inspect=0.0.0.0:9229' ],
 		ext: 'js'
 	} );
-} );
+} ) );
 
 gulp.task( 'server:browsersync', () => {
 	browserSync.init( {
@@ -83,4 +85,6 @@ gulp.task( 'server:browsersync', () => {
 	gulp.watch( [ 'dist/www/**/*' ] ).on( 'change', browserSync.reload );
 } );
 
-gulp.task( 'server', gulp.series(  'watch', gulp.parallel( 'server:nodemon', 'server:browsersync' ) ) );
+gulp.task( 'server', gulp.series( gulp.parallel( 'watch:client', gulp.series( 'watch:server', 'server:nodemon' ) ), 'server:browsersync' ) );
+
+gulp.task( 'server:server', gulp.series( 'watch:server', 'server:nodemon' ) );

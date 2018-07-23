@@ -14,19 +14,19 @@ export class GameService implements OnDestroy {
 		private readonly sessionService: SessionService
 	) {
 		this.allGames =
-		sessionService.getEvents<Game>( 'update' )
+		sessionService.getEvents<ClientGame>( 'update' )
 		.pipe(
 			takeUntil( this.destroyed ),
-			scan<Game, Game[]>( ( prev, game ) => {
+			scan<ClientGame, ClientGame[]>( ( prev, game ) => {
 				const games = [ ...prev ];
-				const index = games.findIndex( g => g.gameId === game.gameId );
+				const index = games.findIndex( g => g.id === game.id );
 				if( index >= 0 ) {
 					games.splice( index, 1, game );
 				} else {
 					games.push( game );
 				}
 				return games;
-			}, [] as Game[] ),
+			}, [] ),
 			shareReplay( 1 )
 		);
 	}
@@ -43,7 +43,7 @@ export class GameService implements OnDestroy {
 
 	public async newGame( roomId: string, ruleSet: RuleSet ) {
 		const { sessionService } = this;
-		return await sessionService.emit<Game>( 'newGame', { roomId, ruleSet } );
+		return await sessionService.emit<ClientGame>( 'newGame', { roomId, ruleSet } );
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
@@ -52,5 +52,5 @@ export class GameService implements OnDestroy {
 	}
 
 	private readonly destroyed = new Subject<true>();
-	private readonly allGames: Observable<Game[]>;
+	private readonly allGames: Observable<ClientGame[]>;
 }

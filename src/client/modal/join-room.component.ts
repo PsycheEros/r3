@@ -1,6 +1,7 @@
 import { Component, NgZone, ViewChild } from '@angular/core';
 import { RoomService } from 'client/room.service';
 import { ModalDirective } from 'ngx-bootstrap';
+import { roomPasswordRules } from 'src/validation';
 
 @Component( {
 	selector: 'modal-join-room',
@@ -16,7 +17,7 @@ export class ModalJoinRoomComponent {
 	@ViewChild( 'joinRoomModal' )
 	protected joinRoomModal: ModalDirective;
 
-	public show( room: Room ) {
+	public show( room: ClientRoom ) {
 		const { joinRoomModal, zone } = this;
 		zone.run( () => {
 			this.room = room;
@@ -25,19 +26,17 @@ export class ModalJoinRoomComponent {
 	}
 
 	public hide() {
-		const { joinRoomModal, zone } = this;
-		zone.run( () => {
-			this.room = null;
-			joinRoomModal.hide();
-		} );
+		const { joinRoomModal } = this;
+		joinRoomModal.hide();
 	}
 
-	public room: Room|null;
+	public readonly roomPasswordRules = { ...roomPasswordRules, required: true };
+	public room: ClientRoom|null;
 	public password = '';
 
 	public async joinRoom() {
 		const { roomService, room, password } = this;
 		this.hide();
-		await roomService.joinRoom( room, password );
+		await roomService.joinRoom( room.id, password );
 	}
 }

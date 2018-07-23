@@ -1,6 +1,10 @@
-import { combineLatest } from 'rxjs';
-import { Component } from '@angular/core';
+import { combineLatest, SchedulerLike } from 'rxjs';
+import { Component, ViewChild, Inject, ElementRef } from '@angular/core';
 import { RoomService } from './room.service';
+import { chatMessageRules, commandRules } from 'src/validation';
+import { NgForm } from '@angular/forms';
+import { ZoneScheduler } from 'ngx-zone-scheduler';
+import { observeOn } from 'rxjs/operators';
 
 @Component( {
 	selector: 'chat',
@@ -9,37 +13,50 @@ import { RoomService } from './room.service';
 } )
 export class ChatComponent {
 	constructor(
-		private readonly roomService: RoomService
+		private readonly roomService: RoomService,
+		@Inject(ZoneScheduler)
+		private readonly scheduler: SchedulerLike
 	) {}
 
 	protected ngOnInit() {
-		const { roomService } = this,
-			currentRoom = roomService.getCurrentRoom(),
+		const { roomService, scheduler } = this,
+			currentRoomId = roomService.getCurrentRoomId(),
 			allMessages = roomService.getMessages();
-		currentRoom.subscribe( room => {
-			this.room = room;
+		currentRoomId.subscribe( roomId => {
+			this.roomId = roomId;
 		} );
-		combineLatest( currentRoom, allMessages, ( room, messages ) => {
-			if( room ) {
-				return messages.filter( message => message.roomId === room.roomId );
-			} else {
-				return [];
-			}
-		} ).subscribe( messages => {
+		combineLatest( currentRoomId, allMessages, ( roomId, messages ) =>
+			roomId
+			? messages.filter( message => message.roomId === roomId )
+			: []
+		)
+		.pipe( observeOn( scheduler ) )
+		.subscribe( messages => {
 			this.messages = messages;
 		} );
 	}
 
-	public room: Room|null;
+	@ViewChild( 'messageForm' )
+	private messageForm: NgForm;
+
+	@ViewChild( 'textbox' )
+	private textbox: ElementRef;
+
+	public roomId: string|null;
 
 	public messages = [] as Message[];
 
-	public text = '';
+	public text: string|void;
+	public get isCommand() { return ( this.text || '' ).startsWith( '/' ); }
+
+	public readonly chatMessageRules = chatMessageRules;
+	public readonly commandRules = commandRules;
 
 	public async sendMessage() {
-		const { roomService, room, text: message } = this;
-		if( !room || !message ) { return; }
-		this.text = '';
-		await roomService.sendMessage( room.roomId, message );
+		const { messageForm, roomService, roomId, text: message, textbox } = this;
+		if( !roomId || !message ) return;
+		messageForm.resetForm();
+		await roomService.sendMessage( roomId, message );
+		textbox.nativeElement.focus();
 	}
 }
