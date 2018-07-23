@@ -31,9 +31,9 @@
     "@fortawesome/angular-fontawesome": "^0.1.1",
     "@fortawesome/fontawesome": "^1.1.8",
     "@fortawesome/fontawesome-svg-core": "^1.2.2",
-    "@fortawesome/free-brands-svg-icons": "^5.1.0",
-    "@fortawesome/free-regular-svg-icons": "^5.1.0",
-    "@fortawesome/free-solid-svg-icons": "^5.1.0",
+    "@fortawesome/free-brands-svg-icons": "^5.2.0",
+    "@fortawesome/free-regular-svg-icons": "^5.2.0",
+    "@fortawesome/free-solid-svg-icons": "^5.2.0",
     "@ng-bootstrap/ng-bootstrap": "^2.2.0",
     "@ngtools/webpack": "^6.1.0-rc.2",
     "@types/express": "^4.16.0",
@@ -84,7 +84,7 @@
     "tslint-loader": "^3.6.0",
     "typescript": "2.9",
     "url-loader": "^1.0.1",
-    "webpack": "4.16.1",
+    "webpack": "4.16.2",
     "webpack-bundle-analyzer": "^2.13.1",
     "webpack-cli": "^3.0.8",
     "webpack-node-externals": "^1.7.2",
@@ -155,7 +155,6 @@
     "rxjs": "^6.2.2",
     "source-map-support": "^0.5.6",
     "tslib": "^1.9.3",
-    "typescript": "2.9",
-    "yargs": "^12.0.1"
+    "typescript": "2.9"
   }
 }
