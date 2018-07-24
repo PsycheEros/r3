@@ -183,6 +183,7 @@ import { connectMongodb } from './mongodb';
 				const oldNick = await getNick( sessionId );
 				await collections.sessions.updateOne( { _id: sessionId }, { $set: { nick } } );
 				const roomIds = ( await collections.roomSessions.find( { sessionId } ).project( { roomId: 1 } ).toArray() ).map( r => r.roomId );
+				await sendSessions();
 				if( roomIds.length ) {
 					const message = `${oldNick} is now known as ${nick}.`;
 					for( const roomId of roomIds ) {
