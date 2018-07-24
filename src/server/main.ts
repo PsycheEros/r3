@@ -94,6 +94,7 @@ import { connectMongodb } from './mongodb';
 				await collections.games.insertOne( game );
 				await collections.rooms.updateOne( { _id: roomId }, { $set: { gameId } } as Partial<ServerRoom> );
 				await sendRooms();
+				io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				return game;
 			}
 
@@ -108,7 +109,6 @@ import { connectMongodb } from './mongodb';
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
 				await collections.roomSessions.insert( { roomId, sessionId, colors: [ 0 ] } as ServerRoomSession );
 				const game = await newGame( roomId, RuleSet.standard );
-				await sendRooms();
 				await sendRoomSessions();
 				await io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				return roomId;

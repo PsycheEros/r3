@@ -3,7 +3,6 @@ import { distinctUntilChanged, map, observeOn, scan, switchMap, take } from 'rxj
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
 import { SessionService } from './session.service';
-import { tapLog } from 'src/operators';
 import { SocketService } from 'client/socket.service';
 
 @Injectable()
@@ -55,7 +54,7 @@ export class RoomService {
 				const nicks =
 					await combineLatest(
 						this.getRoomSessions( roomId ),
-						sessionService.getSessions()
+						sessionService.getSessionMap()
 					).pipe(
 						map( ( [ rs, s ] ) =>
 							[ ...rs.values() ]
@@ -124,7 +123,7 @@ export class RoomService {
 
 	public getRoomSessions( roomId: string ) {
 		const { sessionService } = this;
-		return sessionService.getRoomSessions()
+		return sessionService.getRoomSessionMqp()
 		.pipe(
 			map( rs => rs.get( roomId ) )
 		);

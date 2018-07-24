@@ -11,7 +11,6 @@ import { map, observeOn, takeUntil, switchMap, filter } from 'rxjs/operators';
 import { ModalNewGameComponent } from './modal/new-game.component';
 import { colors } from 'data/colors.yaml';
 import { SessionService } from './session.service';
-import { tapLog } from 'src/operators';
 
 interface Score {
 	color: string;
@@ -19,6 +18,7 @@ interface Score {
 	score: number;
 	player: string;
 	me: boolean;
+	hasTurn: boolean;
 }
 
 @Component( {
@@ -42,7 +42,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 		const { gameService, roomService, sessionService, destroyed, scheduler } = this;
 
 		const sessionId = sessionService.getSessionId();
-		const allSessions = sessionService.getSessions();
+		const allSessions = sessionService.getSessionMap();
 		const currentRoom = roomService.getCurrentRoom();
 
 		const roomSessions =
@@ -81,6 +81,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 		combineLatest( sessionId, currentGame, sessions )
 		.pipe(
 			map( ( [ sessionId, game, sessions ] ) => {
+				if( !game ) return [];
 				const rules = ruleSetMap.get( game.ruleSet );
 				const gameState = game.gameStates.slice( -1 )[ 0 ];
 				return game.colors.map( ( colorKey, colorIndex ) => {
@@ -94,9 +95,11 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 							me = session.id === sessionId;
 						}
 					}
-					return { color, colorIndex, score, player, me };
+					const hasTurn = colorIndex === gameState.turn;
+					return { color, colorIndex, score, player, me, hasTurn };
 				} );
 			} ),
+			map( s => s.filter( Boolean ) ),
 			takeUntil( destroyed ),
 			observeOn( scheduler )
 		).subscribe( scores => {

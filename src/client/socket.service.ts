@@ -3,7 +3,6 @@ import { map, observeOn, switchMap, takeUntil, filter } from 'rxjs/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import io from 'socket.io-client';
-import { tapLog } from 'src/operators';
 
 @Injectable()
 export class SocketService implements OnDestroy {

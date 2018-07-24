@@ -1,37 +1,32 @@
 <div class="row" *ngIf="game">
-	<div class="col-xs-4 col-12">
-		<div class="card my-2">
-			<div class="card-body" *ngIf="turn == null">
-				Game Over
-			</div>
-			<div class="card-body" *ngIf="turn != null">
-				{{turn}}’s Turn
-			</div>
-		</div>
-	</div>
 	<div class="col-xs-8 col-12">
-		<table class="table table-sm table-striped text-right my-2">
+		<table class="table table-sm table-bordered text-right my-2">
 			<thead>
 				<tr>
+					<th scope="col"><span class="sr-only">Action</span></th>
 					<th scope="col">Color</th>
 					<th scope="col">Score</th>
 					<th scope="col">Player</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr *ngFor="let row of scores">
-					<td>{{row.color}}</td>
-					<td>{{row.score}}</td>
-					<td *ngIf="row.player">
-						{{row.player}}
+				<tr *ngFor="let row of scores" [class.table-primary]="row.hasTurn">
+					<td>
 						<button class="btn btn-sm" (click)="stand(row.colorIndex)" *ngIf="row.me">
 							Stand
 						</button>
-					</td>
-					<td *ngIf="!row.player">
-						<button class="btn btn-sm" (click)="sit(row.colorIndex)">
+						<button class="btn btn-sm" (click)="sit(row.colorIndex)" *ngIf="!row.player">
 							Sit
 						</button>
+					</td>
+					<td>
+						{{row.color}}
+					</td>
+					<td>
+						{{row.score}}
+					</td>
+					<td>
+						{{row?.player}}
 					</td>
 				</tr>
 			</tbody>

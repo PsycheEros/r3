@@ -1,4 +1,4 @@
-import { SchedulerLike, Observable, Subject } from 'rxjs';
+import { SchedulerLike, Observable, Subject, BehaviorSubject } from 'rxjs';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import { observeOn, shareReplay, scan, takeUntil } from 'rxjs/operators';
@@ -12,7 +12,6 @@ export class GameService implements OnDestroy {
 		private readonly scheduler: SchedulerLike,
 		private readonly socketService: SocketService
 	) {
-		this.allGames =
 		socketService.getMessages<ClientGame>( 'update' )
 		.pipe(
 			takeUntil( this.destroyed ),
@@ -26,9 +25,8 @@ export class GameService implements OnDestroy {
 				}
 				return games;
 			}, [] ),
-			toMap( game => game.id ),
-			shareReplay( 1 )
-		);
+			toMap( game => game.id )
+		).subscribe( this.allGames );
 	}
 
 	public ngOnDestroy() {
@@ -38,9 +36,7 @@ export class GameService implements OnDestroy {
 
 	public getGames() {
 		const { allGames, scheduler } = this;
-		return allGames.pipe(
-			observeOn( scheduler )
-		);
+		return allGames.pipe( observeOn( scheduler ) );
 	}
 
 	public async newGame( roomId: string, ruleSet: RuleSet ) {
@@ -54,5 +50,5 @@ export class GameService implements OnDestroy {
 	}
 
 	private readonly destroyed = new Subject<true>();
-	private readonly allGames: Observable<Map<string, ClientGame>>;
+	private readonly allGames = new BehaviorSubject( new Map<string, ClientGame>() );
 }
