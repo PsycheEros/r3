@@ -2,7 +2,6 @@ import { Component, AfterViewInit, OnInit, OnDestroy } from '@angular/core';
 import { Subject, fromEvent, of } from 'rxjs';
 import { filter, mergeMap, takeUntil } from 'rxjs/operators';
 import { RoomService } from './room.service';
-import { GameService } from './game.service';
 
 @Component( {
 	selector: 'r3',
@@ -10,18 +9,11 @@ import { GameService } from './game.service';
 } )
 export class R3Component implements AfterViewInit, OnInit, OnDestroy {
 	public constructor(
-		private readonly gameService: GameService,
 		private readonly roomService: RoomService
 	) {}
 
 	public ngOnInit() {
-		const { destroyed, gameService, roomService } = this;
-
-		// HACK: if we don't initialize this service before joining a room, there's a race condition
-		//       where we may not be listening in time for the first update event.
-		gameService.getGames()
-		.pipe( takeUntil( destroyed ) )
-		.subscribe();
+		const { destroyed, roomService } = this;
 
 		roomService.getCurrentRoomId()
 		.pipe( takeUntil( destroyed ) )

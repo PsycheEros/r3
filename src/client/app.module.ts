@@ -18,12 +18,13 @@ import { RoomComponent } from './room.component';
 import { ScoreboardComponent } from './scoreboard.component';
 import { RoomService } from './room.service';
 import { SessionService } from './session.service';
+import { SocketService } from './socket.service';
 import { ValidatorModule } from './validator/validator.module';
 
 @NgModule( {
 	imports:      [ BrowserModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule, ValidatorModule ],
 	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, NavigationComponent, R3Component, RoomComponent, ScoreboardComponent ],
-	providers:    [ GameService, RoomService, SessionService ],
+	providers:    [ GameService, RoomService, SessionService, SocketService ],
 	bootstrap:    [ R3Component ]
 } )
 export class AppModule {}

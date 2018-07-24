@@ -47,3 +47,22 @@ export const joinLeft = <T, U>() =>
 			)
 		)
 	);
+
+export const toMap = <U, K, L = U>( fnKey: ( e: U ) => K, fnValue: ( e : U ) => L = e => ( e as any ) ) =>
+	map<ReadonlyArray<U>, Map<K, L>>( e => {
+		const m = new Map<K, L>();
+		for( const i of e ) {
+			m.set( fnKey( i ), fnValue( i ) );
+		}
+		return m;
+	} );
+
+export const toArrayMap = <U, K, L = U>( fn: ( e: U ) => K, fnValue: ( e : U ) => L = e => ( e as any ) ) =>
+	map<ReadonlyArray<U>, Map<K, ReadonlyArray<L>>>( e => {
+		const m = new Map<K, ReadonlyArray<L>>();
+		for( const i of e ) {
+			const key = fn( i );
+			m.set( key, [ ...( m.get( key ) || [] ), fnValue( i ) ] );
+		}
+		return m;
+	} );

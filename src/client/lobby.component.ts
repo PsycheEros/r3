@@ -31,8 +31,8 @@ export class LobbyComponent implements OnInit, OnDestroy {
 			this.rooms = rooms;
 		} );
 
-		roomService.getJoinedRooms()
-		.pipe( map( r => r.map( r => r.id ) ), takeUntil( destroyed ) )
+		roomService.getJoinedRoomIds()
+		.pipe( takeUntil( destroyed ) )
 		.subscribe( roomIds => {
 			this.joinedRoomIds = roomIds;
 		} );

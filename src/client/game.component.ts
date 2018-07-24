@@ -7,7 +7,7 @@ import { Component, Inject, OnInit, ViewChild, OnDestroy } from '@angular/core';
 import { GameService } from './game.service';
 import { RoomService } from './room.service';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
-import { filter, observeOn, takeUntil, switchMap } from 'rxjs/operators';
+import { filter, map, observeOn, takeUntil, switchMap } from 'rxjs/operators';
 import { ModalNewGameComponent } from './modal/new-game.component';
 import { colors } from 'data/colors.yaml';
 
@@ -40,10 +40,8 @@ export class GameComponent implements OnInit, OnDestroy {
 
 		combineLatest( gameService.getGames(), roomService.getCurrentRoom() )
 		.pipe(
-			switchMap( ( [ games, room ] ) =>
-				from( games ).pipe(
-					filter( game => room.gameId === game.id )
-				)
+			map( ( [ games, room ] ) =>
+				games.get( room.gameId )
 			),
 			takeUntil( destroyed ),
 			observeOn( scheduler )

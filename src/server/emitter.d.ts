@@ -1,1 +1,1 @@
-type Emitter = Pick<SocketIO.Socket, 'emit'>|Pick<SocketIO.Namespace, 'emit'>;
+type Emitter = Pick<SocketIO.Socket, 'emit'|'send'>|Pick<SocketIO.Namespace, 'emit'|'send'>;

@@ -9,7 +9,6 @@
 			</div>
 		</div>
 	</div>
-<!--
 	<div class="col-xs-8 col-12">
 		<table class="table table-sm table-striped text-right my-2">
 			<thead>
@@ -20,22 +19,22 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td>Black</td>
-					<td>31</td>
-					<td>error</td>
-				</tr>
-				<tr>
-					<td>White</td>
-					<td>34</td>
-					<td>
-						<button class="btn btn-sm">
-							Play
+				<tr *ngFor="let row of scores">
+					<td>{{row.color}}</td>
+					<td>{{row.score}}</td>
+					<td *ngIf="row.player">
+						{{row.player}}
+						<button class="btn btn-sm" (click)="stand(row.colorIndex)" *ngIf="row.me">
+							Stand
+						</button>
+					</td>
+					<td *ngIf="!row.player">
+						<button class="btn btn-sm" (click)="sit(row.colorIndex)">
+							Sit
 						</button>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
--->
 </div>

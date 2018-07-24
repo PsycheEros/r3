@@ -5,6 +5,11 @@ declare interface ClientGame {
 	gameStates: ReadonlyArray<ClientGameState>;
 }
 
+declare interface ClientSession {
+	id: string;
+	nick: string;
+}
+
 declare interface ClientGameState {
 	time: number;
 	turn: number|null;
@@ -19,4 +24,10 @@ declare interface ClientRoom {
 	name: string;
 	hasPassword: boolean;
 	gameId: string|null;
+}
+
+declare interface ClientRoomSession {
+	roomId: string;
+	sessionId: string;
+	colors: number[];
 }

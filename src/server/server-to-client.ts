@@ -1,11 +1,19 @@
-export function s2cRoom( { _id, name, passwordHash, gameId }: ServerRoom ): ClientRoom {
-	return { id: _id, name, hasPassword: !!passwordHash, gameId: gameId || null };
+export function s2cRoom( { _id: id, name, passwordHash, gameId }: ServerRoom ): ClientRoom {
+	return { id, name, hasPassword: !!passwordHash, gameId: gameId || null };
 }
 
-export function s2cGame( { _id, colors, ruleSet, gameStates }: ServerGame ): ClientGame {
-	return { id: _id, colors: [ ...colors ], ruleSet, gameStates: gameStates.map( s2cGameState ) };
+export function s2cGame( { _id: id, colors, ruleSet, gameStates }: ServerGame ): ClientGame {
+	return { id, colors: [ ...colors ], ruleSet, gameStates: gameStates.map( s2cGameState ) };
 }
 
 export function s2cGameState( { time, turn, lastMove, size, mask, data }: ServerGameState ): ClientGameState {
 	return { time, turn, lastMove, size, mask: [ ...mask ], data: [ ...data ] };
+}
+
+export function s2cRoomSession( { roomId, sessionId, colors }: ServerRoomSession ) {
+	return { roomId, sessionId, colors: [ ...colors ] };
+}
+
+export function s2cSession( { _id: id, nick }: ServerSession ) {
+	return { id, nick };
 }

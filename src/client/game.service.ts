@@ -1,20 +1,19 @@
 import { SchedulerLike, Observable, Subject } from 'rxjs';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
-import { SessionService } from './session.service';
 import { observeOn, shareReplay, scan, takeUntil } from 'rxjs/operators';
-import { tapLog } from 'src/operators';
+import { toMap } from 'src/operators';
+import { SocketService } from './socket.service';
 
 @Injectable()
 export class GameService implements OnDestroy {
 	constructor(
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike,
-		@Inject(SessionService)
-		private readonly sessionService: SessionService
+		private readonly socketService: SocketService
 	) {
 		this.allGames =
-		sessionService.getEvents<ClientGame>( 'update' )
+		socketService.getMessages<ClientGame>( 'update' )
 		.pipe(
 			takeUntil( this.destroyed ),
 			scan<ClientGame, ClientGame[]>( ( prev, game ) => {
@@ -27,6 +26,7 @@ export class GameService implements OnDestroy {
 				}
 				return games;
 			}, [] ),
+			toMap( game => game.id ),
 			shareReplay( 1 )
 		);
 	}
@@ -38,19 +38,21 @@ export class GameService implements OnDestroy {
 
 	public getGames() {
 		const { allGames, scheduler } = this;
-		return allGames.pipe( observeOn( scheduler ) );
+		return allGames.pipe(
+			observeOn( scheduler )
+		);
 	}
 
 	public async newGame( roomId: string, ruleSet: RuleSet ) {
-		const { sessionService } = this;
-		return await sessionService.emit<ClientGame>( 'newGame', { roomId, ruleSet } );
+		const { socketService } = this;
+		return await socketService.send<ClientGame>( 'newGame', { roomId, ruleSet } );
 	}
 
 	public async makeMove( roomId: string, position: Point ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'makeMove', { roomId, position } );
+		const { socketService } = this;
+		await socketService.send( 'makeMove', { roomId, position } );
 	}
 
 	private readonly destroyed = new Subject<true>();
-	private readonly allGames: Observable<ClientGame[]>;
+	private readonly allGames: Observable<Map<string, ClientGame>>;
 }

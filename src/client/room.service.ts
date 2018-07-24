@@ -1,43 +1,26 @@
 import { Observable, BehaviorSubject, ReplaySubject, SchedulerLike, combineLatest } from 'rxjs';
-import { distinctUntilChanged, map, observeOn, scan, switchMap } from 'rxjs/operators';
+import { distinctUntilChanged, map, observeOn, scan, switchMap, take } from 'rxjs/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
 import { SessionService } from './session.service';
+import { tapLog } from 'src/operators';
+import { SocketService } from 'client/socket.service';
 
 @Injectable()
 export class RoomService {
 	constructor(
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike,
-		@Inject(SessionService)
-		private readonly sessionService: SessionService
+		private readonly sessionService: SessionService,
+		private readonly socketService: SocketService
 	) {
-		sessionService.getEvents<ClientRoom[]>( 'rooms' )
+		socketService.getMessages<ClientRoom[]>( 'rooms' )
 		.subscribe( rooms => {
 			const { allRooms } = this;
 			allRooms.next( rooms );
 		} );
 
-		sessionService.getEvents<string[]>( 'joinedRooms' )
-		.subscribe( roomIds => {
-			const { joinedRoomIds } = this;
-			joinedRoomIds.next( roomIds );
-		} );
-
-		// TODO: deal with Zalgo
-		combineLatest( this.joinedRoomIds, this.allRooms, ( roomIds, rooms ) => {
-			const joinedRooms = rooms.filter( r => roomIds.includes( r.id ) ),
-				currentRoomId = this.currentRoomId.getValue();
-			if( currentRoomId && !roomIds.includes( currentRoomId ) ) {
-				this.currentRoomId.next( roomIds[ 0 ] || null );
-			}
-			return joinedRooms;
-		} )
-		.subscribe( joinedRooms => {
-			this.joinedRooms.next( joinedRooms );
-		} );
-
-		sessionService.getEvents<Message>( 'message' )
+		socketService.getMessages<Message>( 'message' )
 		.subscribe( message => {
 			const { allMessages } = this;
 			allMessages.next( message );
@@ -50,23 +33,38 @@ export class RoomService {
 	}
 
 	public async sendMessage( roomId: string, message: string ) {
-		const { sessionService } = this;
+		const { sessionService, socketService } = this;
 
 		const commands = {
 			help: async () => {
-				this.statusMessage( roomId, 'Available commands:\n/?\n/help\n/nick <name>\n/say <message>\n/quit' );
+				this.statusMessage( roomId, 'Available commands:\n/?\n/help\n/nick <name>\n/say <message>\n/quit\n/who' );
 			},
 			'?': async () => {
 				await commands.help();
 			},
 			nick: async ( nick: string ) => {
-				await sessionService.emit( 'setNick', { nick } );
+				await socketService.send( 'setNick', { nick } );
 			},
 			say: async () => {
-				await sessionService.emit( 'sendMessage', { roomId, message: message.substring( 5 ) } );
+				await socketService.send( 'sendMessage', { roomId, message: message.substring( 5 ) } );
 			},
 			quit: async () => {
 				await this.leaveRoom( roomId );
+			},
+			who: async () => {
+				const nicks =
+					await combineLatest(
+						this.getRoomSessions( roomId ),
+						sessionService.getSessions()
+					).pipe(
+						map( ( [ rs, s ] ) =>
+							[ ...rs.values() ]
+							.map( ( { sessionId } ) => s.get( sessionId ).nick )
+						),
+						take( 1 )
+					)
+					.toPromise();
+				this.statusMessage( roomId, `Users in room:\n${nicks.join('\n')}` );
 			}
 		};
 
@@ -78,12 +76,22 @@ export class RoomService {
 				this.statusMessage( roomId, `Unknown command: /${cmd}` );
 			}
 		} else {
-			await sessionService.emit( 'sendMessage', { roomId, message } );
+			await socketService.send( 'sendMessage', { roomId, message } );
 		}
 	}
 
 	private statusMessage( roomId: string, message: string ) {
 		this.allMessages.next( { roomId, message } );
+	}
+
+	public async sit( roomId: string, color: number ) {
+		const { socketService } = this;
+		socketService.send( 'sit', { roomId, color } );
+	}
+
+	public async stand( roomId: string, color: number ) {
+		const { socketService } = this;
+		socketService.send( 'stand', { roomId, color } );
 	}
 
 	public getMessages() {
@@ -96,28 +104,47 @@ export class RoomService {
 		);
 	}
 
+	public getJoinedRoomIds() {
+		const { sessionService } = this;
+		return sessionService.getCurrentRoomSessions().pipe(
+			map( rs => rs.map( rs => rs.roomId ) )
+		);
+	}
+
 	public getJoinedRooms() {
-		const { joinedRooms, scheduler } = this;
-		return joinedRooms.pipe(
-			distinctUntilChanged(),
+		const { scheduler } = this;
+		return combineLatest( this.allRooms, this.getJoinedRoomIds() )
+		.pipe(
+			map( ( [ allRooms, joinedRoomIds ] ) =>
+				allRooms.filter( r => joinedRoomIds.includes( r.id ) )
+			),
 			observeOn( scheduler )
 		);
 	}
 
+	public getRoomSessions( roomId: string ) {
+		const { sessionService } = this;
+		return sessionService.getRoomSessions()
+		.pipe(
+			map( rs => rs.get( roomId ) )
+		);
+	}
+
 	public async joinRoom( roomId: string, password: string ) {
-		const { sessionService, currentRoomId } = this;
-		const room = await sessionService.emit<string>( 'joinRoom', { roomId, password } );
+		const { socketService, currentRoomId } = this;
+		const room = await socketService.send<string>( 'joinRoom', { roomId, password } );
 		currentRoomId.next( room );
 	}
 
 	public async leaveRoom( roomId: string ) {
-		const { sessionService } = this;
-		await sessionService.emit( 'leaveRoom', { roomId } );
+		const { socketService } = this;
+		await socketService.send( 'leaveRoom', { roomId } );
+		this.currentRoomId.next( null );
 	}
 
 	public async createRoom( name: string, password: string ) {
-		const { currentRoomId, sessionService } = this;
-		const roomId = await sessionService.emit<string>( 'createRoom', { name, password } );
+		const { currentRoomId, socketService } = this;
+		const roomId = await socketService.send<string>( 'createRoom', { name, password } );
 		currentRoomId.next( roomId );
 		return roomId;
 	}
@@ -125,10 +152,6 @@ export class RoomService {
 	public async setRoom( roomId: string|void ) {
 		const { currentRoomId } = this;
 		if( roomId ) {
-			const joinedRoomIds = this.joinedRoomIds.getValue();
-			if( !joinedRoomIds.includes( roomId ) ) {
-				throw new Error( 'Room is not joined.' );
-			}
 			currentRoomId.next( roomId );
 		} else {
 			currentRoomId.next( null );
@@ -159,7 +182,5 @@ export class RoomService {
 
 	private readonly allMessages = new ReplaySubject<Message>( 10 );
 	private readonly allRooms = new BehaviorSubject<ClientRoom[]>( [] );
-	private readonly joinedRoomIds = new BehaviorSubject<string[]>( [] );
-	private readonly joinedRooms = new BehaviorSubject<ClientRoom[]>( [] );
 	private readonly currentRoomId = new BehaviorSubject<string|null>( null );
 }
