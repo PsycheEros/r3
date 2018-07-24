@@ -28,12 +28,12 @@ import { connectMongodb } from './mongodb';
 		}
 
 		// remove ephemeral entities
-		await Promise.all( [
-			collections.expirations.deleteMany( {} ),
-			collections.sessions.deleteMany( {} ),
-			collections.rooms.deleteMany( {} ),
-			collections.roomSessions.deleteMany( {} )
-		] );
+		// await Promise.all( [
+		// 	collections.expirations.deleteMany( {} ),
+		// 	collections.sessions.deleteMany( {} ),
+		// 	collections.rooms.deleteMany( {} ),
+		// 	collections.roomSessions.deleteMany( {} )
+		// ] );
 
 		async function sendRooms( emitter: Emitter = io ) {
 			emitter.send( {
@@ -107,7 +107,7 @@ import { connectMongodb } from './mongodb';
 					passwordHash: password ? await hashPassword( password ) : ''
 				} as ServerRoom );
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
-				await collections.roomSessions.insert( { roomId, sessionId, colors: [ 0 ] } as ServerRoomSession );
+				await collections.roomSessions.insert( { roomId, sessionId, colors: [] } as ServerRoomSession );
 				const game = await newGame( roomId, RuleSet.standard );
 				await sendRoomSessions();
 				await io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
@@ -167,16 +167,33 @@ import { connectMongodb } from './mongodb';
 				const existingSeats = await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, colors: { $elemMatch: { $eq: color } } } ).toArray();
 				if( existingSeats.length > 0 ) throw new Error( 'Seat not available.' );
 				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: color } } } }, { $addToSet: { colors: color } } );
-				if( result.n > 0 ) {
-					await sendRoomSessions();
-				}
+				if( result.n === 0 ) return;
+				await sendRoomSessions();
+				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
+				if( !gameId ) return;
+				const game = await collections.games.findOne( { _id: gameId } );
+				if( !game ) return;
+				const colorData = colors[ game.colors[ color ] ];
+				if( !colorData ) return;
+				const nick = await getNick( sessionId );
+				const message = `${nick} is now playing as ${colorData.displayName}.`;
+				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 			} );
 
 			handleMessage( socket, 'stand', async ( { roomId, color } ) => {
 				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $elemMatch: { $eq: color } } }, { $pull: { colors: color } } );
-				if( result.n > 0 ) {
-					await sendRoomSessions();
-				}
+				if( result.n === 0 ) return;
+				await sendRoomSessions();
+				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
+				if( !gameId ) return;
+				const game = await collections.games.findOne( { _id: gameId } );
+				if( !game ) return;
+				const colorData = colors[ game.colors[ color ] ];
+				if( !colorData ) return;
+				const nick = await getNick( sessionId );
+
+				const message = `${nick} has stopped playing as ${colorData.displayName}.`;
+				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 			} );
 
 			handleMessage( socket, 'setNick', async ( { nick } ) => {
@@ -213,6 +230,10 @@ import { connectMongodb } from './mongodb';
 					}
 					if( fail ) throw new Error( 'Wrong turn.' );
 					await sendRoomSessions();
+					const colorData = colors[ game.colors[ color ] ];
+					const nick = await getNick( sessionId );
+					const message = `${nick} is now playing as ${colorData.displayName}.`;
+					io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 				}
 				newGameState = rules.makeMove( oldGameState, position );
 				if( !newGameState ) throw new Error( 'Invalid move.' );
@@ -228,8 +249,8 @@ import { connectMongodb } from './mongodb';
 						score: rules.getScore( newGameState, color )
 					} ) );
 					scores.sort( ( c1, c2 ) => {
-						const r1 = rules.compareScores( c1.score, c2.score );
-						return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
+						const r1 = rules.compareScores( c2.score, c1.score );
+						return ( r1 === 0 ) ? c2.color.localeCompare( c1.color ) : r1;
 					} );
 					const bestScore = scores[ 0 ].score;
 					const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
