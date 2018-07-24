@@ -14,7 +14,6 @@ for( const [ key, value ] of Object.entries( appSettings ) ) {
 }
 app.use( compression(), express.static( path.join( __dirname, 'www' ) ) );
 csp.extend( app, cspPolicy );
-app.use( require( 'body-parser' ).json() );
 
 export const server = new Server( app );
 

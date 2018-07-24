@@ -22,6 +22,5 @@ declare module 'data/mongodb.config.yaml' {
 	import { MongoClientOptions, MongoClientCommonOption } from 'mongodb';
 	export const url: string;
 	export const clientOptions: Partial<MongoClientOptions>;
-	export const dbName: string;
 	export const dbOptions: Partial<MongoClientCommonOption>;
 }

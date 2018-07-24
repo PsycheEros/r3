@@ -1,4 +1,4 @@
-import { Observer, pipe, of, merge } from 'rxjs';
+import { Observer, pipe, of } from 'rxjs';
 import { distinctUntilChanged, filter, groupBy, map, pairwise, startWith, tap, toArray, switchMap, mergeMap } from 'rxjs/operators';
 import { without } from 'lodash';
 

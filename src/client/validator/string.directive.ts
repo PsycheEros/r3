@@ -45,7 +45,7 @@ export class ValidatorStringDirective implements Validator, OnChanges {
 
 	public validate( control: AbstractControl ): ValidationErrors | null {
 		const { stringValidationRules: rules } = this;
-		if( !rules ) return null;
+		if( !rules || control.value == null ) return null;
 		return validateString( control.value, rules ).reduce( ( prev, err ) => ( { ...prev, [ err ]: true } ), {} );
 	}
 }

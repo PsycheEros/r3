@@ -1,6 +1,5 @@
-import { Observable } from 'rxjs';
-import { ChangeStreamOptions, Collection, Db, MongoClient } from 'mongodb';
-import { url, clientOptions, dbName, dbOptions } from 'data/mongodb.config.yaml';
+import { Collection, Db, MongoClient } from 'mongodb';
+import { url, clientOptions, dbOptions } from 'data/mongodb.config.yaml';
 import { shuttingDown } from './shut-down';
 
 let connection: Promise<{
@@ -18,7 +17,7 @@ let connection: Promise<{
 export function connectMongodb() {
 	if( !connection ) connection = ( async () => {
 		const client = await MongoClient.connect( process.env.MONGODB_URI || url, clientOptions );
-		const db = client.db( dbName, dbOptions );
+		const db = client.db( undefined, dbOptions );
 		const collections = {
 			expirations: db.collection( 'expiration' ),
 			games: db.collection( 'game' ),
