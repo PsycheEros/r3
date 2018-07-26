@@ -1,6 +1,6 @@
 import { Collection, Db, MongoClient } from 'mongodb';
 import { url, clientOptions, dbOptions } from 'data/mongodb.config.yaml';
-import { shuttingDown } from './shut-down';
+import { onShutDown } from './shut-down';
 
 let connection: Promise<{
 	collections: {
@@ -26,9 +26,7 @@ export function connectMongodb() {
 			sessions: db.collection( 'session' ),
 			users: db.collection( 'user' )
 		};
-		shuttingDown.subscribe( async () => {
-			await client.close();
-		} );
+		onShutDown( () => client.close() );
 		return { db, client, collections };
 	} )();
 	return connection;

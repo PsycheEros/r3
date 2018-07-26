@@ -5,7 +5,8 @@ import compression from 'compression';
 import { Server } from 'http';
 import { AddressInfo } from 'net';
 import { appSettings, cspPolicy } from 'data/app.config.yaml';
-import { shutDown, shuttingDown } from './shut-down';
+import { shutDown, onShutDown } from './shut-down';
+import { promisify } from 'util';
 
 export const app = express();
 if( process.env.PORT ) appSettings[ 'port' ] = parseInt( process.env.PORT, 10 );
@@ -27,6 +28,6 @@ server.listen( app.get( 'port' ), app.get( 'host' ), err => {
 	console.log( `Process ${process.pid} listening at ${address}:${port}...` );
 } );
 
-shuttingDown.subscribe( () => {
-	server.close( () => {} );
-} );
+onShutDown( () =>
+	promisify( server.close ).call( server )
+);

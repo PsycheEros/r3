@@ -1,9 +1,9 @@
 import './error-handler';
 import './polyfills';
 
-import { takeUntil, concatMap } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
-import { shuttingDown } from './shut-down';
+import { onShutDown, shuttingDown } from './shut-down';
 
 import cluster from 'cluster';
 
@@ -22,11 +22,9 @@ if( cluster.isMaster ) {
 		cluster.fork();
 	}
 
-	shuttingDown
-	.pipe( concatMap( () => promisify( cluster.disconnect )() ) )
-	.subscribe( code => {
+	onShutDown( async () => {
+		await promisify( cluster.disconnect )();
 		console.log( `All workers stopped, exiting...` );
-		process.exit( 0 );
 	} );
 } else {
 	import( /* webpackChunkName: "main~server" */ './main' );

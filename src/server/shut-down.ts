@@ -1,13 +1,21 @@
-import { Observable, Subject, of } from 'rxjs';
-import { delay, mergeMap, mapTo, take } from 'rxjs/operators';
+import { ReplaySubject, of } from 'rxjs';
+import { mergeMap, mapTo, take, concatMap, switchMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import cluster from 'cluster';
 
-const _shuttingDown = new Subject<true>();
-export const shuttingDown = _shuttingDown as Observable<true>;
+type ShutDownHook = () => void|PromiseLike<void>;
+
+const shutDownFns = [] as ShutDownHook[];
+
+const _shuttingDown = new ReplaySubject<true>( 1 );
+export const shuttingDown = _shuttingDown.pipe( take( 1 ) );
 export function shutDown() {
 	_shuttingDown.next( true );
 	_shuttingDown.complete();
+}
+
+export function onShutDown( fn: ShutDownHook ) {
+	shutDownFns.push( fn );
 }
 
 of( 'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM' )
@@ -25,8 +33,17 @@ if( cluster.isWorker ) {
 	.subscribe( shutDown );
 }
 
-shuttingDown
-.pipe( delay( 5000 ) )
-.subscribe( () => {
-	process.exit( 0 );
+_shuttingDown
+.pipe(
+	switchMap( () => shutDownFns ),
+	concatMap( fn => Promise.resolve( fn() ) )
+)
+.subscribe( {
+	complete: () => {
+		process.exit( 0 );
+	},
+	error: err => {
+		console.error( err );
+		process.exit( 1 );
+	}
 } );

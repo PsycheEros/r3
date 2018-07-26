@@ -1,27 +1,19 @@
-import { redis } from './redis';
+import { pubSub } from './redis';
 import adapter from 'socket.io-redis';
 import uuid from 'uuid/v4';
-import { shuttingDown } from './shut-down';
+import { onShutDown, shuttingDown } from './shut-down';
 import { server } from './app';
 import { promisify } from 'util';
 import { fromNodeEvent } from 'server/rxjs';
 import { filter, takeUntil, mergeMap } from 'rxjs/operators';
 import { EventEmitter } from 'events';
 
-const pubClient = redis( { db: 0, dropBufferSupport: true } );
-const subClient = redis( { db: 0 } );
 export const io = require( 'socket.io' )( server ) as SocketIO.Server & NodeJS.EventEmitter;
-
-shuttingDown.subscribe( async () => {
-	await promisify( io.close ).call( io );
-	await Promise.all( [
-		pubClient.quit(),
-		subClient.quit()
-	] );
-} );
+onShutDown( () => promisify( io.close ).call( io ) );
 
 io.engine[ 'generateId' ] = uuid;
 
+const { pub: pubClient, sub: subClient } = pubSub( { db: 0, dropBufferSupport: true } );
 io.adapter( adapter( { pubClient, subClient } ) );
 
 type EventTarget = Pick<NodeJS.EventEmitter|EventEmitter, 'addListener'|'removeListener'>;
