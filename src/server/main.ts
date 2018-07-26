@@ -1,21 +1,18 @@
 import './error-handler';
 import './polyfills';
 
-import { interval } from 'rxjs';
 import { take, takeUntil, share, exhaustMap, concatMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import { promisify } from 'util';
 import { isValidRoomName } from 'src/validation';
 import { ruleSetMap } from 'src/rule-sets';
 import { io, handleMessage } from './socket';
-import cleanupConfig from 'data/cleanup.config.yaml';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
-import _, { without } from 'lodash';
+import _ from 'lodash';
 
 import uuid from 'uuid/v4';
 import { s2cRoom, s2cGame, s2cGameState, s2cSession, s2cRoomSession } from './server-to-client';
-import { shuttingDown } from './shut-down';
 import { connectMongodb } from './mongodb';
 
 ( async () => {
@@ -284,47 +281,6 @@ import { connectMongodb } from './mongodb';
 			} );
 		} );
 
-		interval( cleanupConfig.checkSeconds * 1000 )
-		.pipe(
-			takeUntil( shuttingDown ),
-			exhaustMap( async () => {
-				const expires = Date.now() + cleanupConfig.expireSeconds * 1000;
-				const activeRoomIds = Array.from( new Set( ( await collections.roomSessions.find().project( { roomId: 1 } ).toArray() ).map( rs => rs.roomId ) ) );
-				await collections.expirations.remove( { _id: { $in: activeRoomIds } } );
-				const inactiveRoomIds = Array.from( new Set( ( await collections.rooms.find( { _id: { $nin: activeRoomIds } } ).project( { roomId: 1 } ).toArray() ).map( r => r._id ) ) );
-				if( inactiveRoomIds.length > 0 ) {
-					await collections.expirations.update(
-						{ _id: { $in: inactiveRoomIds } },
-						{ $setOnInsert: { expires } },
-						{ upsert: true }
-					);
-				}
-			} )
-		)
-		.subscribe();
-
-		interval( cleanupConfig.checkSeconds * 1000 )
-		.pipe(
-			takeUntil( shuttingDown ),
-			exhaustMap( async () => {
-				const now = Date.now();
-				const expiredIds = ( await collections.expirations.find( { expires: { $lte: now } } ).project( { _id: 1 } ).toArray() ).map( e => e._id );
-
-				let removedRooms = 0;
-				await Promise.all( [
-					async () => { await collections.expirations.remove( { _id: { $in: expiredIds } } ); },
-					async () => {
-						const r = await collections.rooms.remove( { _id: { $in: expiredIds } } );
-						removedRooms = r.result.n;
-					},
-					async () => { await collections.roomSessions.remove( { roomId: { $in: expiredIds } } ); }
-				].map( fn => fn() ) );
-				if( removedRooms > 0 ) {
-					await sendRooms();
-				}
-			} )
-		)
-		.subscribe();
 	} catch( ex ) {
 		console.error( ex );
 	}
