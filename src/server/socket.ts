@@ -13,7 +13,7 @@ onShutDown( () => promisify( io.close ).call( io ) );
 
 io.engine[ 'generateId' ] = uuid;
 
-const { pub: pubClient, sub: subClient } = pubSub( { db: 0, dropBufferSupport: true } );
+const { pub: pubClient, sub: subClient } = pubSub( { db: 0, dropBufferSupport: true }, { db: 0 } );
 io.adapter( adapter( { pubClient, subClient } ) );
 
 type EventTarget = Pick<NodeJS.EventEmitter|EventEmitter, 'addListener'|'removeListener'>;

@@ -6,8 +6,8 @@ export function s2cGame( { _id: id, colors, ruleSet, gameStates }: ServerGame ):
 	return { id, colors: [ ...colors ], ruleSet, gameStates: gameStates.map( s2cGameState ) };
 }
 
-export function s2cGameState( { time, turn, lastMove, size, mask, data }: ServerGameState ): ClientGameState {
-	return { time, turn, lastMove, size, mask: [ ...mask ], data: [ ...data ] };
+export function s2cGameState( { time, turn, lastMove, size, data }: ServerGameState ): ClientGameState {
+	return { time, turn, lastMove, size, data: [ ...data ] };
 }
 
 export function s2cRoomSession( { roomId, sessionId, colors }: ServerRoomSession ) {

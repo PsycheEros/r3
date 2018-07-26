@@ -24,3 +24,12 @@ declare module 'data/mongodb.config.yaml' {
 	export const clientOptions: Partial<MongoClientOptions>;
 	export const dbOptions: Partial<MongoClientCommonOption>;
 }
+
+declare module 'data/server.schema.yaml' {
+	export const expiration: JsonObject;
+	export const game: JsonObject;
+	export const room: JsonObject;
+	export const roomSession: JsonObject;
+	export const session: JsonObject;
+	export const user: JsonObject;
+}

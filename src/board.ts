@@ -49,29 +49,32 @@ export class Board {
 	}
 
 	public getData() {
-		return Object.freeze( Array.from( this.grid ).map( sq => sq.empty ? null : sq.color ) );
+		return Object.freeze( Array.from( this.grid ).map( sq =>
+			!sq.enabled ? false
+			: sq.empty ? true
+			: sq.color
+		) );
 	}
 
-	public setData( data: ReadonlyArray<number> ) {
+	public setData( data: ReadonlyArray<boolean|number> ) {
 		for( const [ color, square ] of zip( data, Array.from( this.grid ) ) ) {
-			square.color = color;
+			if( color === true ) {
+				square.color = null;
+				square.enabled = true;
+			} else if( color === false ) {
+				square.color = null;
+				square.enabled = false;
+			} else {
+				square.color = color;
+				square.enabled = true;
+			}
 		}
 	}
-	public getMask() {
-		return Object.freeze( Array.from( this.grid ).map( sq => sq.enabled ) );
-	}
 
-	public setMask( mask: ReadonlyArray<boolean> ) {
-		for( const [ enabled, square ] of zip( mask, Array.from( this.grid ) ) ) {
-			square.enabled = enabled;
-		}
-	}
-
-	public static fromGameState( gameState: Pick<ClientGameState,'size'|'data'|'mask'> ) {
+	public static fromGameState( gameState: Pick<ClientGameState,'size'|'data'> ) {
 		const board = new Board;
 		board.reset( gameState.size );
 		board.setData( gameState.data );
-		board.setMask( gameState.mask );
 		return board;
 	}
 

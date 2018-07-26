@@ -3,7 +3,7 @@ import { distinctUntilChanged, map, observeOn, scan, switchMap, take } from 'rxj
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
 import { SessionService } from './session.service';
-import { SocketService } from 'client/socket.service';
+import { SocketService } from './socket.service';
 
 @Injectable()
 export class RoomService {
@@ -158,8 +158,14 @@ export class RoomService {
 	}
 
 	public getCurrentRoomId() {
-		const { currentRoomId, scheduler } = this;
-		return currentRoomId.pipe(
+		const { currentRoomId, scheduler, sessionService } = this;
+		return combineLatest( sessionService.getCurrentRoomSessions(), currentRoomId )
+		.pipe(
+			map( ( [ rs, rid ] ) =>
+				rs.some( ( { roomId } ) => roomId === rid )
+			?	rid
+			:	null
+			),
 			distinctUntilChanged(),
 			observeOn( scheduler )
 		);

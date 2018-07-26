@@ -42,7 +42,7 @@ class RulesStandard implements Rules {
 	public readonly colors: number = 2;
 	public readonly boardSize: Readonly<Size> = Object.freeze( { width: 8, height: 8 } );
 
-	public isValid( gameState: Pick<ClientGameState,'size'|'data'|'mask'>, position: Point, color: number ) {
+	public isValid( gameState: Pick<ClientGameState,'size'|'data'>, position: Point, color: number ) {
 		return getAffectedSquares( Board.fromGameState( gameState ), position, color ).length > 0;
 	}
 
@@ -50,7 +50,7 @@ class RulesStandard implements Rules {
 		return score1 - score2;
 	}
 
-	public getValidMoves( gameState: Pick<ClientGameState,'size'|'data'|'mask'>, color: number ) {
+	public getValidMoves( gameState: Pick<ClientGameState,'size'|'data'>, color: number ) {
 		const points = [] as Point[];
 		const { size: { width, height } } = gameState;
 		for( let x = 0; x < width; ++x ) {
@@ -62,7 +62,7 @@ class RulesStandard implements Rules {
 		return points;
 	}
 
-	public isGameOver( gameState: Pick<ClientGameState,'size'|'data'|'mask'> ) {
+	public isGameOver( gameState: Pick<ClientGameState,'size'|'data'> ) {
 		const { colors } = this;
 		for( let color = 0; color < colors; ++color ) {
 			if( this.getValidMoves( gameState, color ).length > 0 ) return false;
@@ -70,7 +70,7 @@ class RulesStandard implements Rules {
 		return true;
 	}
 
-	public makeMove( gameState: Pick<ClientGameState,'size'|'data'|'mask'|'turn'>, position: Readonly<Point> ) {
+	public makeMove( gameState: Pick<ClientGameState,'size'|'data'|'turn'>, position: Readonly<Point> ) {
 		const time = Date.now();
 		const { turn: prevTurn, size } = gameState;
 		const board = Board.fromGameState( gameState );
@@ -81,20 +81,19 @@ class RulesStandard implements Rules {
 		}
 		const lastMove = Object.freeze( { ...position } );
 		const data = board.getData();
-		const mask = board.getMask();
 		const { colors } = this;
 		let turn: number|null = null;
 		for( let i = 0; i < colors; ++i ) {
 			const t = ( prevTurn + 1 + i ) % colors;
-			if( this.getValidMoves( { size, data, mask }, t ).length > 0 ) {
+			if( this.getValidMoves( { size, data }, t ).length > 0 ) {
 				turn = t;
 				break;
 			}
 		}
-		return { time, turn, data, mask, size, lastMove } as ClientGameState;
+		return { time, turn, data, size, lastMove } as ClientGameState;
 	}
 
-	public getScore( gameState: Pick<ClientGameState,'size'|'data'|'mask'>, color: number ) {
+	public getScore( gameState: Pick<ClientGameState,'size'|'data'>, color: number ) {
 		const board = Board.fromGameState( gameState );
 		let score = 0;
 		for( const square of board ) {
@@ -119,7 +118,6 @@ class RulesStandard implements Rules {
 			turn: 0,
 			lastMove: null,
 			data: board.getData(),
-			mask: board.getMask(),
 			size: Object.freeze( { ...boardSize } )
 		};
 	}

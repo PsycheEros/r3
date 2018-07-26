@@ -1,7 +1,7 @@
 import './error-handler';
 import './polyfills';
 
-import { take, takeUntil, share, exhaustMap, concatMap } from 'rxjs/operators';
+import { take, takeUntil, share, exhaustMap, concatMap, filter, mergeMap, debounceTime, switchMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import { promisify } from 'util';
 import { isValidRoomName } from 'src/validation';
@@ -14,6 +14,9 @@ import _ from 'lodash';
 import uuid from 'uuid/v4';
 import { s2cRoom, s2cGame, s2cGameState, s2cSession, s2cRoomSession } from './server-to-client';
 import { connectMongodb } from './mongodb';
+import { snoozeExpiry } from './cleanup';
+import { timer } from 'rxjs';
+import { localBus } from './bus';
 
 ( async () => {
 	try {
@@ -23,14 +26,6 @@ import { connectMongodb } from './mongodb';
 			const { nick } = await collections.sessions.findOne( { _id: sessionId }, { projection: { _id: 0, nick: 1 } } );
 			return nick;
 		}
-
-		// remove ephemeral entities
-		// await Promise.all( [
-		// 	collections.expirations.deleteMany( {} ),
-		// 	collections.sessions.deleteMany( {} ),
-		// 	collections.rooms.deleteMany( {} ),
-		// 	collections.roomSessions.deleteMany( {} )
-		// ] );
 
 		async function sendRooms( emitter: Emitter = io ) {
 			emitter.send( {
@@ -59,13 +54,35 @@ import { connectMongodb } from './mongodb';
 			} );
 		}
 
+		localBus.pipe(
+			filter( m => m.type === BusMessageType.UpdateRoom ),
+			debounceTime( 10 ),
+			switchMap( async () => { await sendRooms(); } )
+		)
+		.subscribe();
+
+		localBus.pipe(
+			filter( m => m.type === BusMessageType.UpdateSession ),
+			debounceTime( 10 ),
+			switchMap( async () => { await sendSessions(); } )
+		)
+		.subscribe();
+
+		localBus.pipe(
+			filter( m => m.type === BusMessageType.UpdateRoomSession ),
+			debounceTime( 10 ),
+			switchMap( async () => { await sendRoomSessions(); } )
+		)
+		.subscribe();
+
+
 		let connections = 0;
 
 		fromNodeEvent<SocketIO.Socket>( io, 'connection' )
 		.subscribe( async socket => {
 			console.log( `User connected, ${++connections} connected, ${socket.id}` );
 			const sessionId = socket.id;
-			await collections.sessions.insertOne( { _id: sessionId, nick: 'Guest' } as ServerSession );
+
 			socket.join( `session:${sessionId}` );
 
 			io.to( `session:${sessionId}` ).send( { type: 'session', data: { sessionId } } );
@@ -75,6 +92,16 @@ import { connectMongodb } from './mongodb';
 
 			const disconnected = fromNodeEvent( socket, 'disconnect' ).pipe( share(), take( 1 ) );
 			const disconnecting = fromNodeEvent( socket, 'disconnecting' ).pipe( share(), take( 1 ), takeUntil( disconnected ) );
+			await collections.sessions.insertOne( { _id: sessionId, nick: 'Guest', token: uuid() } as ServerSession );
+
+			timer( 0, 15000 )
+			.pipe(
+				exhaustMap( async () => {
+					await snoozeExpiry( 60000, sessionId );
+				} ),
+				takeUntil( disconnecting )
+			)
+			.subscribe();
 
 			async function newGame( roomId: string, ruleSet: RuleSet ) {
 				const rules = ruleSetMap.get( ruleSet );
@@ -90,7 +117,7 @@ import { connectMongodb } from './mongodb';
 				};
 				await collections.games.insertOne( game );
 				await collections.rooms.updateOne( { _id: roomId }, { $set: { gameId } } as Partial<ServerRoom> );
-				await sendRooms();
+				localBus.next( { type: BusMessageType.UpdateRoom, data: {} } );
 				io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				return game;
 			}
@@ -106,7 +133,7 @@ import { connectMongodb } from './mongodb';
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
 				await collections.roomSessions.insert( { roomId, sessionId, colors: [] } as ServerRoomSession );
 				const game = await newGame( roomId, RuleSet.standard );
-				await sendRoomSessions();
+				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				await io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				return roomId;
 			} );
@@ -133,8 +160,8 @@ import { connectMongodb } from './mongodb';
 						await io.to( `session:${sessionId}` ).send( { type: 'update', data: s2cGame( game ) } );
 					}
 				}
-				await sendSessions( io.to( `room:${sessionId}` ) );
-				await sendRoomSessions();
+				localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
+				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const message = `${nick} has joined the room.`;
 				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 				return room._id;
@@ -148,8 +175,8 @@ import { connectMongodb } from './mongodb';
 					const message = `${nick} has left the room.`;
 					io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 				}
-				await sendSessions( io.to( `room:${sessionId}` ) );
-				await sendRoomSessions();
+				localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
+				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 			} );
 
 			handleMessage( socket, 'sendMessage', async ( { roomId, message } ) => {
@@ -165,7 +192,7 @@ import { connectMongodb } from './mongodb';
 				if( existingSeats.length > 0 ) throw new Error( 'Seat not available.' );
 				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: color } } } }, { $addToSet: { colors: color } } );
 				if( result.n === 0 ) return;
-				await sendRoomSessions();
+				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
 				if( !gameId ) return;
 				const game = await collections.games.findOne( { _id: gameId } );
@@ -180,7 +207,7 @@ import { connectMongodb } from './mongodb';
 			handleMessage( socket, 'stand', async ( { roomId, color } ) => {
 				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $elemMatch: { $eq: color } } }, { $pull: { colors: color } } );
 				if( result.n === 0 ) return;
-				await sendRoomSessions();
+				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
 				if( !gameId ) return;
 				const game = await collections.games.findOne( { _id: gameId } );
@@ -197,7 +224,7 @@ import { connectMongodb } from './mongodb';
 				const oldNick = await getNick( sessionId );
 				await collections.sessions.updateOne( { _id: sessionId }, { $set: { nick } } );
 				const roomIds = ( await collections.roomSessions.find( { sessionId } ).project( { roomId: 1 } ).toArray() ).map( r => r.roomId );
-				await sendSessions();
+				localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
 				if( roomIds.length ) {
 					const message = `${oldNick} is now known as ${nick}.`;
 					for( const roomId of roomIds ) {
@@ -226,7 +253,7 @@ import { connectMongodb } from './mongodb';
 						if( result.n > 0 ) fail = false;
 					}
 					if( fail ) throw new Error( 'Wrong turn.' );
-					await sendRoomSessions();
+					localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 					const colorData = colors[ game.colors[ color ] ];
 					const nick = await getNick( sessionId );
 					const message = `${nick} is now playing as ${colorData.displayName}.`;
@@ -272,11 +299,6 @@ import { connectMongodb } from './mongodb';
 				} catch( ex ) {
 					console.error( ex );
 				}
-
-				await Promise.all( [
-					await collections.sessions.remove( { sessionId }, { single: true } ),
-					await collections.roomSessions.remove( { sessionId } )
-				] );
 				console.log( `User disconnected, ${--connections} connected` );
 			} );
 		} );

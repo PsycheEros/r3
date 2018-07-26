@@ -1,6 +1,7 @@
 import { Collection, Db, MongoClient } from 'mongodb';
 import { url, clientOptions, dbOptions } from 'data/mongodb.config.yaml';
 import { onShutDown } from './shut-down';
+import jsonSchema from 'data/server.schema.yaml';
 
 let connection: Promise<{
 	collections: {
@@ -19,12 +20,24 @@ export function connectMongodb() {
 		const client = await MongoClient.connect( process.env.MONGODB_URI || url, clientOptions );
 		const db = client.db( undefined, dbOptions );
 		const collections = {
-			expirations: db.collection( 'expiration' ),
-			games: db.collection( 'game' ),
-			rooms: db.collection( 'room' ),
-			roomSessions: db.collection( 'roomSession' ),
-			sessions: db.collection( 'session' ),
-			users: db.collection( 'user' )
+			expirations: await db.createCollection<ServerExpiration>( 'expiration',
+				{ validator: { $jsonSchema: jsonSchema.expiration } }
+			),
+			games: await db.createCollection<ServerGame>( 'game',
+				{ validator: { $jsonSchema: jsonSchema.game } }
+			),
+			rooms: await db.createCollection<ServerRoom>( 'room',
+				{ validator: { $jsonSchema: jsonSchema.room } }
+			),
+			roomSessions: await db.createCollection<ServerRoomSession>( 'roomSession',
+				{ validator: { $jsonSchema: jsonSchema.roomSession } }
+			),
+			sessions: await db.createCollection<ServerSession>( 'session',
+				{ validator: { $jsonSchema: jsonSchema.session } }
+			),
+			users: await db.createCollection<ServerUser>( 'user',
+				{ validator: { $jsonSchema: jsonSchema.user } }
+			)
 		};
 		onShutDown( () => client.close() );
 		return { db, client, collections };

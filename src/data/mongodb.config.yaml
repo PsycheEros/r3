@@ -1,3 +1,4 @@
 url: mongodb://localhost:27017/r3
-clientOptions: {}
+clientOptions:
+  useNewUrlParser: true
 dbOptions: {}

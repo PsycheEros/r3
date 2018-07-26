@@ -1,0 +1,98 @@
+expiration:
+  bsonType: object
+  properties:
+    _id:
+      bsonType: string
+    expires:
+      bsonType: int
+  required: [ _id, expires ]
+game:
+  bsonType: object
+  properties:
+    _id:
+      bsonType: string
+    colors:
+      bsonType: array
+      items:
+        bsonType: string
+    ruleSet:
+      bsonType: string
+    gameStates:
+      bsonType: array
+      items:
+        bsonType: object
+        properties:
+          time:
+            bsonType: int
+          turn:
+            bsonType: [ int, 'null' ]
+          lastMove:
+            oneOf:
+            - bsonType: object
+              properties:
+                x:
+                  bsonType: int
+                  minimum: 1
+                y:
+                  bsonType: int
+                  minimum: 1
+            - bsonType: 'null'
+          size:
+            bsonType: object
+            properties:
+              width:
+                bsonType: int
+                minimum: 1
+              height:
+                bsonType: int
+                minimum: 1
+          data:
+            bsonType: array
+            items:
+              bsonType: [ int, bool ]
+        required: [ time, turn, lastMove, size, data ]
+  required: [ _id, colors, ruleSet, gameStates ]
+room:
+  bsonType: object
+  properties:
+    _id:
+      bsonType: string
+    name:
+      bsonType: string
+    passwordHash:
+      bsonType: string
+    gameId:
+      bsonType: [ string, 'null' ]
+  required: [ _id, name, passwordHash, gameId ]
+roomSession:
+  bsonType: object
+  properties:
+    roomId:
+      bsonType: string
+    sessionId:
+      bsonType: string
+    colors:
+      bsonType: array
+      items:
+        bsonType: int
+    required: [ roomId, sessionId, colors ]
+session:
+  bsonType: object
+  properties:
+    _id:
+      bsonType: string
+    nick:
+      bsonType: string
+    token:
+      bsonType: string
+  required: [ _id, nick, token ]
+user:
+  bsonType: object
+  properties:
+    _id:
+      bsonType: string
+    nick:
+      bsonType: string
+    passwordHash:
+      bsonType: string
+  required: [ _id, nick, passwordHash ]

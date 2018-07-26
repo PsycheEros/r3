@@ -3,6 +3,7 @@ import { takeUntil, exhaustMap } from 'rxjs/operators';
 import { checkSeconds, expireSeconds } from 'data/cleanup.config.yaml';
 import { shuttingDown } from './shut-down';
 import { connectMongodb } from './mongodb';
+import { localBus } from './bus';
 
 export async function clearExpiry( ...ids: string[] ) {
 	const { collections } = await connectMongodb();
@@ -48,6 +49,7 @@ interval( checkSeconds * 1000 )
 		const { collections } = await connectMongodb();
 		const now = Date.now();
 		const expiredIds = ( await collections.expirations.find( { expires: { $lte: now } } ).project( { _id: 1 } ).toArray() ).map( e => e._id );
+		if( expiredIds.length === 0 ) return;
 
 		const removed = {
 			rooms: 0,
@@ -77,6 +79,15 @@ interval( checkSeconds * 1000 )
 				).result.n;
 			}
 		].map( fn => fn() ) );
+		if( removed.rooms > 0 ) {
+			localBus.next( { type: BusMessageType.UpdateRoom, data: {} } );
+		}
+		if( removed.sessions > 0 ) {
+			localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
+		}
+		if( removed.roomSessions > 0 ) {
+			localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
+		}
 	} )
 )
 .subscribe();

@@ -16,6 +16,23 @@ for( const [ key, value ] of Object.entries( appSettings ) ) {
 app.use( compression(), express.static( path.join( __dirname, 'www' ) ) );
 csp.extend( app, cspPolicy );
 
+app.post( '/debug/resetAll', async ( req, res, next ) => {
+	try {
+		const { collections } = await ( require( './mongodb' ).connectMongodb() );
+		await Promise.all( [
+			collections.expirations.deleteMany( {} ),
+			collections.sessions.deleteMany( {} ),
+			collections.rooms.deleteMany( {} ),
+			collections.roomSessions.deleteMany( {} ),
+			collections.users.deleteMany( {} )
+		] );
+		res.status( 204 );
+		res.end();
+	} catch( ex ) {
+		next( ex );
+	}
+} );
+
 export const server = new Server( app );
 
 server.listen( app.get( 'port' ), app.get( 'host' ), err => {

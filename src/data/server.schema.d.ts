@@ -1,3 +1,8 @@
+declare interface ServerExpiration {
+	_id: string;
+	expires: number;
+}
+
 declare interface ServerGame {
 	_id: string;
 	colors: ReadonlyArray<string>;
@@ -10,8 +15,7 @@ declare interface ServerGameState {
 	turn: number|null;
 	lastMove: Point|null;
 	size: Size;
-	mask: ReadonlyArray<boolean>;
-	data: ReadonlyArray<number>;
+	data: ReadonlyArray<boolean|number>;
 }
 
 declare interface ServerRoom {
@@ -28,14 +32,10 @@ declare interface ServerRoomSession {
 	colors: number[];
 }
 
-declare interface ServerExpiration {
-	_id: string;
-	expires: number;
-}
-
 declare interface ServerSession {
 	_id: string;
 	nick: string;
+	token: string;
 }
 
 declare interface ServerUser {

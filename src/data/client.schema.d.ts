@@ -15,8 +15,7 @@ declare interface ClientGameState {
 	turn: number|null;
 	lastMove: Point|null;
 	size: Size;
-	mask: ReadonlyArray<boolean>;
-	data: ReadonlyArray<number>;
+	data: ReadonlyArray<boolean|number>;
 }
 
 declare interface ClientRoom {
