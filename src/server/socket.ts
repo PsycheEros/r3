@@ -7,8 +7,7 @@ import { promisify } from 'util';
 import { fromNodeEvent } from 'server/rxjs';
 import { filter, takeUntil, mergeMap } from 'rxjs/operators';
 import { EventEmitter } from 'events';
-import { IncomingMessage } from 'http';
-import Io, { Handshake, ServerOptions } from 'socket.io';
+import Io, { ServerOptions } from 'socket.io';
 import { connectMongodb } from './mongodb';
 
 export const io = Io( server, {
@@ -27,7 +26,9 @@ io.use( ( socket, cb ) => {
 				{ $setOnInsert: { _id: socket.id, nick: 'Guest', token } },
 				{ upsert: true }
 			);
-			socket.id = value._id;
+			if( value ) {
+				socket.id = value._id;
+			}
 		} catch( ex ) {
 			console.error( ex );
 			throw ex;
