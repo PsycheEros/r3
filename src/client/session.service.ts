@@ -4,6 +4,7 @@ import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import { toArrayMap, toMap } from 'src/operators';
 import { SocketService } from './socket.service';
+import { SessionSubject } from './session-subject';
 
 @Injectable()
 export class SessionService implements OnDestroy {
@@ -95,8 +96,8 @@ export class SessionService implements OnDestroy {
 		this.destroyed.complete();
 	}
 
-	private readonly sessionId = new BehaviorSubject( null as string );
-	private readonly sessions = new BehaviorSubject( [] as ClientSession[] );
-	private readonly roomSessions = new BehaviorSubject( [] as ClientRoomSession[] );
+	private readonly sessionId = new SessionSubject<string>( 'sessionId', null );
+	private readonly sessions = new SessionSubject<ClientSession[]>( 'sessions', [] );
+	private readonly roomSessions = new SessionSubject<ClientRoomSession[]>( 'roomSessions', [] );
 	private readonly destroyed = new Subject<true>();
 }

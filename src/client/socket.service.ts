@@ -4,6 +4,7 @@ import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import io from 'socket.io-client';
 import uuid from 'uuid/v4';
+import { SessionSubject } from './session-subject';
 
 @Injectable()
 export class SocketService implements OnDestroy {
@@ -11,18 +12,12 @@ export class SocketService implements OnDestroy {
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike
 	) {
-		const { destroyed } = this;
-
-		let token = sessionStorage.getItem( 'token' );
-		if( !token ) {
-			token = uuid();
-			sessionStorage.setItem( 'token', token );
-		}
+		const { destroyed, token } = this;
 
 		const socket = this.socket = io.connect( {
 			transports: [ 'websocket' ],
 			upgrade: false,
-			query: { token }
+			query: { token: token.value }
 		} );
 
 		of( 'connect' )
@@ -73,7 +68,8 @@ export class SocketService implements OnDestroy {
 		this.destroyed.complete();
 	}
 
+	private readonly token = new SessionSubject<string>( 'token', uuid() );
 	private readonly messages = new ReplaySubject<{ type: string, data: any }>( 20 );
-	private socket: SocketIOClient.Socket;
+	private readonly socket: SocketIOClient.Socket;
 	private readonly destroyed = new Subject<true>();
 }

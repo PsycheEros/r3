@@ -4,6 +4,7 @@ import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
 import { SessionService } from './session.service';
 import { SocketService } from './socket.service';
+import { SessionSubject } from './session-subject';
 
 @Injectable()
 export class RoomService {
@@ -187,6 +188,6 @@ export class RoomService {
 	}
 
 	private readonly allMessages = new ReplaySubject<Message>( 10 );
-	private readonly allRooms = new BehaviorSubject<ClientRoom[]>( [] );
-	private readonly currentRoomId = new BehaviorSubject<string|null>( sessionStorage.getItem( 'currentRoomId' ) || null );
+	private readonly allRooms = new SessionSubject<ClientRoom[]>( 'rooms', [] );
+	private readonly currentRoomId = new SessionSubject<string|null>( 'currentRoomId', null );
 }
