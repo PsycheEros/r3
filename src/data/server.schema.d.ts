@@ -29,7 +29,7 @@ declare interface ServerRoomSession {
 	_id: string;
 	roomId: string;
 	sessionId: string;
-	colors: number[];
+	seats: number[];
 }
 
 declare interface ServerSession {

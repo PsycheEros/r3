@@ -28,5 +28,5 @@ declare interface ClientRoom {
 declare interface ClientRoomSession {
 	roomId: string;
 	sessionId: string;
-	colors: number[];
+	seats: number[];
 }

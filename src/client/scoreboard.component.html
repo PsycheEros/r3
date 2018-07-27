@@ -12,10 +12,10 @@
 			<tbody>
 				<tr *ngFor="let row of scores" [class.table-primary]="row.hasTurn">
 					<td>
-						<button class="btn btn-sm" (click)="stand(row.colorIndex)" *ngIf="row.me">
+						<button class="btn btn-sm" (click)="stand(row.seat)" *ngIf="row.me">
 							Stand
 						</button>
-						<button class="btn btn-sm" (click)="sit(row.colorIndex)" *ngIf="!row.player">
+						<button class="btn btn-sm" (click)="sit(row.seat)" *ngIf="!row.player">
 							Sit
 						</button>
 					</td>

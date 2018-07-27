@@ -71,11 +71,11 @@ roomSession:
       bsonType: string
     sessionId:
       bsonType: string
-    colors:
+    seats:
       bsonType: array
       items:
         bsonType: int
-    required: [ roomId, sessionId, colors ]
+    required: [ roomId, sessionId, seats ]
 session:
   bsonType: object
   properties:

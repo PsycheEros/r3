@@ -172,7 +172,7 @@ import { localBus } from './bus';
 					passwordHash: password ? await hashPassword( password ) : ''
 				} as ServerRoom );
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
-				await collections.roomSessions.insert( { roomId, sessionId, colors: [] } as ServerRoomSession );
+				await collections.roomSessions.insert( { roomId, sessionId, seats: [] } as ServerRoomSession );
 				const game = await newGame( roomId, RuleSet.standard );
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				await io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
@@ -286,16 +286,16 @@ import { localBus } from './bus';
 				let newGameState: ClientGameState;
 				const gameStates = [ ...game.gameStates ];
 				const oldGameState = s2cGameState( gameStates.slice( -1 )[ 0 ] );
-				const color = oldGameState.turn;
-				if( !roomSession.colors.includes( color ) ) {
+				const seat = oldGameState.turn;
+				if( !roomSession.seats.includes( seat ) ) {
 					let fail = true;
-					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, colors: { $elemMatch: { $eq: color } } } ).toArray() ).length === 0 ) {
-						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: color } } } }, { $addToSet: { colors: color } } );
+					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, colors: { $elemMatch: { $eq: seat } } } ).toArray() ).length === 0 ) {
+						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { colors: seat } } );
 						if( result.n > 0 ) fail = false;
 					}
 					if( fail ) throw new Error( 'Wrong turn.' );
 					localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
-					const colorData = colors[ game.colors[ color ] ];
+					const colorData = colors[ game.colors[ seat ] ];
 					const nick = await getNick( sessionId );
 					const message = `${nick} is now playing as ${colorData.displayName}.`;
 					io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );

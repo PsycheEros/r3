@@ -1,6 +1,6 @@
 import { ruleSetMap } from 'src/rule-sets';
 
-import { combineLatest, from, SchedulerLike, Subject } from 'rxjs';
+import { combineLatest, from, SchedulerLike, Subject, of } from 'rxjs';
 
 import { Component, Inject, OnInit, ViewChild, OnDestroy } from '@angular/core';
 
@@ -14,7 +14,7 @@ import { SessionService } from './session.service';
 
 interface Score {
 	color: string;
-	colorIndex: number;
+	seat: number;
 	score: number;
 	player: string;
 	me: boolean;
@@ -48,7 +48,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 		const roomSessions =
 			currentRoom
 			.pipe(
-				switchMap( room => room ? roomService.getRoomSessions( room.id ) : [] )
+				switchMap( room => room ? roomService.getRoomSessions( room.id ) : of( [] ) )
 			);
 
 		const sessions =
@@ -59,7 +59,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 					.pipe(
 						map( ss => rs.map( rs => ( {
 							...ss.get( rs.sessionId ),
-							colors: [ ...rs.colors ]
+							seats: [ ...rs.seats ]
 						} )
 					) ) )
 				)
@@ -84,19 +84,19 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 				if( !game ) return [];
 				const rules = ruleSetMap.get( game.ruleSet );
 				const gameState = game.gameStates.slice( -1 )[ 0 ];
-				return game.colors.map( ( colorKey, colorIndex ) => {
+				return game.colors.map( ( colorKey, seat ) => {
 					const color = colors[ colorKey ].displayName;
-					const score = rules.getScore( gameState, colorIndex );
+					const score = rules.getScore( gameState, seat );
 					let player: string = null;
 					let me = false;
 					for( const session of sessions ) {
-						if( session.colors.includes( colorIndex ) ) {
+						if( session.seats.includes( seat ) ) {
 							player = session.nick;
 							me = session.id === sessionId;
 						}
 					}
-					const hasTurn = colorIndex === gameState.turn;
-					return { color, colorIndex, score, player, me, hasTurn };
+					const hasTurn = seat === gameState.turn;
+					return { color, seat, score, player, me, hasTurn };
 				} );
 			} ),
 			map( s => s.filter( Boolean ) ),

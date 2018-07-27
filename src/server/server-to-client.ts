@@ -10,8 +10,8 @@ export function s2cGameState( { time, turn, lastMove, size, data }: ServerGameSt
 	return { time, turn, lastMove, size, data: [ ...data ] };
 }
 
-export function s2cRoomSession( { roomId, sessionId, colors }: ServerRoomSession ) {
-	return { roomId, sessionId, colors: [ ...colors ] };
+export function s2cRoomSession( { roomId, sessionId, seats }: ServerRoomSession ) {
+	return { roomId, sessionId, seats: [ ...seats ] };
 }
 
 export function s2cSession( { _id: id, nick }: ServerSession ) {
