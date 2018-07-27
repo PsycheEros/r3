@@ -1,10 +1,11 @@
 import './error-handler';
 import './polyfills';
 
-import { take, takeUntil, share, exhaustMap, concatMap, filter, mergeMap, debounceTime, switchMap } from 'rxjs/operators';
+import { take, takeUntil, share, exhaustMap, map, filter, debounceTime, switchMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import { promisify } from 'util';
 import { isValidRoomName } from 'src/validation';
+import { mapMap } from 'src/operators';
 import { ruleSetMap } from 'src/rule-sets';
 import { io, handleMessage } from './socket';
 import { colors } from 'data/colors.yaml';
@@ -54,24 +55,52 @@ import { localBus } from './bus';
 			} );
 		}
 
-		localBus.pipe(
-			filter( m => m.type === BusMessageType.UpdateRoom ),
+		const rooms$ =
+			localBus.pipe(
+				filter( m => m.type === BusMessageType.UpdateRoom ),
+				switchMap( () => collections.rooms.find( {} ).toArray() ),
+				share()
+			);
+
+		const session$ =
+			localBus.pipe(
+				filter( m => m.type === BusMessageType.UpdateSession ),
+				switchMap( () => collections.sessions.find( {} ).toArray() ),
+				share()
+			);
+
+		const roomSession$ =
+			localBus.pipe(
+				filter( m => m.type === BusMessageType.UpdateRoomSession ),
+				switchMap( () => collections.roomSessions.find( {} ).toArray() ),
+				share()
+			);
+
+
+		rooms$.pipe(
 			debounceTime( 10 ),
-			switchMap( async () => { await sendRooms(); } )
+			mapMap( s2cRoom ),
+			switchMap( async data => {
+				io.send( { type: 'rooms', data } );
+			} )
 		)
 		.subscribe();
 
-		localBus.pipe(
-			filter( m => m.type === BusMessageType.UpdateSession ),
+		session$.pipe(
 			debounceTime( 10 ),
-			switchMap( async () => { await sendSessions(); } )
+			mapMap( s2cSession ),
+			switchMap( async data => {
+				io.send( { type: 'sessions', data } );
+			} )
 		)
 		.subscribe();
 
-		localBus.pipe(
-			filter( m => m.type === BusMessageType.UpdateRoomSession ),
+		roomSession$.pipe(
 			debounceTime( 10 ),
-			switchMap( async () => { await sendRoomSessions(); } )
+			mapMap( s2cRoomSession ),
+			switchMap( async data => {
+				io.send( { type: 'roomSessions', data } );
+			} )
 		)
 		.subscribe();
 
@@ -86,18 +115,30 @@ import { localBus } from './bus';
 			socket.join( `session:${sessionId}` );
 
 			io.to( `session:${sessionId}` ).send( { type: 'session', data: { sessionId } } );
+
+			{
+				const roomIds = ( await collections.roomSessions.find( { sessionId } ).project( { _id: 0, roomId: 1 } ).toArray() ).map( r => r.roomId );
+				for( const roomId of roomIds ) {
+					socket.join( `room:${sessionId}` );
+				}
+				const gameIds = ( await collections.rooms.find( { _id: { $in: roomIds } } ).project( { _id: 0, gameId: 1 } ).toArray() ).map( r => r.gameId );
+				const games = await collections.games.find( { _id: { $in: gameIds } } ).toArray();
+				for( const game of games ) {
+					io.to( `session:${sessionId}` ).send( { type: 'update', data: s2cGame( game ) } );
+				}
+			}
+
 			sendRooms( io.to( `session:${sessionId}` ) );
 			sendSessions( io.to( `session:${sessionId}` ) );
 			sendRoomSessions( io.to( `session:${sessionId}` ) );
 
 			const disconnected = fromNodeEvent( socket, 'disconnect' ).pipe( share(), take( 1 ) );
 			const disconnecting = fromNodeEvent( socket, 'disconnecting' ).pipe( share(), take( 1 ), takeUntil( disconnected ) );
-			await collections.sessions.insertOne( { _id: sessionId, nick: 'Guest', token: uuid() } as ServerSession );
 
-			timer( 0, 15000 )
+			timer( 0, 60 * 1000 )
 			.pipe(
 				exhaustMap( async () => {
-					await snoozeExpiry( 60000, sessionId );
+					await snoozeExpiry( 1000 * 60 * 10, sessionId );
 				} ),
 				takeUntil( disconnecting )
 			)
@@ -273,8 +314,8 @@ import { localBus } from './bus';
 						score: rules.getScore( newGameState, color )
 					} ) );
 					scores.sort( ( c1, c2 ) => {
-						const r1 = rules.compareScores( c2.score, c1.score );
-						return ( r1 === 0 ) ? c2.color.localeCompare( c1.color ) : r1;
+						const r1 = rules.compareScores( c1.score, c2.score );
+						return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
 					} );
 					const bestScore = scores[ 0 ].score;
 					const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );

@@ -7,9 +7,33 @@ import { promisify } from 'util';
 import { fromNodeEvent } from 'server/rxjs';
 import { filter, takeUntil, mergeMap } from 'rxjs/operators';
 import { EventEmitter } from 'events';
+import { IncomingMessage } from 'http';
+import Io, { Handshake, ServerOptions } from 'socket.io';
+import { connectMongodb } from './mongodb';
 
-export const io = require( 'socket.io' )( server ) as SocketIO.Server & NodeJS.EventEmitter;
+export const io = Io( server, {
+	transports: [ 'websocket' ],
+	cookie: false
+} as ServerOptions ) as SocketIO.Server & NodeJS.EventEmitter;
 onShutDown( () => promisify( io.close ).call( io ) );
+
+io.use( ( socket, cb ) => {
+	const token = socket.handshake.query.token as string;
+	( async () => {
+		try {
+			const { collections } = await connectMongodb();
+			const { value } = await collections.sessions.findOneAndUpdate(
+				{ token },
+				{ $setOnInsert: { _id: socket.id, token } },
+				{ upsert: true }
+			);
+			socket.id = value._id;
+		} catch( ex ) {
+			console.error( ex );
+			throw ex;
+		}
+	} )().then( () => { cb(); }, cb );
+} );
 
 io.engine[ 'generateId' ] = uuid;
 

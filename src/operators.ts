@@ -66,3 +66,6 @@ export const toArrayMap = <U, K, L = U>( fn: ( e: U ) => K, fnValue: ( e : U ) =
 		}
 		return m;
 	} );
+
+export const mapMap = <T, U>( fn: ( e: T ) => U ) =>
+	map<ReadonlyArray<T>, U[]>( v => v.map( fn ) );

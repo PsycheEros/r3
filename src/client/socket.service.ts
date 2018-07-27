@@ -3,6 +3,7 @@ import { map, observeOn, switchMap, takeUntil, filter } from 'rxjs/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import io from 'socket.io-client';
+import uuid from 'uuid/v4';
 
 @Injectable()
 export class SocketService implements OnDestroy {
@@ -11,7 +12,18 @@ export class SocketService implements OnDestroy {
 		private readonly scheduler: SchedulerLike
 	) {
 		const { destroyed } = this;
-		const socket = this.socket = io.connect( '/', { transports: [ 'websocket', 'polling' ], upgrade: false } );
+
+		let token = sessionStorage.getItem( 'token' );
+		if( !token ) {
+			token = uuid();
+			sessionStorage.setItem( 'token', token );
+		}
+
+		const socket = this.socket = io.connect( {
+			transports: [ 'websocket' ],
+			upgrade: false,
+			query: { token }
+		} );
 
 		of( 'connect' )
 		.pipe(
