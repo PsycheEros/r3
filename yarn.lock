@@ -4878,9 +4878,9 @@ ngx-bootstrap@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/ngx-bootstrap/-/ngx-bootstrap-3.0.1.tgz#e98d2fc6340f32a9d358cd08e8fda7dcb23bdab3"
 
-ngx-zone-scheduler@^2.1.2:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/ngx-zone-scheduler/-/ngx-zone-scheduler-2.1.2.tgz#1bff90200dc036eb0830858af9f1c575130a5db6"
+ngx-zone-scheduler@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/ngx-zone-scheduler/-/ngx-zone-scheduler-2.2.0.tgz#12a5ec3dc4b816373cac9373a85ba2b9dbce7302"
 
 nice-try@^1.0.4:
   version "1.0.4"
