@@ -109,4 +109,5 @@ configuration:
     performance:
       hints: false
     target: node
-trackingId: UA-99571233-2
+templateParameters:
+  trackingId: UA-99571233-2

@@ -130,9 +130,8 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		new HtmlWebpackPlugin( {
 			inject: 'body',
 			inlineSource: /^runtime~/,
-			template: path.resolve( __dirname, 'src', 'client', 'index.html' ),
-			templateParameters: { trackingId: config.trackingId },
-			xhtml: true
+			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
+			templateParameters: config.templateParameters
 		} ),
 		new ScriptExtHtmlWebpackPlugin( {
 			defaultAttribute: 'async'
