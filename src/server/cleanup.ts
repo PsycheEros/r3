@@ -15,25 +15,25 @@ export async function clearExpiry( ...ids: string[] ) {
 export async function setExpiry( millis: number, ...ids: string[] ) {
 	const expires = Date.now() + millis;
 	const { collections } = await connectMongodb();
-	for( const _id in ids ) {
-		await collections.expirations.updateOne(
+	await Promise.all( ids.map( _id =>
+		collections.expirations.updateOne(
 			{ _id },
 			{ $setOnInsert: { _id }, $set: { expires } },
 			{ upsert: true }
-		);
-	}
+		)
+	) );
 }
 
 export async function snoozeExpiry( millis: number, ...ids: string[] ) {
 	const expires = Date.now() + millis;
 	const { collections } = await connectMongodb();
-	for( const _id in ids ) {
-		await collections.expirations.updateOne(
+	await Promise.all( ids.map( _id =>
+		collections.expirations.updateOne(
 			{ _id, expires: { $lt: expires } },
 			{ $setOnInsert: { _id }, $set: { expires } },
 			{ upsert: true }
-		);
-	}
+		)
+	) );
 }
 
 interval( checkSeconds * 1000 )
@@ -45,13 +45,13 @@ interval( checkSeconds * 1000 )
 		const activeRoomIds = Array.from( new Set( ( await collections.roomSessions.find().project( { roomId: 1 } ).toArray() ).map( rs => rs.roomId ) ) );
 		await collections.expirations.remove( { _id: { $in: activeRoomIds } } );
 		const inactiveRoomIds = Array.from( new Set( ( await collections.rooms.find( { _id: { $nin: activeRoomIds } } ).project( { roomId: 1 } ).toArray() ).map( r => r._id ) ) );
-		if( inactiveRoomIds.length > 0 ) {
-			await collections.expirations.update(
-				{ _id: { $in: inactiveRoomIds } },
-				{ $setOnInsert: { expires } },
+		await Promise.all( inactiveRoomIds.map( _id =>
+			collections.expirations.update(
+				{ _id },
+				{ $setOnInsert: { _id, expires } },
 				{ upsert: true }
-			);
-		}
+			)
+		) );
 	} )
 )
 .subscribe();
