@@ -119,7 +119,7 @@ import { localBus } from './bus';
 			{
 				const roomIds = ( await collections.roomSessions.find( { sessionId } ).project( { _id: 0, roomId: 1 } ).toArray() ).map( r => r.roomId );
 				for( const roomId of roomIds ) {
-					socket.join( `room:${sessionId}` );
+					socket.join( `room:${roomId}` );
 				}
 				const gameIds = ( await collections.rooms.find( { _id: { $in: roomIds } } ).project( { _id: 0, gameId: 1 } ).toArray() ).map( r => r.gameId );
 				const games = await collections.games.find( { _id: { $in: gameIds } } ).toArray();
