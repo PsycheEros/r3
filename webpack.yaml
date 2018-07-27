@@ -92,6 +92,7 @@ configuration:
       runtimeChunk: true
     output:
       crossOriginLoading: anonymous
+      filename: '[hash].js'
       path: [ dist, www ]
     performance:
       maxAssetSize: 2097152 # 2MiB
@@ -100,6 +101,7 @@ configuration:
     <<: *sharedConfig
     node: false
     optimization:
+      minimize: false
       splitChunks: false
       runtimeChunk: false
     output:
@@ -107,3 +109,4 @@ configuration:
     performance:
       hints: false
     target: node
+trackingId: UA-99571233-2

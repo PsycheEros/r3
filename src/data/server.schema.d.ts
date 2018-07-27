@@ -26,10 +26,9 @@ declare interface ServerRoom {
 }
 
 declare interface ServerRoomSession {
-	_id: string;
 	roomId: string;
 	sessionId: string;
-	seats: number[];
+	seats: ReadonlyArray<number>;
 }
 
 declare interface ServerSession {
@@ -42,4 +41,5 @@ declare interface ServerUser {
 	_id: string;
 	nick: string;
 	passwordHash: string;
+	roles: ReadonlyArray<string>;
 }

@@ -132,14 +132,14 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
-	public async sit( color: number ) {
+	public async sit( seat: number ) {
 		const { roomId, roomService } = this;
-		await roomService.sit( roomId, color );
+		await roomService.sit( roomId, seat );
 	}
 
-	public async stand( color: number ) {
+	public async stand( seat: number ) {
 		const { roomId, roomService } = this;
-		await roomService.stand( roomId, color );
+		await roomService.stand( roomId, seat );
 	}
 
 	public colors = null as string[];

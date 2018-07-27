@@ -1,5 +1,6 @@
 expiration:
   bsonType: object
+  additionalProperties: false
   properties:
     _id:
       bsonType: string
@@ -8,6 +9,7 @@ expiration:
   required: [ _id, expires ]
 game:
   bsonType: object
+  additionalProperties: false
   properties:
     _id:
       bsonType: string
@@ -21,6 +23,7 @@ game:
       bsonType: array
       items:
         bsonType: object
+        additionalProperties: false
         properties:
           time:
             bsonType: int
@@ -29,6 +32,7 @@ game:
           lastMove:
             oneOf:
             - bsonType: object
+              additionalProperties: false
               properties:
                 x:
                   bsonType: int
@@ -39,6 +43,7 @@ game:
             - bsonType: 'null'
           size:
             bsonType: object
+            additionalProperties: false
             properties:
               width:
                 bsonType: int
@@ -54,6 +59,7 @@ game:
   required: [ _id, colors, ruleSet, gameStates ]
 room:
   bsonType: object
+  additionalProperties: false
   properties:
     _id:
       bsonType: string
@@ -66,7 +72,10 @@ room:
   required: [ _id, name, passwordHash, gameId ]
 roomSession:
   bsonType: object
+  additionalProperties: false
   properties:
+    _id:
+      bsonType: objectid
     roomId:
       bsonType: string
     sessionId:
@@ -75,9 +84,10 @@ roomSession:
       bsonType: array
       items:
         bsonType: int
-    required: [ roomId, sessionId, seats ]
+  required: [ roomId, sessionId, seats ]
 session:
   bsonType: object
+  additionalProperties: false
   properties:
     _id:
       bsonType: string
@@ -88,6 +98,7 @@ session:
   required: [ _id, nick, token ]
 user:
   bsonType: object
+  additionalProperties: false
   properties:
     _id:
       bsonType: string
@@ -95,4 +106,8 @@ user:
       bsonType: string
     passwordHash:
       bsonType: string
-  required: [ _id, nick, passwordHash ]
+    roles:
+      bsonType: array
+      items:
+        bsonType: string
+  required: [ _id, nick, passwordHash, roles ]

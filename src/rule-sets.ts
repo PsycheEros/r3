@@ -12,7 +12,7 @@ const directions: ReadonlyArray<Point> = [
 	{ x: -1, y: -1 }
 ];
 
-function getAffectedSquares( board: Board, position: Point, color: number ): Square[] {
+function getAffectedSquares( board: Board, position: Point, seat: number ): Square[] {
 	if( !board.boundsCheck( position ) ) { return []; }
 	const square = board.get( position );
 	if( !square || !square.empty || !square.enabled ) { return []; }
@@ -24,7 +24,7 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 			if( !board.boundsCheck( { x, y } ) ) { return []; }
 			const square = board.get( { x, y } );
 			if( !square || square.empty || !square.enabled ) { return []; }
-			if( square.color === color ) { return squares; }
+			if( square.color === seat ) { return squares; }
 			squares.push( square );
 		}
 	}
@@ -39,33 +39,33 @@ function getAffectedSquares( board: Board, position: Point, color: number ): Squ
 class RulesStandard implements Rules {
 	public readonly name: string = 'Standard';
 	public readonly ruleSet: RuleSet = RuleSet.standard;
-	public readonly colors: number = 2;
+	public readonly seats: number = 2;
 	public readonly boardSize: Readonly<Size> = Object.freeze( { width: 8, height: 8 } );
 
-	public isValid( gameState: Pick<ClientGameState,'size'|'data'>, position: Point, color: number ) {
-		return getAffectedSquares( Board.fromGameState( gameState ), position, color ).length > 0;
+	public isValid( gameState: Pick<ClientGameState,'size'|'data'>, position: Point, seat: number ) {
+		return getAffectedSquares( Board.fromGameState( gameState ), position, seat ).length > 0;
 	}
 
 	public compareScores( score1: number, score2: number ) {
-		return score1 - score2;
+		return score2 - score1;
 	}
 
-	public getValidMoves( gameState: Pick<ClientGameState,'size'|'data'>, color: number ) {
+	public getValidMoves( gameState: Pick<ClientGameState,'size'|'data'>, seat: number ) {
 		const points = [] as Point[];
 		const { size: { width, height } } = gameState;
 		for( let x = 0; x < width; ++x ) {
 		for( let y = 0; y < height; ++y ) {
 			const point = { x, y };
-			if( this.isValid( gameState, point, color ) ) points.push( point );
+			if( this.isValid( gameState, point, seat ) ) points.push( point );
 		}
 		}
 		return points;
 	}
 
 	public isGameOver( gameState: Pick<ClientGameState,'size'|'data'> ) {
-		const { colors } = this;
-		for( let color = 0; color < colors; ++color ) {
-			if( this.getValidMoves( gameState, color ).length > 0 ) return false;
+		const { seats } = this;
+		for( let seat = 0; seat < seats; ++seat ) {
+			if( this.getValidMoves( gameState, seat ).length > 0 ) return false;
 		}
 		return true;
 	}
@@ -81,10 +81,10 @@ class RulesStandard implements Rules {
 		}
 		const lastMove = Object.freeze( { ...position } );
 		const data = board.getData();
-		const { colors } = this;
+		const { seats } = this;
 		let turn: number|null = null;
-		for( let i = 0; i < colors; ++i ) {
-			const t = ( prevTurn + 1 + i ) % colors;
+		for( let i = 0; i < seats; ++i ) {
+			const t = ( prevTurn + 1 + i ) % seats;
 			if( this.getValidMoves( { size, data }, t ).length > 0 ) {
 				turn = t;
 				break;
@@ -93,11 +93,11 @@ class RulesStandard implements Rules {
 		return { time, turn, data, size, lastMove } as ClientGameState;
 	}
 
-	public getScore( gameState: Pick<ClientGameState,'size'|'data'>, color: number ) {
+	public getScore( gameState: Pick<ClientGameState,'size'|'data'>, seat: number ) {
 		const board = Board.fromGameState( gameState );
 		let score = 0;
 		for( const square of board ) {
-			if( square && square.enabled && square.color === color ) {
+			if( square && square.enabled && square.color === seat ) {
 				++score;
 			}
 		}
@@ -128,7 +128,7 @@ class RulesReversed extends RulesStandard {
 	public readonly ruleSet: RuleSet = RuleSet.reversed;
 
 	public compareScores( score1: number, score2: number ) {
-		return score2 - score1;
+		return score1 - score2;
 	}
 }
 

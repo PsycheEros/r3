@@ -12,14 +12,28 @@ export async function clearExpiry( ...ids: string[] ) {
 	);
 }
 
+export async function setExpiry( millis: number, ...ids: string[] ) {
+	const expires = Date.now() + millis;
+	const { collections } = await connectMongodb();
+	for( const _id in ids ) {
+		await collections.expirations.updateOne(
+			{ _id },
+			{ $setOnInsert: { _id }, $set: { expires } },
+			{ upsert: true }
+		);
+	}
+}
+
 export async function snoozeExpiry( millis: number, ...ids: string[] ) {
 	const expires = Date.now() + millis;
 	const { collections } = await connectMongodb();
-	await collections.expirations.update(
-		{ _id: { $in: ids }, expires: { $lt: expires } },
-		{ $set: { expires } },
-		{ upsert: true }
-	);
+	for( const _id in ids ) {
+		await collections.expirations.updateOne(
+			{ _id, expires: { $lt: expires } },
+			{ $setOnInsert: { _id }, $set: { expires } },
+			{ upsert: true }
+		);
+	}
 }
 
 interval( checkSeconds * 1000 )

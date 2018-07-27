@@ -152,7 +152,7 @@ import { localBus } from './bus';
 
 				const game: ServerGame = {
 					_id: gameId,
-					colors: defaultColors.slice( 0, rules.colors ),
+					colors: defaultColors.slice( 0, rules.seats ),
 					gameStates: [ gameState ],
 					ruleSet
 				};
@@ -169,6 +169,7 @@ import { localBus } from './bus';
 				await collections.rooms.insertOne( {
 					_id: roomId,
 					name,
+					gameId: null,
 					passwordHash: password ? await hashPassword( password ) : ''
 				} as ServerRoom );
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
@@ -193,7 +194,7 @@ import { localBus } from './bus';
 					if( !await checkPassword( password, room.passwordHash ) ) throw new Error( 'Incorrect password.' );
 				}
 				await promisify( socket.join ).call( socket, `room:${roomId}` );
-				await collections.roomSessions.insert( { roomId, sessionId, colors: [] } );
+				await collections.roomSessions.insert( { roomId, sessionId, seats: [] } );
 				await collections.expirations.remove( { _id: roomId }, { single: true } );
 				if( room.gameId ) {
 					const game = await collections.games.findOne( { _id: room.gameId } );
@@ -228,36 +229,36 @@ import { localBus } from './bus';
 				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, user: nick, message } } );
 			} );
 
-			handleMessage( socket, 'sit', async ( { roomId, color } ) => {
-				const existingSeats = await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, colors: { $elemMatch: { $eq: color } } } ).toArray();
+			handleMessage( socket, 'sit', async ( { roomId, seat } ) => {
+				const existingSeats = await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: seat } } } ).toArray();
 				if( existingSeats.length > 0 ) throw new Error( 'Seat not available.' );
-				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: color } } } }, { $addToSet: { colors: color } } );
+				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seat: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { seats: seat } } );
 				if( result.n === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
 				if( !gameId ) return;
 				const game = await collections.games.findOne( { _id: gameId } );
 				if( !game ) return;
-				const colorData = colors[ game.colors[ color ] ];
-				if( !colorData ) return;
+				const color = colors[ game.colors[ seat ] ];
+				if( !color ) return;
 				const nick = await getNick( sessionId );
-				const message = `${nick} is now playing as ${colorData.displayName}.`;
+				const message = `${nick} is now playing as ${color.displayName}.`;
 				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 			} );
 
-			handleMessage( socket, 'stand', async ( { roomId, color } ) => {
-				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $elemMatch: { $eq: color } } }, { $pull: { colors: color } } );
+			handleMessage( socket, 'stand', async ( { roomId, seat } ) => {
+				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: seat } } );
 				if( result.n === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
 				if( !gameId ) return;
 				const game = await collections.games.findOne( { _id: gameId } );
 				if( !game ) return;
-				const colorData = colors[ game.colors[ color ] ];
-				if( !colorData ) return;
+				const color = colors[ game.colors[ seat ] ];
+				if( !color ) return;
 				const nick = await getNick( sessionId );
 
-				const message = `${nick} has stopped playing as ${colorData.displayName}.`;
+				const message = `${nick} has stopped playing as ${color.displayName}.`;
 				io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 			} );
 
@@ -287,10 +288,11 @@ import { localBus } from './bus';
 				const gameStates = [ ...game.gameStates ];
 				const oldGameState = s2cGameState( gameStates.slice( -1 )[ 0 ] );
 				const seat = oldGameState.turn;
+				if( !rules.isValid( oldGameState, position, seat ) ) throw new Error( 'Invalid move.' );
 				if( !roomSession.seats.includes( seat ) ) {
 					let fail = true;
-					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, colors: { $elemMatch: { $eq: seat } } } ).toArray() ).length === 0 ) {
-						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, colors: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { colors: seat } } );
+					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: seat } } } ).toArray() ).length === 0 ) {
+						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { seats: seat } } );
 						if( result.n > 0 ) fail = false;
 					}
 					if( fail ) throw new Error( 'Wrong turn.' );
@@ -308,17 +310,17 @@ import { localBus } from './bus';
 				io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				if( rules.isGameOver( newGameState ) ) {
 					const scores =
-					Array.from( { length: rules.colors } )
-					.map( ( _, color ) => ( {
-						color: colors[ game.colors[ color ] ].displayName,
-						score: rules.getScore( newGameState, color )
+					Array.from( { length: rules.seats } )
+					.map( ( _, seat ) => ( {
+						color: colors[ game.colors[ seat ] ].displayName,
+						score: rules.getScore( newGameState, seat )
 					} ) );
 					scores.sort( ( c1, c2 ) => {
 						const r1 = rules.compareScores( c1.score, c2.score );
 						return ( r1 === 0 ) ? c1.color.localeCompare( c2.color ) : r1;
 					} );
 					const bestScore = scores[ 0 ].score;
-					const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) );
+					const winners = scores.filter( ( { score } ) => rules.compareScores( score, bestScore ) === 0 );
 					let message: string;
 					if( winners.length !== 1 ) {
 						message = 'Draw game';
@@ -333,7 +335,7 @@ import { localBus } from './bus';
 				try {
 					const nick = await getNick( sessionId );
 					const message = `${nick} has disconnected.`;
-					const roomIds = ( await collections.roomSessions.find( { sessionId }, { projection: { _id: 1 } } ).toArray() ).map( r => r._id );
+					const roomIds = ( await collections.roomSessions.find( { sessionId }, { projection: { _id: 0, roomId: 1 } } ).toArray() ).map( r => r.roomId );
 					for( const roomId of roomIds ) {
 						io.to( `room:${roomId}` ).send( { type: 'message', data: { roomId, message } } );
 					}
@@ -343,7 +345,6 @@ import { localBus } from './bus';
 				console.log( `User disconnected, ${--connections} connected` );
 			} );
 		} );
-
 	} catch( ex ) {
 		console.error( ex );
 	}

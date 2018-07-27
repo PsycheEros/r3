@@ -5,12 +5,12 @@ import webpack from 'webpack';
 import { merge } from 'lodash';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
-import { PurifyPlugin } from '@angular-devkit/build-optimizer';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
 import SriPlugin from 'webpack-subresource-integrity';
 import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import CleanObsoleteChunksPlugin from 'webpack-clean-obsolete-chunks';
 import yargs from 'yargs';
 
 import yaml from 'js-yaml';
@@ -116,7 +116,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 	},
 	plugins: [
 		new AngularCompilerPlugin( config.options.angular ),
-		new MiniCssExtractPlugin( { filename: '[name].css' } ),
+		new MiniCssExtractPlugin( { filename: '[hash].css' } ),
 		new webpack.DefinePlugin( {
 			'process.browser': JSON.stringify( true ),
 			'process.platform': JSON.stringify( 'browser' ),
@@ -131,14 +131,16 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			inject: 'body',
 			inlineSource: /^runtime~/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.html' ),
+			templateParameters: { trackingId: config.trackingId },
 			xhtml: true
 		} ),
 		new ScriptExtHtmlWebpackPlugin( {
 			defaultAttribute: 'async'
 		} ),
 		new HtmlWebpackInlineSourcePlugin,
-		...( devMode ? [] : [
-			new PurifyPlugin,
+		...( devMode ? [
+			new CleanObsoleteChunksPlugin
+		] : [
 			new BundleAnalyzerPlugin( {
 				analyzerMode: 'static',
 				reportFilename: path.resolve( __dirname, 'stats', 'client.html' )

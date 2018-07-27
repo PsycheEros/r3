@@ -84,14 +84,14 @@ export class RoomService {
 		this.allMessages.next( { roomId, message } );
 	}
 
-	public async sit( roomId: string, color: number ) {
+	public async sit( roomId: string, seat: number ) {
 		const { socketService } = this;
-		socketService.send( 'sit', { roomId, color } );
+		socketService.send( 'sit', { roomId, seat } );
 	}
 
-	public async stand( roomId: string, color: number ) {
+	public async stand( roomId: string, seat: number ) {
 		const { socketService } = this;
-		socketService.send( 'stand', { roomId, color } );
+		socketService.send( 'stand', { roomId, seat } );
 	}
 
 	public getMessages() {
