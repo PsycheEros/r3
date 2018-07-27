@@ -75,7 +75,7 @@ roomSession:
   additionalProperties: false
   properties:
     _id:
-      bsonType: objectid
+      bsonType: objectId
     roomId:
       bsonType: string
     sessionId:
