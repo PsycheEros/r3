@@ -150,6 +150,7 @@ export class RoomService {
 
 	public async setRoom( roomId: string|void ) {
 		const { currentRoomId } = this;
+		sessionStorage.setItem( 'currentRoomId', roomId || null );
 		if( roomId ) {
 			currentRoomId.next( roomId );
 		} else {
@@ -187,5 +188,5 @@ export class RoomService {
 
 	private readonly allMessages = new ReplaySubject<Message>( 10 );
 	private readonly allRooms = new BehaviorSubject<ClientRoom[]>( [] );
-	private readonly currentRoomId = new BehaviorSubject<string|null>( null );
+	private readonly currentRoomId = new BehaviorSubject<string|null>( sessionStorage.getItem( 'currentRoomId' ) || null );
 }
