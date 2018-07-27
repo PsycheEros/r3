@@ -24,7 +24,7 @@ io.use( ( socket, cb ) => {
 			const { collections } = await connectMongodb();
 			const { value } = await collections.sessions.findOneAndUpdate(
 				{ token },
-				{ $setOnInsert: { _id: socket.id, token } },
+				{ $setOnInsert: { _id: socket.id, nick: 'Guest', token } },
 				{ upsert: true }
 			);
 			socket.id = value._id;
