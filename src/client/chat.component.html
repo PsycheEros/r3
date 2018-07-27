@@ -5,13 +5,14 @@
 				<div class="input-group">
 					<input type="text" class="form-control" required="required" placeholder="Enter message" [(ngModel)]="text" name="text" autocomplete="off"
 						#textbox
+						(blur)="textbox.value || messageForm.resetForm()"
 						[stringValidationRules]="isCommand ? commandRules : chatMessageRules"
 						commandValidation
 					/>
 					<div class="input-group-append">
 						<button [disabled]="!messageForm.form.valid">
-							<fa-icon [icon]="[ 'far', 'comment' ]" transform="up-2" *ngIf="!isCommand"></fa-icon>
-							<fa-icon icon="terminal" transform="up-2" *ngIf="isCommand"></fa-icon>
+							<fa-icon [icon]="[ 'far', 'comment' ]" transform="up-1" *ngIf="!isCommand"></fa-icon>
+							<fa-icon icon="terminal" transform="up-1" *ngIf="isCommand"></fa-icon>
 						</button>
 					</div>
 				</div>

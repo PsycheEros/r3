@@ -50,7 +50,7 @@ export function validateCommand( value: string ) {
 		if( isValidNick( str ) ) return [];
 	}
 
-	str = chomp( value, '/?', '/help', '/quit', '/who' );
+	str = chomp( value, '/?', '/help', '/part', '/who' );
 	if( str != null ) {
 		if( !str ) return [];
 	}

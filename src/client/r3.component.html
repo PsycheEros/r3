@@ -1,11 +1,14 @@
 <navigation></navigation>
-<div class="container my-2">
+<div class="container py-2">
 	<lobby *ngIf="!currentRoomId"></lobby>
 	<room *ngIf="currentRoomId"></room>
 </div>
-<footer class="container d-flex justify-content-end fixed-bottom my-2">
-	<a href="https://jovalent.com" target="_blank" class="mx-4">Jovalent.com</a>
-	<a href="https://twitter.com/JovalentStudios" target="_blank" class="ml-4">
+<footer class="page-footer justify-content-between fixed-bottom py-2 bg-light text-nowrap d-none d-sm-flex">
+	<a href="https://jovalent.com" target="_blank" class="mx-4">
+		<fa-icon icon="globe"></fa-icon>
+		Jovalent.com
+	</a>
+	<a href="https://twitter.com/JovalentStudios" target="_blank" class="mx-4">
 		<fa-icon [icon]="[ 'fab', 'twitter' ]"></fa-icon>
 		@JovalentStudios
 	</a>

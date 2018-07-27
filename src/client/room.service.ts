@@ -37,7 +37,7 @@ export class RoomService {
 
 		const commands = {
 			help: async () => {
-				this.statusMessage( roomId, 'Available commands:\n/?\n/help\n/nick <name>\n/say <message>\n/quit\n/who' );
+				this.statusMessage( roomId, 'Available commands:\n/?\n/help\n/nick <name>\n/part\n/say <message>\n/who' );
 			},
 			'?': async () => {
 				await commands.help();
@@ -48,7 +48,7 @@ export class RoomService {
 			say: async () => {
 				await socketService.send( 'sendMessage', { roomId, message: message.substring( 5 ) } );
 			},
-			quit: async () => {
+			part: async () => {
 				await this.leaveRoom( roomId );
 			},
 			who: async () => {
