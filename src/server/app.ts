@@ -18,7 +18,8 @@ csp.extend( app, cspPolicy );
 
 app.post( '/debug/resetAll', async ( req, res, next ) => {
 	try {
-		const { collections } = await ( require( './mongodb' ).connectMongodb() );
+		const { collections } = await ( await import( './mongodb' ) ).connectMongodb();
+		const { localBus } = await import( './bus' );
 		await Promise.all( [
 			collections.expirations.deleteMany( {} ),
 			collections.sessions.deleteMany( {} ),
@@ -26,7 +27,33 @@ app.post( '/debug/resetAll', async ( req, res, next ) => {
 			collections.roomSessions.deleteMany( {} ),
 			collections.users.deleteMany( {} )
 		] );
+		localBus.next( { type: BusMessageType.UpdateRoom, data: {} } );
+		localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
+		localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 		res.status( 204 );
+		res.end();
+	} catch( ex ) {
+		next( ex );
+	}
+} );
+
+app.get( '/debug/checkSchema', async ( req, res, next ) => {
+	try {
+		const { collections } = await ( await import( './mongodb' ) ).connectMongodb();
+
+		res.status( 200 );
+		res.contentType( 'text/plain' );
+
+		for( const collection of Object.values( collections ) as any ) {
+			const { validator } = collection.s.options;
+			if( !validator ) continue;
+			const docs = await collection.find( { $nor: [ validator ] } ).toArray();
+			if( docs.length === 0 ) continue;
+			res.write( `${collection.s.name}\n` );
+			for( const doc of docs ) {
+				res.write( `${JSON.stringify( doc, null, 4 )}\n\n` );
+			}
+		}
 		res.end();
 	} catch( ex ) {
 		next( ex );

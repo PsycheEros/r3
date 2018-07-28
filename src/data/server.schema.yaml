@@ -1,113 +1,120 @@
 expiration:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: string
-    expires:
-      bsonType: int
-  required: [ _id, expires ]
-game:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: string
-    colors:
-      bsonType: array
-      items:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
         bsonType: string
-    ruleSet:
-      bsonType: string
-    gameStates:
-      bsonType: array
-      items:
-        bsonType: object
-        additionalProperties: false
-        properties:
-          time:
-            bsonType: int
-          turn:
-            bsonType: [ int, 'null' ]
-          lastMove:
-            oneOf:
-            - bsonType: object
+      expires:
+        bsonType: long
+    required: [ _id, expires ]
+game:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
+        bsonType: string
+      colors:
+        bsonType: array
+        items:
+          bsonType: string
+      ruleSet:
+        bsonType: string
+      gameStates:
+        bsonType: array
+        items:
+          bsonType: object
+          additionalProperties: false
+          properties:
+            time:
+              bsonType: long
+            turn:
+              bsonType: [ int, 'null' ]
+              minimum: 0
+            lastMove:
+              bsonType: [ object, 'null' ]
               additionalProperties: false
               properties:
                 x:
                   bsonType: int
-                  minimum: 1
+                  minimum: 0
                 y:
                   bsonType: int
+                  minimum: 0
+              required: [ x, y ]
+            size:
+              bsonType: object
+              additionalProperties: false
+              properties:
+                width:
+                  bsonType: int
                   minimum: 1
-            - bsonType: 'null'
-          size:
-            bsonType: object
-            additionalProperties: false
-            properties:
-              width:
-                bsonType: int
-                minimum: 1
-              height:
-                bsonType: int
-                minimum: 1
-          data:
-            bsonType: array
-            items:
-              bsonType: [ int, bool ]
-        required: [ time, turn, lastMove, size, data ]
-  required: [ _id, colors, ruleSet, gameStates ]
+                height:
+                  bsonType: int
+                  minimum: 1
+              required: [ width, height ]
+            data:
+              bsonType: array
+              items:
+                bsonType: [ int, bool ]
+          required: [ time, turn, lastMove, size, data ]
+    required: [ _id, colors, ruleSet, gameStates ]
 room:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: string
-    name:
-      bsonType: string
-    passwordHash:
-      bsonType: string
-    gameId:
-      bsonType: [ string, 'null' ]
-  required: [ _id, name, passwordHash, gameId ]
-roomSession:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: objectId
-    roomId:
-      bsonType: string
-    sessionId:
-      bsonType: string
-    seats:
-      bsonType: array
-      items:
-        bsonType: int
-  required: [ roomId, sessionId, seats ]
-session:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: string
-    nick:
-      bsonType: string
-    token:
-      bsonType: string
-  required: [ _id, nick, token ]
-user:
-  bsonType: object
-  additionalProperties: false
-  properties:
-    _id:
-      bsonType: string
-    nick:
-      bsonType: string
-    passwordHash:
-      bsonType: string
-    roles:
-      bsonType: array
-      items:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
         bsonType: string
-  required: [ _id, nick, passwordHash, roles ]
+      name:
+        bsonType: string
+      passwordHash:
+        bsonType: string
+      gameId:
+        bsonType: [ string, 'null' ]
+    required: [ _id, name, passwordHash, gameId ]
+roomSession:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
+        bsonType: objectId
+      roomId:
+        bsonType: string
+      sessionId:
+        bsonType: string
+      seats:
+        bsonType: array
+        items:
+          bsonType: int
+    required: [ roomId, sessionId, seats ]
+session:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
+        bsonType: string
+      nick:
+        bsonType: string
+      token:
+        bsonType: string
+    required: [ _id, nick, token ]
+user:
+  $jsonSchema:
+    bsonType: object
+    additionalProperties: false
+    properties:
+      _id:
+        bsonType: string
+      nick:
+        bsonType: string
+      passwordHash:
+        bsonType: string
+      roles:
+        bsonType: array
+        items:
+          bsonType: string
+    required: [ _id, nick, passwordHash, roles ]

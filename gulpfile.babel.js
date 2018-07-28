@@ -41,7 +41,10 @@ gulp.task( 'watch:client', () => new Promise( resolve => {
 	const compiler = webpack( require( './webpack.config.js' ).clientConfig );
 	compiler.watch( {}, ( err, stats ) => {
 		if( err ) log.error( err );
-		else log.info( stats.toString() );
+		else {
+			err = stats.toString( 'errors-only' );
+			if( err ) log.error( stats.toString() );
+		}
 		resolve();
 	} );
 } ) );
@@ -50,7 +53,10 @@ gulp.task( 'watch:server', () => new Promise( resolve => {
 	const compiler = webpack( require( './webpack.config.js' ).serverConfig );
 	compiler.watch( {}, ( err, stats ) => {
 		if( err ) log.error( err );
-		else log.info( stats.toString() );
+		else {
+			err = stats.toString( 'errors-only' );
+			if( err ) log.error( stats.toString() );
+		}
 		resolve();
 	} );
 } ) );

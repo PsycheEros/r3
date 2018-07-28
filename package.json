@@ -104,6 +104,7 @@
   },
   "dependencies": {
     "bcrypt-nodejs": "^0.0.3",
+    "bson": "^3.0.2",
     "compression": "^1.7.3",
     "core-js": "^2.5.7",
     "debug": "^3.1.0",

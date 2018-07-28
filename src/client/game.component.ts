@@ -41,7 +41,7 @@ export class GameComponent implements OnInit, OnDestroy {
 		combineLatest( gameService.getGames(), roomService.getCurrentRoom() )
 		.pipe(
 			map( ( [ games, room ] ) =>
-				games.get( room.gameId )
+				room ? games.get( room.gameId ) : null
 			),
 			takeUntil( destroyed ),
 			observeOn( scheduler )

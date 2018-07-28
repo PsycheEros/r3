@@ -72,7 +72,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 			)
 			.pipe(
 				map( ( [ games, room ] ) =>
-					games.get( room.gameId )
+					room ? games.get( room.gameId ) : null
 				),
 				takeUntil( destroyed ),
 				observeOn( scheduler )

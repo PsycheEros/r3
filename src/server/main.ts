@@ -10,10 +10,12 @@ import { ruleSetMap } from 'src/rule-sets';
 import { io, handleMessage } from './socket';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
+import { Int32 } from 'bson';
 import _ from 'lodash';
 
 import uuid from 'uuid/v4';
 import { s2cRoom, s2cGame, s2cGameState, s2cSession, s2cRoomSession } from './server-to-client';
+import { s2mGame, s2mGameState, s2mRoom } from './server-to-mongo';
 import { connectMongodb } from './mongodb';
 import { snoozeExpiry } from './cleanup';
 import { timer } from 'rxjs';
@@ -135,6 +137,15 @@ import { localBus } from './bus';
 			const disconnected = fromNodeEvent( socket, 'disconnect' ).pipe( share(), take( 1 ) );
 			const disconnecting = fromNodeEvent( socket, 'disconnecting' ).pipe( share(), take( 1 ), takeUntil( disconnected ) );
 
+			session$
+			.pipe(
+				takeUntil( disconnecting ),
+				filter( s => !s.some( s => s._id === sessionId ) )
+			)
+			.subscribe( () => {
+				socket.disconnect();
+			} );
+
 			timer( 0, 60 * 1000 )
 			.pipe(
 				exhaustMap( async () => {
@@ -156,7 +167,7 @@ import { localBus } from './bus';
 					gameStates: [ gameState ],
 					ruleSet
 				};
-				await collections.games.insertOne( game );
+				await collections.games.insertOne( s2mGame( game ) );
 				await collections.rooms.updateOne( { _id: roomId }, { $set: { gameId } } as Partial<ServerRoom> );
 				localBus.next( { type: BusMessageType.UpdateRoom, data: {} } );
 				io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
@@ -230,9 +241,9 @@ import { localBus } from './bus';
 			} );
 
 			handleMessage( socket, 'sit', async ( { roomId, seat } ) => {
-				const existingSeats = await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: seat } } } ).toArray();
+				const existingSeats = await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: new Int32( seat ) } } } ).toArray();
 				if( existingSeats.length > 0 ) throw new Error( 'Seat not available.' );
-				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seat: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { seats: seat } } );
+				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seat: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { seats: new Int32( seat ) } } );
 				if( result.n === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
@@ -247,7 +258,7 @@ import { localBus } from './bus';
 			} );
 
 			handleMessage( socket, 'stand', async ( { roomId, seat } ) => {
-				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: seat } } );
+				const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: new Int32( seat ) } } );
 				if( result.n === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
@@ -291,8 +302,8 @@ import { localBus } from './bus';
 				if( !rules.isValid( oldGameState, position, seat ) ) throw new Error( 'Invalid move.' );
 				if( !roomSession.seats.includes( seat ) ) {
 					let fail = true;
-					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: seat } } } ).toArray() ).length === 0 ) {
-						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $not: { $elemMatch: { $eq: seat } } } }, { $addToSet: { seats: seat } } );
+					if( ( await collections.roomSessions.find( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: new Int32( seat ) } } } ).toArray() ).length === 0 ) {
+						const { result } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $not: { $elemMatch: { $eq: new Int32( seat ) } } } }, { $addToSet: { seats: new Int32( seat ) } } );
 						if( result.n > 0 ) fail = false;
 					}
 					if( fail ) throw new Error( 'Wrong turn.' );
@@ -305,7 +316,9 @@ import { localBus } from './bus';
 				newGameState = rules.makeMove( oldGameState, position );
 				if( !newGameState ) throw new Error( 'Invalid move.' );
 				gameStates.push( newGameState );
-				await collections.games.updateOne( { _id: gameId }, { $set: { gameStates } } );
+				await collections.games.updateOne( { _id: gameId }, {
+					$push: { gameStates: s2mGameState( newGameState ) }
+				} );
 				game.gameStates = gameStates;
 				io.to( `room:${roomId}` ).send( { type: 'update', data: s2cGame( game ) } );
 				if( rules.isGameOver( newGameState ) ) {

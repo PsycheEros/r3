@@ -4,6 +4,7 @@ import { checkSeconds, expireSeconds } from 'data/cleanup.config.yaml';
 import { shuttingDown } from './shut-down';
 import { connectMongodb } from './mongodb';
 import { localBus } from './bus';
+import { Long } from 'bson';
 
 export async function clearExpiry( ...ids: string[] ) {
 	const { collections } = await connectMongodb();
@@ -13,19 +14,19 @@ export async function clearExpiry( ...ids: string[] ) {
 }
 
 export async function setExpiry( millis: number, ...ids: string[] ) {
-	const expires = Date.now() + millis;
+	const expires = Long.fromNumber( Date.now() + millis );
 	const { collections } = await connectMongodb();
 	await Promise.all( ids.map( _id =>
 		collections.expirations.updateOne(
 			{ _id },
-			{ $setOnInsert: { _id }, $set: { expires } },
+			{ $setOnInsert: { _id }, $set: { expires} },
 			{ upsert: true }
 		)
 	) );
 }
 
 export async function snoozeExpiry( millis: number, ...ids: string[] ) {
-	const expires = Date.now() + millis;
+	const expires = Long.fromNumber( Date.now() + millis );
 	const { collections } = await connectMongodb();
 	await Promise.all( ids.map( _id =>
 		collections.expirations.updateOne(
@@ -41,7 +42,7 @@ interval( checkSeconds * 1000 )
 	takeUntil( shuttingDown ),
 	exhaustMap( async () => {
 		const { collections } = await connectMongodb();
-		const expires = Date.now() + expireSeconds * 1000;
+		const expires = Long.fromNumber( Date.now() + expireSeconds * 1000 );
 		const activeRoomIds = Array.from( new Set( ( await collections.roomSessions.find().project( { roomId: 1 } ).toArray() ).map( rs => rs.roomId ) ) );
 		await collections.expirations.remove( { _id: { $in: activeRoomIds } } );
 		const inactiveRoomIds = Array.from( new Set( ( await collections.rooms.find( { _id: { $nin: activeRoomIds } } ).project( { roomId: 1 } ).toArray() ).map( r => r._id ) ) );
@@ -61,7 +62,7 @@ interval( checkSeconds * 1000 )
 	takeUntil( shuttingDown ),
 	exhaustMap( async () => {
 		const { collections } = await connectMongodb();
-		const now = Date.now();
+		const now = Long.fromNumber( Date.now() );
 		const expiredIds = ( await collections.expirations.find( { expires: { $lte: now } } ).project( { _id: 1 } ).toArray() ).map( e => e._id );
 		if( expiredIds.length === 0 ) return;
 
