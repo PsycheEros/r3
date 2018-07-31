@@ -81,18 +81,10 @@ clientRoomSession$.pipe(
 				}
 
 				io.to( sessionIdStr ).send( { type: 'session', data: { sessionId: sessionIdStr } } );
-
-				clientRoomSession$
-				.pipe( take( 1 ) )
-				.subscribe( data => {
-					io.to( sessionIdStr ).send( { type: 'roomSessions', data } );
-				} );
-
-				clientRoom$
-				.pipe( take( 1 ) )
-				.subscribe( data => {
-					io.to( sessionIdStr ).send( { type: 'rooms', data } );
-				} );
+				const roomSessions = await collections.roomSessions.find( {} ).map( s2cRoomSession ).toArray();
+				io.to( sessionIdStr ).send( { type: 'roomSessions', data: roomSessions } );
+				const rooms = await collections.rooms.find( {} ).map( s2cRoom ).toArray();
+				io.to( sessionIdStr ).send( { type: 'rooms', data: rooms } );
 
 				const gameIds = ( await collections.rooms.find( { _id: { $in: roomIds } } ).project( { _id: 0, gameId: 1 } ).toArray() ).map( r => r.gameId );
 				const games = await collections.games.find( { _id: { $in: gameIds } } ).toArray();
