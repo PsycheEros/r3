@@ -71,7 +71,7 @@ class RulesStandard implements Rules {
 	}
 
 	public makeMove( gameState: Pick<ClientGameState,'size'|'data'|'turn'>, position: Readonly<Point> ) {
-		const time = Date.now();
+		const time = ( new Date ).toISOString();
 		const { turn: prevTurn, size } = gameState;
 		const board = Board.fromGameState( gameState );
 		const squares = getAffectedSquares( board, position, prevTurn );
@@ -114,7 +114,7 @@ class RulesStandard implements Rules {
 		board.get( { x: 3, y: 4 } ).color = 1;
 		board.get( { x: 4, y: 4 } ).color = 0;
 		return {
-			time: Date.now(),
+			time: ( new Date ).toISOString(),
 			turn: 0,
 			lastMove: null,
 			data: board.getData(),

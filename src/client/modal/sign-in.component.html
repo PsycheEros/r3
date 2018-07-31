@@ -1,0 +1,36 @@
+<div bsModal #newGameModal="bs-modal" (onHidden)="signInForm.resetForm()" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<modal-header (closeClick)="hide()">
+					Sign In
+				</modal-header>
+				<div class="modal-body">
+					<form (ngSubmit)="signIn()" class="clearfix" #signInForm="ngForm" autocomplete="off">
+						<div class="form-group">
+							<div class="input-group mb-2">
+								<div class="input-group-prepend">
+									<div class="input-group-text">
+										<fa-icon icon="user"></fa-icon>
+									</div>
+								</div>
+								<input type="text" class="form-control" placeholder="Nick" [stringValidationRules]="nickRules" [(ngModel)]="nick" name="nick" autocomplete="off"/>
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="input-group mb-2">
+								<div class="input-group-prepend">
+									<div class="input-group-text">
+										<fa-icon icon="key"></fa-icon>
+									</div>
+								</div>
+								<input type="password" class="form-control" placeholder="Password" [stringValidationRules]="userPasswordRules" [(ngModel)]="password" name="user-password" autocomplete="off"/>
+							</div>
+						</div>
+						<button class="btn float-right" [disabled]="!signInForm.form.valid">
+							Sign In
+						</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>

@@ -9,8 +9,7 @@ require( '@babel/register' )( {
 				node: 'current'
 			},
 			useBuiltIns: 'usage'
-		} ],
-		'@babel/preset-stage-3'
+		} ]
 	],
 	sourceMap: true
 } );

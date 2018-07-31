@@ -24,7 +24,8 @@ options:
         modules: false
         shippedProposals: true
         useBuiltIns: usage
-    - '@babel/preset-stage-3'
+    plugins:
+    - '@babel/plugin-syntax-dynamic-import'
     sourceMap: true
   babelServer:
     babelrc: false
@@ -37,7 +38,8 @@ options:
         modules: false
         shippedProposals: true
         useBuiltIns: usage
-    - '@babel/preset-stage-3'
+    plugins:
+    - '@babel/plugin-syntax-dynamic-import'
     sourceMap: true
   css:
     importLoaders: 2
@@ -78,6 +80,8 @@ options:
     sourceMap: true
   typescript:
     configFileName: tsconfig.server.json
+  yaml:
+    safe: false
 configuration:
   shared: &sharedConfig
     devtool: source-map

@@ -11,7 +11,7 @@ declare interface ClientSession {
 }
 
 declare interface ClientGameState {
-	time: number;
+	time: string;
 	turn: number|null;
 	lastMove: Point|null;
 	size: Size;

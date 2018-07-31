@@ -1,45 +1,50 @@
-declare interface ServerExpiration {
-	_id: string;
-	expires: number;
-}
+import { Binary } from 'mongodb';
 
-declare interface ServerGame {
-	_id: string;
-	colors: ReadonlyArray<string>;
-	ruleSet: RuleSet;
-	gameStates: ReadonlyArray<ServerGameState>;
-}
+declare global {
+	export interface ServerExpiration {
+		_id: Binary;
+		expires: Date;
+	}
 
-declare interface ServerGameState {
-	time: number;
-	turn: number|null;
-	lastMove: Point|null;
-	size: Size;
-	data: ReadonlyArray<boolean|number>;
-}
+	export interface ServerGame {
+		_id: Binary;
+		colors: ReadonlyArray<string>;
+		ruleSet: RuleSet;
+		gameStates: ReadonlyArray<ServerGameState>;
+	}
 
-declare interface ServerRoom {
-	_id: string;
-	name: string;
-	passwordHash: string;
-	gameId: string|null;
-}
+	export interface ServerGameState {
+		time: Date;
+		turn: number|null;
+		lastMove: Point|null;
+		size: Size;
+		data: ReadonlyArray<boolean|number>;
+	}
 
-declare interface ServerRoomSession {
-	roomId: string;
-	sessionId: string;
-	seats: ReadonlyArray<number>;
-}
+	export interface ServerRoom {
+		_id: Binary;
+		name: string;
+		passwordHash: Binary|null;
+		gameId: Binary|null;
+	}
 
-declare interface ServerSession {
-	_id: string;
-	nick: string;
-	token: string;
-}
+	export interface ServerRoomSession {
+		roomId: Binary;
+		sessionId: Binary;
+		seats: ReadonlyArray<number>;
+	}
 
-declare interface ServerUser {
-	_id: string;
-	nick: string;
-	passwordHash: string;
-	roles: ReadonlyArray<string>;
+	export interface ServerSession {
+		_id: Binary;
+		nick: string;
+		token: Binary;
+		userId: Binary|null;
+	}
+
+	export interface ServerUser {
+		_id: Binary;
+		nick: string;
+		passwordHash: Binary|null;
+		roles: ReadonlyArray<string>;
+	}
 }

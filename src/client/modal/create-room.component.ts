@@ -9,7 +9,9 @@ import { roomNameRules, roomPasswordRules } from 'src/validation';
 	styleUrls: [ './create-room.component.scss' ]
 } )
 export class ModalCreateRoomComponent {
-	constructor( private readonly roomService: RoomService ) {}
+	constructor(
+		private readonly roomService: RoomService
+	) {}
 
 	@ViewChild( 'createRoomModal' )
 	protected createRoomModal: ModalDirective;

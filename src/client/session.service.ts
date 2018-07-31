@@ -86,6 +86,21 @@ export class SessionService implements OnDestroy {
 			);
 	}
 
+	public async newUser( nick: string, password: string ) {
+		const { socketService } = this;
+		return await socketService.send<string>( 'newUser', { nick, password } );
+	}
+
+	public async logIn( nick: string, password: string ) {
+		const { socketService } = this;
+		return await socketService.send<string>( 'logIn', { nick, password } );
+	}
+
+	public async logOut() {
+		const { socketService } = this;
+		await socketService.send( 'logOut' );
+	}
+
 	public getSessionId() {
 		const { sessionId, scheduler } = this;
 		return sessionId.pipe( observeOn( scheduler ) );

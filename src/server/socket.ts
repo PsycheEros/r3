@@ -1,34 +1,41 @@
 import { pubSub } from './redis';
 import adapter from 'socket.io-redis';
-import uuid from 'uuid/v4';
+import { uuid, uuidStr } from './uuid';
 import { onShutDown, shuttingDown } from './shut-down';
 import { server } from './app';
 import { promisify } from 'util';
 import { fromNodeEvent } from 'server/rxjs';
-import { filter, takeUntil, mergeMap } from 'rxjs/operators';
+import { filter, takeUntil, mergeMap, share } from 'rxjs/operators';
 import { EventEmitter } from 'events';
 import Io, { ServerOptions } from 'socket.io';
 import { connectMongodb } from './mongodb';
+import { Observable } from 'rxjs';
 
 export const io = Io( server, {
 	transports: [ 'websocket' ],
 	cookie: false
 } as ServerOptions ) as SocketIO.Server & NodeJS.EventEmitter;
-onShutDown( () => promisify( io.close ).call( io ) );
+onShutDown( async () => {
+	try {
+		await promisify( io.close ).call( io );
+	} catch {}
+} );
 
 io.use( ( socket, cb ) => {
-	const token = socket.handshake.query.token as string;
+	const token = uuid( socket.handshake.query.token as string );
 	( async () => {
 		try {
+			let sessionId = uuid();
 			const { collections } = await connectMongodb();
 			const { value } = await collections.sessions.findOneAndUpdate(
 				{ token },
-				{ $setOnInsert: { _id: socket.id, nick: 'Guest', token } },
+				{ $setOnInsert: { _id: sessionId, nick: 'Guest', token, userId: null } },
 				{ upsert: true }
 			);
 			if( value ) {
-				socket.id = value._id;
+				sessionId = value._id;
 			}
+			socket.id = uuidStr( sessionId );
 		} catch( ex ) {
 			console.error( ex );
 			throw ex;
@@ -36,15 +43,28 @@ io.use( ( socket, cb ) => {
 	} )().then( () => { cb(); }, cb );
 } );
 
-io.engine[ 'generateId' ] = uuid;
-
 const { pub: pubClient, sub: subClient } = pubSub( { db: 0, dropBufferSupport: true }, { db: 0 } );
 io.adapter( adapter( { pubClient, subClient } ) );
 
 type EventTarget = Pick<NodeJS.EventEmitter|EventEmitter, 'addListener'|'removeListener'>;
 
+type Message<T> = { type: string, data: T };
+type MessageEventArgs<T> = [ Message<T>, Function ];
+const messageHandlers = new WeakMap<EventTarget, Observable<MessageEventArgs<any>>>();
+
 export function handleMessage<T>( target: EventTarget, type: string, handler: ( data: T ) => Promise<any>|void ) {
-	fromNodeEvent<[ { type: string, data: T }, Function ]>( target, 'message' )
+	let messages: Observable<MessageEventArgs<T>> = messageHandlers.get( target );
+	if( !messages ) {
+		messages =
+			fromNodeEvent<MessageEventArgs<T>>( target, 'message' )
+			.pipe(
+				takeUntil( shuttingDown ),
+				share()
+			);
+		messageHandlers.set( target, messages );
+	}
+
+	messages
 	.pipe(
 		takeUntil( shuttingDown ),
 		filter( ( [ m ] ) => m.type === type ),

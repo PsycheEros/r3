@@ -66,7 +66,7 @@ const loader = {
 	tslint: { loader: 'tslint-loader' },
 	typescript: { loader: 'awesome-typescript-loader' },
 	url: { loader: 'url-loader' },
-	yaml: { loader: 'yaml-loader' }
+	yaml: { loader: 'js-yaml-loader' }
 };
 
 for( const [ key, obj ] of Object.entries( loader ) ) {
@@ -106,7 +106,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			{ test: /\.s?css$/i, use: [ loader.postcss ] },
 			{ test: /\.scss$/i, use: [ loader.sass ] },
 			{ test: /\.(?:png|jpe?g|gif|svg|woff\d*|[ot]tf|eot)/i, use: [ loader.file ] },
-			{ test: /\.ya?ml$/i, use: [ loader.yaml ], type: 'json' },
+			{ test: /\.ya?ml$/i, use: [ loader.yaml ] },
 			{ test: /\.[jt]s$/i, include: [ path.resolve( __dirname, 'src' ) ], use: [ loader.optimizer, loader.babelClient ] },
 			{ test: /(?:\.ngfactory\.js|\.ngstyle\.js|\.ts)$/i, use: [ loader.angular ] }
 		]
@@ -160,7 +160,7 @@ export const serverConfig = merge( {}, config.configuration.server, { mode, reso
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src' ) ], exclude: [ path.resolve( __dirname, 'src', 'client' ) ], enforce: 'pre', use: [ loader.tslint ] },
-			{ test: /\.ya?ml$/i, use: [ loader.yaml ], type: 'json' },
+			{ test: /\.ya?ml$/i, use: [ loader.yaml ] },
 			{ test: /\.[jt]s$/i, include: [ path.resolve( __dirname, 'src' ) ], use: [ loader.babelServer ] },
 			{ test: /\.ts$/i, use: [ loader.typescript ] }
 		]

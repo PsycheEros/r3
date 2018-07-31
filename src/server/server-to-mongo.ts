@@ -1,7 +1,7 @@
-import { Int32, Long } from 'bson';
+import { Int32 } from 'bson';
 
 export function s2mExpiration( { _id, expires }: ServerExpiration ): object {
-	return { _id, expires: Long.fromNumber( expires ) };
+	return { _id, expires };
 }
 
 export function s2mGame( { _id, colors, ruleSet, gameStates }: ServerGame ): object {
@@ -18,8 +18,8 @@ export function s2mRoomSession( { roomId, sessionId, seats }: ServerRoomSession 
 
 export function s2mGameState( { time, turn, lastMove, size, data }: ServerGameState ) {
 	return {
-		time: Long.fromNumber( time ),
-		turn: new Int32( turn ),
+		time,
+		turn: turn == null ? null : new Int32( turn ),
 		lastMove: lastMove ? {
 			x: new Int32( lastMove.x ),
 			y: new Int32( lastMove.y )
@@ -32,8 +32,8 @@ export function s2mGameState( { time, turn, lastMove, size, data }: ServerGameSt
 	};
 }
 
-export function s2mSession( { _id, nick, token }: ServerSession ): object {
-	return { _id, nick, token };
+export function s2mSession( { _id, nick, token, userId }: ServerSession ): object {
+	return { _id, nick, token, userId };
 }
 
 export function s2mUser( { _id, nick, passwordHash, roles }: ServerUser ): object {

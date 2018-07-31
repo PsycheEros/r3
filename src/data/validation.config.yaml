@@ -1,44 +1,52 @@
+patterns:
+- &zalgo !!js/regexp /[\u0300-\u036f]{2,}/
+- &control !!js/regexp /[\u0000-\u001f\u2000-\u200f\u202a-\u202f\u205f-\u206f]/
 nick:
   length:
     min: 3
     max: 24
-  matches: '^[$_A-Za-z](?:[-$_A-Za-z0-9]*[_$A-Za-z0-9])?$'
+  matches: !!js/regexp /^[$_A-Za-z](?:[-$_A-Za-z0-9]*[_$A-Za-z0-9])?$/i
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
-  - \s
+  - *control
+  - *zalgo
+  - !!js/regexp /\s/
 roomName:
   length:
     min: 3
     max: 64
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
-  - ^\s
-  - \s$
+  - *control
+  - *zalgo
+  - !!js/regexp /^\s/
+  - !!js/regexp /\s$/
 roomPassword:
   length:
     max: 32
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
+  - *control
+  - *zalgo
 userPassword:
   length:
     min: 8
     max: 256
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
-  nonEquals:
-  - password
+  - *control
+  - *zalgo
+  - !!js/regexp /^\s*(?:password)\s*$/i
 chatMessage:
   required: true
   length:
     max: 280
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
-  - ^\s*$
+  - *control
+  - *zalgo
+  - !!js/regexp /^\s*$/
 command:
   required: true
   length:
     max: 64
   matches:
-  - '^/'
+  - !!js/regexp /^\//
   nonMatches:
-  - '[^\x20-\xAD\x7F]'
+  - *control
+  - *zalgo

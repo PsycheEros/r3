@@ -1,9 +1,16 @@
 import { chatMessage as chatMessageRules, command as commandRules, nick as nickRules, roomName as roomNameRules, roomPassword as roomPasswordRules, userPassword as userPasswordRules } from 'data/validation.config.yaml';
 export { chatMessageRules, commandRules, nickRules, roomNameRules, roomPasswordRules, userPasswordRules };
+import { isArrayLikeObject } from 'lodash';
 
-function getArray( s: void|string|ReadonlyArray<string> ) {
+type Pattern = string|RegExp;
+
+function isArray<T>( s: any ): s is ReadonlyArray<T> {
+	return isArrayLikeObject( s );
+}
+
+function getArray( s: void|Pattern|ReadonlyArray<Pattern> ) {
 	if( !s ) return [];
-	return ( typeof s === 'string' ) ? [ s ] : [ ...s ];
+	return isArray( s ) ? [ ...s ] : [ s ];
 }
 
 function chomp( str: string, ...prefixes: string[] ) {
@@ -13,28 +20,36 @@ function chomp( str: string, ...prefixes: string[] ) {
 	return null;
 }
 
+function testPattern( str: string, pattern: string, caseSensitive: boolean );
+function testPattern( str: string, pattern: Pattern );
+function testPattern( str: string, pattern: Pattern, caseSensitive = false ) {
+	if( typeof pattern === 'string' ) {
+		if( !caseSensitive ) {
+			str = str.toLowerCase();
+			pattern = pattern.toLowerCase();
+		}
+		return str.indexOf( pattern ) >= 0;
+	} else {
+		return pattern.test( str );
+	}
+}
+
 export function validateString( str: string, rules: StringValidationRules ): string[] {
 	if( str == null ) return [ 'isNull' ];
 	rules = { ...rules };
 	if( rules.required == null && rules.length && rules.length.min > 0 ) rules.required = true;
 	if( str === '' && rules.required === false ) return [];
-	const strLower = str.toLowerCase();
 	const errors = [];
 	if( rules.length ) {
 		if( {}.hasOwnProperty.call( rules.length, 'min' ) && str.length < rules.length.min ) errors.push( 'minLength' );
 		if( {}.hasOwnProperty.call( rules.length, 'max' ) && str.length > rules.length.max ) errors.push( 'maxLength' );
 	}
-	if( rules.matches ) {
-		const matches = ( typeof rules.matches === 'string' ) ? [ rules.matches ] : [ ...rules.matches ];
-		if( !matches.every( m => new RegExp( m ).test( str ) ) ) errors.push( 'matches' );
+	if( !getArray( rules.matches ).every( m => testPattern( str, m ) ) ) {
+		errors.push( 'matches' );
 	}
-	if( rules.nonMatches ) {
-		const nonMatches = ( typeof rules.nonMatches === 'string' ) ? [ rules.nonMatches ] : [ ...rules.nonMatches ];
-		if( nonMatches.some( m => new RegExp( m ).test( str ) ) ) errors.push( 'nonMatches' );
+	if( getArray( rules.nonMatches ).some( m => testPattern( str, m ) ) ) {
+		errors.push( 'nonMatches' );
 	}
-	if( !getArray( rules.matches ).every( m => new RegExp( m ).test( str ) ) ) errors.push( 'matches' );
-	if( getArray( rules.nonMatches ).some( m => new RegExp( m ).test( str ) ) ) errors.push( 'nonMatches' );
-	if( getArray( rules.nonEquals ).some( m => strLower === m.toLowerCase() ) ) errors.push( 'nonEquals' );
 	return [ ...new Set( errors ) ];
 }
 

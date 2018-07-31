@@ -1,15 +1,16 @@
 import { rulesStandard } from 'src/rule-sets';
 
-import { combineLatest, from, SchedulerLike, Subject } from 'rxjs';
+import { combineLatest, SchedulerLike, Subject } from 'rxjs';
 
 import { Component, Inject, OnInit, ViewChild, OnDestroy } from '@angular/core';
 
 import { GameService } from './game.service';
 import { RoomService } from './room.service';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
-import { filter, map, observeOn, takeUntil, switchMap } from 'rxjs/operators';
+import { map, observeOn, takeUntil } from 'rxjs/operators';
 import { ModalNewGameComponent } from './modal/new-game.component';
 import { colors } from 'data/colors.yaml';
+import { SessionService } from 'client/session.service';
 
 const rules = rulesStandard;
 
@@ -22,6 +23,7 @@ export class GameComponent implements OnInit, OnDestroy {
 	constructor(
 		private readonly gameService: GameService,
 		private readonly roomService: RoomService,
+		private readonly sessionService: SessionService,
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike
 	) {}
@@ -30,7 +32,7 @@ export class GameComponent implements OnInit, OnDestroy {
 	public newGameModal: ModalNewGameComponent;
 
 	public ngOnInit() {
-		const { destroyed, gameService, roomService, scheduler } = this;
+		const { destroyed, gameService, roomService, sessionService, scheduler } = this;
 
 		roomService.getCurrentRoomId()
 		.pipe( takeUntil( destroyed ) )
@@ -38,22 +40,36 @@ export class GameComponent implements OnInit, OnDestroy {
 			this.roomId = roomId;
 		} );
 
-		combineLatest( gameService.getGames(), roomService.getCurrentRoom() )
+		combineLatest(
+			gameService.getGames(),
+			roomService.getCurrentRoom(),
+			roomService.getCurrentRoomSessions(),
+			sessionService.getSessionId()
+		)
 		.pipe(
-			map( ( [ games, room ] ) =>
-				room ? games.get( room.gameId ) : null
-			),
+			map( ( [ games, room, roomSessions, sessionId ] ) => ( {
+				game: room ? games.get( room.gameId ) : null,
+				roomSessions,
+				sessionId
+			} ) ),
 			takeUntil( destroyed ),
 			observeOn( scheduler )
 		)
-		.subscribe( game => {
+		.subscribe( ( { game, roomSessions, sessionId } ) => {
 			this.game = game;
 			if( game ) {
 				const gameState = this.gameState = game.gameStates.slice( -1 )[ 0 ];
 				const c = this.colors = [ ...game.colors ];
-				if( gameState.turn == null ) this.turn = null;
-				else this.turn = colors[ c[ gameState.turn ] ].displayName;
+				if( gameState.turn == null ) {
+					this.canMove = false;
+					this.turn = null;
+				} else {
+					const canMoveSession = roomSessions.filter( rs => rs.seats.includes( gameState.turn ) )[ 0 ];
+					this.canMove = !canMoveSession || canMoveSession.sessionId === sessionId;
+					this.turn = colors[ c[ gameState.turn ] ].displayName;
+				}
 			} else {
+				this.canMove = false;
 				this.gameState = null;
 				this.turn = null;
 			}
@@ -65,6 +81,7 @@ export class GameComponent implements OnInit, OnDestroy {
 		this.destroyed.complete();
 	}
 
+	public canMove = false;
 	public colors = null as string[];
 	public turn = null as string|null;
 	public roomId = null as string|null;
@@ -77,21 +94,21 @@ export class GameComponent implements OnInit, OnDestroy {
 
 	public onMouseMove( { square }: BoardMouseEvent ) {
 		if( !square ) return;
-		const { gameState } = this;
+		const { canMove, gameState } = this;
 
 		document.documentElement.style.cursor =
 			( rules.isGameOver( gameState )
-		||	rules.isValid( gameState, square.position, gameState.turn ) )
+		||	( canMove && rules.isValid( gameState, square.position, gameState.turn ) ) )
 		?   'pointer'
 			: null;
 	}
 
 	public onClick( { square }: BoardMouseEvent ) {
 		if( !square ) return;
-		const { roomId, gameState, gameService, newGameModal } = this;
+		const { canMove, roomId, gameState, gameService, newGameModal } = this;
 		if( rules.isGameOver( gameState ) ) {
 			newGameModal.show( roomId );
-		} else {
+		} else if( canMove && rules.isValid( gameState, square.position, gameState.turn ) ) {
 			gameService.makeMove( roomId, square.position );
 		}
 	}

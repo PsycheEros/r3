@@ -1,10 +1,11 @@
-import { Observable, BehaviorSubject, ReplaySubject, SchedulerLike, combineLatest } from 'rxjs';
+import { Observable, ReplaySubject, SchedulerLike, combineLatest, of } from 'rxjs';
 import { distinctUntilChanged, map, observeOn, scan, switchMap, take } from 'rxjs/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable } from '@angular/core';
 import { SessionService } from './session.service';
 import { SocketService } from './socket.service';
 import { SessionSubject } from './session-subject';
+import { mapFilter } from 'src/operators';
 
 @Injectable()
 export class RoomService {
@@ -126,7 +127,7 @@ export class RoomService {
 		const { sessionService } = this;
 		return sessionService.getRoomSessionMqp()
 		.pipe(
-			map( rs => rs.get( roomId ) )
+			map( rs => rs.get( roomId ) || [] )
 		);
 	}
 
@@ -179,8 +180,21 @@ export class RoomService {
 			distinctUntilChanged(),
 			switchMap( id =>
 				allRooms.pipe(
-					map( r => r.filter( r => r.id === id ) ),
+					mapFilter( r => r.id === id ),
 					map( r => r[ 0 ] || null )
+				)
+			),
+			observeOn( scheduler )
+		);
+	}
+
+	public getCurrentRoomSessions() {
+		const { currentRoomId, sessionService, scheduler } = this;
+		return currentRoomId.pipe(
+			distinctUntilChanged(),
+			switchMap( roomId =>
+				sessionService.getRoomSessionMqp().pipe(
+					map( rs => rs.get( roomId ) || [] )
 				)
 			),
 			observeOn( scheduler )

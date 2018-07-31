@@ -4,9 +4,9 @@ expiration:
     additionalProperties: false
     properties:
       _id:
-        bsonType: string
+        bsonType: binData
       expires:
-        bsonType: long
+        bsonType: date
     required: [ _id, expires ]
 game:
   $jsonSchema:
@@ -14,7 +14,7 @@ game:
     additionalProperties: false
     properties:
       _id:
-        bsonType: string
+        bsonType: binData
       colors:
         bsonType: array
         items:
@@ -28,7 +28,7 @@ game:
           additionalProperties: false
           properties:
             time:
-              bsonType: long
+              bsonType: date
             turn:
               bsonType: [ int, 'null' ]
               minimum: 0
@@ -66,13 +66,13 @@ room:
     additionalProperties: false
     properties:
       _id:
-        bsonType: string
+        bsonType: binData
       name:
         bsonType: string
       passwordHash:
-        bsonType: string
+        bsonType: [ binData, 'null' ]
       gameId:
-        bsonType: [ string, 'null' ]
+        bsonType: [ binData, 'null' ]
     required: [ _id, name, passwordHash, gameId ]
 roomSession:
   $jsonSchema:
@@ -82,9 +82,9 @@ roomSession:
       _id:
         bsonType: objectId
       roomId:
-        bsonType: string
+        bsonType: binData
       sessionId:
-        bsonType: string
+        bsonType: binData
       seats:
         bsonType: array
         items:
@@ -96,23 +96,25 @@ session:
     additionalProperties: false
     properties:
       _id:
-        bsonType: string
+        bsonType: binData
       nick:
         bsonType: string
       token:
-        bsonType: string
-    required: [ _id, nick, token ]
+        bsonType: binData
+      userId:
+        bsonType: [ binData, 'null' ]
+    required: [ _id, nick, token, userId ]
 user:
   $jsonSchema:
     bsonType: object
     additionalProperties: false
     properties:
       _id:
-        bsonType: string
+        bsonType: binData
       nick:
         bsonType: string
       passwordHash:
-        bsonType: string
+        bsonType: [ binData, 'null' ]
       roles:
         bsonType: array
         items:

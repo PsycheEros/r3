@@ -15,6 +15,7 @@ let connection: Promise<{
 	client: MongoClient,
 	db: Db
 }>;
+
 export function connectMongodb() {
 	if( !connection ) connection = ( async () => {
 		const client = await MongoClient.connect( process.env.MONGODB_URI || url, clientOptions );
