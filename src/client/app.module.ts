@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpModule } from '@angular/http';
@@ -22,7 +23,7 @@ import { SocketService } from './socket.service';
 import { ValidatorModule } from './validator/validator.module';
 
 @NgModule( {
-	imports:      [ BrowserModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule, ValidatorModule ],
+	imports:      [ BrowserModule, BrowserAnimationsModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule, ValidatorModule ],
 	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, NavigationComponent, R3Component, RoomComponent, ScoreboardComponent ],
 	providers:    [ GameService, RoomService, SessionService, SocketService ],
 	bootstrap:    [ R3Component ]
