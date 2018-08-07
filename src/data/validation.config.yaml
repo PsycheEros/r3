@@ -13,7 +13,7 @@ nick:
 roomName:
   length:
     min: 3
-    max: 64
+    max: 128
   nonMatches:
   - *control
   - *zalgo
