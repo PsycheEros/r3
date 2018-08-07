@@ -318,7 +318,7 @@ clientRoomSession$.pipe(
 				if( !rules.isValid( oldGameState, position, seat ) ) throw new Error( 'Invalid move.' );
 				if( !roomSession.seats.includes( seat ) ) {
 					let fail = true;
-					if( ( await collections.roomSessions.count( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: new Int32( seat ) } } } ) ) === 0 ) {
+					if( ( await collections.roomSessions.countDocuments( { roomId: { $eq: roomId }, sessionId: { $ne: sessionId }, seats: { $elemMatch: { $eq: new Int32( seat ) } } } ) ) === 0 ) {
 						const { modifiedCount } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $not: { $elemMatch: { $eq: new Int32( seat ) } } } }, { $addToSet: { seats: new Int32( seat ) } } );
 						if( modifiedCount > 0 ) fail = false;
 					}
