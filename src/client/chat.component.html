@@ -23,7 +23,7 @@
 		<div class="list-group" ngx-auto-scroll>
 			<div class="list-group-item" *ngFor="let message of messages">
 				<h4 class="list-group-item-heading text-muted" *ngIf="message.user">{{message.user}}</h4>
-				<p class="list-group-item-text mb-0">{{message.message}}</p>
+				<div class="list-group-item-text" [innerHtml]="message.message | markdown"></div>
 			</div>
 		</div>
 	</div>

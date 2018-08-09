@@ -12,6 +12,7 @@ import { ChatComponent } from './chat.component';
 import { GameComponent } from './game.component';
 import { GameService } from './game.service';
 import { LobbyComponent } from './lobby.component';
+import { MarkdownPipe } from './markdown.pipe';
 import { ModalModule } from './modal/modal.module';
 import { NavigationComponent } from './navigation.component';
 import { R3Component } from './r3.component';
@@ -24,7 +25,7 @@ import { ValidatorModule } from './validator/validator.module';
 
 @NgModule( {
 	imports:      [ BrowserModule, BrowserAnimationsModule, CommonModule, FormsModule, HttpModule, ModalModule, NgxAutoScrollModule, ZoneSchedulerModule, FontAwesomeModule, ValidatorModule ],
-	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, NavigationComponent, R3Component, RoomComponent, ScoreboardComponent ],
+	declarations: [ BoardComponent, ChatComponent, GameComponent, LobbyComponent, MarkdownPipe, NavigationComponent, R3Component, RoomComponent, ScoreboardComponent ],
 	providers:    [ GameService, RoomService, SessionService, SocketService ],
 	bootstrap:    [ R3Component ]
 } )

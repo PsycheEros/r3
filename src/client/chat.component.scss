@@ -1,5 +1,9 @@
 .list-group { height: 50vh; overflow-y: auto;
-	.list-group-item-text { white-space: pre-wrap; }
+	.list-group-item-text {
+		em { font-style: italic; }
+		p { margin-bottom: 0; }
+		strong { font-weight: bold; }
+	}
 }
 button { width: 2rem; }
 fa-icon { width: 1.2rem; }

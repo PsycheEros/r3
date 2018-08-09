@@ -1,5 +1,6 @@
 import { combineLatest, SchedulerLike } from 'rxjs';
 import { Component, ViewChild, Inject, ElementRef } from '@angular/core';
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { RoomService } from './room.service';
 import { chatMessageRules, commandRules } from 'src/validation';
 import { NgForm } from '@angular/forms';
@@ -9,7 +10,12 @@ import { observeOn } from 'rxjs/operators';
 @Component( {
 	selector: 'chat',
 	templateUrl: './chat.component.html',
-	styleUrls: [ './chat.component.scss' ]
+	styleUrls: [ './chat.component.scss' ],
+	animations: [
+		trigger( 'message', [
+
+		] )
+	]
 } )
 export class ChatComponent {
 	constructor(
