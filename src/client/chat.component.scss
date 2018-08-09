@@ -1,8 +1,10 @@
 .list-group { height: 50vh; overflow-y: auto;
 	.list-group-item-text {
 		em { font-style: italic; }
+		img { max-width: 100%; }
 		p { margin-bottom: 0; }
 		strong { font-weight: bold; }
+		table { width: 100%; }
 	}
 }
 button { width: 2rem; }
