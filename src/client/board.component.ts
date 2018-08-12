@@ -13,16 +13,21 @@ function fromCartesian( { x, y }: Point, center: Point ) {
 	return { x: x + center.x, y: center.y - y };
 }
 
+type DrawTarget = CanvasRenderingContext2D|Path2D;
+
+function drawRect( c2d: DrawTarget, x: number, y: number, width: number, height: number );
+function drawRect( c2d: DrawTarget, x: number, y: number, width: number, height: number, r1: number, r2: number, r3: number, r4: number );
+function drawRect( c2d: DrawTarget, x: number, y: number, width: number, height: number, r1: number, r2: number, r3: number, r4: number, ccw: boolean );
 function drawRect(
-	c2d: CanvasRenderingContext2D,
+	c2d: DrawTarget,
 	x: number,
 	y: number,
 	width: number,
 	height: number,
-	r1: number,
-	r2: number,
-	r3: number,
-	r4: number,
+	r1 = 0,
+	r2 = 0,
+	r3 = 0,
+	r4 = 0,
 	ccw = false
 ) {
 	c2d.moveTo( x + r4, y );
@@ -100,6 +105,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		const { board } = this;
 		const { canvas, c2d } = this;
 		const { width, height } = canvas;
+
 		c2d.clearRect( 0, 0, width, height );
 		if( !board ) return;
 		const lightSource: Point = {
@@ -119,29 +125,29 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		squareGradient.addColorStop(  0, 'rgba(255,255,255,.2)' );
 		squareGradient.addColorStop( .4, 'rgba(255,255,255,0)' );
 
-		c2d.beginPath();
-		drawRect( c2d, board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height, 20, 20, 20, 20 );
-		c2d.closePath();
+		const pathBoardInner = new Path2D;
+		drawRect( pathBoardInner, board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height, 20, 20, 20, 20 );
 
 		c2d.save();
 		Object.assign( c2d, {
 			fillStyle: '#3a3'
 		} );
-		c2d.fill();
-		c2d.restore();
+		c2d.fill( pathBoardInner );
 
-		c2d.save();
 		Object.assign( c2d, {
 			globalCompositeOperation: 'screen',
 			fillStyle: squareGradient
 		} );
-		c2d.fill();
+		c2d.fill( pathBoardInner );
 		c2d.restore();
+
 		for( const { enabled, color, position: { x, y }, bounds: { left, top, width, height, center } } of board ) {
 			if( !enabled ) continue;
+			c2d.save();
+
 			const lightSourceCart = toCartesian( lightSource, center ),
 					lightDirection = Math.atan2( lightSourceCart.y, lightSourceCart.x ),
-					lightDistance = 4,
+					lightDistance = 3,
 					shadowCenter = fromCartesian( {
 						x: Math.cos( lightDirection ) * lightDistance,
 						y: Math.sin( lightDirection ) * lightDistance
@@ -149,59 +155,43 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					lightCenter = fromCartesian( {
 						x: Math.cos( lightDirection + Math.PI ) * lightDistance,
 						y: Math.sin( lightDirection + Math.PI ) * lightDistance
-					}, center ),
-				path = ccw => {
-					drawRect( c2d, left, top, width, height,
-						x === board.width - 1 && y === 0                ? 16 : 4,
-						x === board.width - 1 && y === board.height - 1 ? 16 : 4,
-						x === 0               && y === board.height - 1 ? 16 : 4,
-						x === 0               && y === 0                ? 16 : 4,
-						ccw
-					);
-				};
+					}, center );
 
-			c2d.beginPath();
-			path( false );
+			const squarePath = new Path2D;
+			drawRect( squarePath, left, top, width, height,
+				x === board.width - 1 && y === 0                ? 16 : 4,
+				x === board.width - 1 && y === board.height - 1 ? 16 : 4,
+				x === 0               && y === board.height - 1 ? 16 : 4,
+				x === 0               && y === 0                ? 16 : 4
+			);
 
-			c2d.save();
-			Object.assign( c2d, {
-				fillStyle: '#6c6',
-				strokeStyle: '#363'
-			} );
-			c2d.fill();
-			c2d.stroke();
-			c2d.restore();
-
-			c2d.save();
-			c2d.clip();
+			c2d.clip( squarePath );
+			const squareCutoutPath = new Path2D( squarePath );
+			drawRect( squareCutoutPath, 0, 0, width, height, 0, 0, 0, 0, false );
 
 			c2d.save();
 			Object.assign( c2d, {
-				globalCompositeOperation: 'screen',
-				fillStyle: squareGradient
+				fillStyle: '#6c6'
 			} );
-			c2d.fill();
-			c2d.restore();
-
-			c2d.save();
-			c2d.beginPath();
-			c2d.rect( board.bounds.left, board.bounds.top, board.bounds.width, board.bounds.height );
-			path( true );
+			c2d.fill( squarePath );
 			Object.assign( c2d, {
-				fillStyle: '#000'
-				// shadowColor: 'hsla(0,0%,0%,.4)',
-				// shadowBlur: lightDistance,
-				// shadowOffsetX: center.x - shadowCenter.x,
-				// shadowOffsetY: center.y - shadowCenter.y
+				fillStyle: squareGradient,
+				shadowColor: 'hsla(0deg,0%,0%,.4)',
+				shadowBlur: lightDistance,
+				shadowOffsetX: center.x - shadowCenter.x,
+				shadowOffsetY: center.y - shadowCenter.y,
+				strokeStyle: 'hsla(120deg,33.3%,30%,.8)',
+				lineWidth: 2
 			} );
-			c2d.fill();
+			c2d.fill( squareCutoutPath );
+			c2d.stroke( squarePath );
 			c2d.restore();
 
 			const radius = Math.min( width, height ) * .5;
 			if( color !== null ) {
 				const colorDef = colors[ this.colors[ color ] ];
 				const [ hue, saturation, lightness ] = colorDef.color;
-				const hsl = `${hue},${saturation}%,${lightness}%`;
+				const hsl = `${hue}deg,${saturation}%,${lightness}%`;
 				// dark stones have highlights, light stones have shadows
 				const isDark = lightness < 50,
 					// shadows are reversed from light (+pi radians)
@@ -211,39 +201,34 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						isDark ? lightCenter.y : shadowCenter.y,
 						radius
 					);
-				radialGradient.addColorStop( 0,   `hsla(${hue},${saturation}%,0%,0)` );
-				radialGradient.addColorStop( .5,  `hsla(${hue},${saturation}%,0%,.1)` );
-				radialGradient.addColorStop( .75, `hsla(${hue},${saturation}%,0%,0)` );
-				radialGradient.addColorStop( 1,   `hsla(${hue},${saturation}%,0%,.75)` );
+				radialGradient.addColorStop( 0,   `hsla(${hue}deg,${saturation}%,${isDark?'75%':'25%'},0)` );
+				radialGradient.addColorStop( .5,  `hsla(${hue}deg,${saturation}%,${isDark?'75%':'25%'},.1)` );
+				radialGradient.addColorStop( .75, `hsla(${hue}deg,${saturation}%,${isDark?'75%':'25%'},0)` );
+				radialGradient.addColorStop( 1,   `hsla(${hue}deg,${saturation}%,${isDark?'75%':'25%'},.75)` );
 
-				c2d.beginPath();
-				c2d.arc( center.x, center.y, radius * .8, 0, Math.PI * 2 );
+				const stonePath = new Path2D;
+				stonePath.arc( center.x, center.y, radius * .8, 0, Math.PI * 2 );
 
 				c2d.save();
 				Object.assign( c2d, {
 					fillStyle: `hsl(${hsl})`,
-					shadowColor: 'hsla(0,0,0,.4)',
+					shadowColor: 'hsla(0deg,0%,0%,.4)',
 					shadowBlur: lightDistance,
 					shadowOffsetX: center.x - shadowCenter.x,
-					shadowOffsetY: center.y - shadowCenter.y
+					shadowOffsetY: center.y - shadowCenter.y,
+					lineWidth: .5,
+					strokeStyle: 'hsla(0deg,0%,0%,.5)'
 				} );
-				c2d.fill();
+				c2d.fill( stonePath );
+				c2d.stroke( stonePath );
 				c2d.restore();
 
 				c2d.save();
 				Object.assign( c2d, {
-					lineWidth: 1,
-					strokeStyle: 'hsla(0,0,0,.5)'
-				} );
-				c2d.stroke();
-				c2d.restore();
-
-				c2d.save();
-				Object.assign( c2d, {
-					globalCompositeOperation: isDark ? 'screen' : 'multiply',
+					globalCompositeOperation: isDark ? 'lighten' : 'darken',
 					fillStyle: radialGradient
 				} );
-				c2d.fill();
+				c2d.fill( stonePath );
 				c2d.restore();
 			}
 			c2d.restore();
@@ -265,10 +250,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			radialGradient.addColorStop( 1,   `hsl(180,0%,50%)` );
 
 			c2d.fillStyle = radialGradient;
-			c2d.beginPath();
-			c2d.ellipse( bounds.right - r - p, bounds.top + r + p, r, r, 0, 0, Math.PI * 2 );
-			c2d.fill();
-			c2d.closePath();
+			const dotPath = new Path2D;
+			dotPath.ellipse( bounds.right - r - p, bounds.top + r + p, r, r, 0, 0, Math.PI * 2 );
+			c2d.fill( dotPath );
 			c2d.restore();
 		}
 	}
