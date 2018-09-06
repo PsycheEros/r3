@@ -12,6 +12,10 @@
   "bugs": {
     "url": "https://github.com/errorx666/r3/issues"
   },
+  "engines": {
+    "node": ">=10.9.0",
+    "yarn": ">=1.9.4"
+  },
   "devDependencies": {
     "@angular-devkit/build-optimizer": "^0.8.0",
     "@angular/animations": "^6.1.7",
