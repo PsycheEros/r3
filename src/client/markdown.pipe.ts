@@ -25,7 +25,8 @@ export class MarkdownPipe implements PipeTransform {
 					tagName,
 					attribs: { ...attribs, rel: 'nofollow noreferrer noopener', target: '_blank' }
 				} )
-			}
+			},
+			parser: {}
 		} );
 		const safeHtml = sanitizer.sanitize( SecurityContext.HTML, saferHtml );
 		return safeHtml;

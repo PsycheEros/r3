@@ -48,7 +48,7 @@ export class ScoreboardComponent implements OnInit, OnDestroy {
 		const roomSessions =
 			currentRoom
 			.pipe(
-				switchMap( room => room ? roomService.getRoomSessions( room.id ) : of( [] ) )
+				switchMap<ClientRoom, ReadonlyArray<ClientRoomSession>>( room => room ? roomService.getRoomSessions( room.id ) : of( [] ) )
 			);
 
 		const sessions =
