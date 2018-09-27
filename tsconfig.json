@@ -15,6 +15,8 @@
 			"src/*": [ "./src/*" ]
 		},
 		"rootDir": "src",
+		"skipDefaultLibCheck": true,
+		"skipLibCheck": true,
 		"strictNullChecks": false,
 		"target": "esnext"
 	},
