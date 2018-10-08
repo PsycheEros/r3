@@ -7,7 +7,7 @@ import { RoomService } from './room.service';
 @Component( {
 	selector: 'navigation',
 	templateUrl: './navigation.component.html',
-	styleUrls: [ './navigation.component.scss' ]
+	styleUrls: [ './navigation.component.css' ]
 } )
 export class NavigationComponent implements OnInit, OnDestroy {
 	public constructor(

@@ -6,7 +6,7 @@ import { RoomService } from './room.service';
 @Component( {
 	selector: 'r3',
 	templateUrl: './r3.component.html',
-	styleUrls: [ './r3.component.scss' ]
+	styleUrls: [ './r3.component.css' ]
 } )
 export class R3Component implements AfterViewInit, OnInit, OnDestroy {
 	public constructor(

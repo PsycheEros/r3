@@ -60,7 +60,6 @@ const loader = {
 	null: { loader: 'null-loader' },
 	postcss: { loader: 'postcss-loader' },
 	optimizer: { loader: '@angular-devkit/build-optimizer/webpack-loader' },
-	sass: { loader: 'sass-loader' },
 	style: { loader: MiniCssExtractPlugin.loader },
 	text: { loader: 'text-loader' },
 	tslint: { loader: 'tslint-loader' },
@@ -103,8 +102,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 				{ test: angularPattern, use: [ loader.text ] },
 				{ use: [ loader.style, loader.css ] }
 			] },
-			{ test: /\.s?css$/i, use: [ loader.postcss ] },
-			{ test: /\.scss$/i, use: [ loader.sass ] },
+			{ test: /\.css$/i, use: [ loader.postcss ] },
 			{ test: /\.(?:png|jpe?g|gif|svg|woff\d*|[ot]tf|eot)/i, use: [ loader.file ] },
 			{ test: /\.ya?ml$/i, use: [ loader.yaml ] },
 			{ test: /\.[jt]s$/i, include: [ path.resolve( __dirname, 'src' ) ], use: [ loader.optimizer, loader.babelClient ] },

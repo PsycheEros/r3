@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 @Component( {
 	selector: 'modal-header',
 	templateUrl: 'header.component.html',
-	styleUrls: [ './header.component.scss' ]
+	styleUrls: [ './header.component.css' ]
 } )
 export class ModalHeaderComponent {
 	@Input()

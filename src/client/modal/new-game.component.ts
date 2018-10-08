@@ -6,7 +6,7 @@ import { ruleSets } from 'src/rule-sets';
 @Component( {
 	selector: 'modal-new-game',
 	templateUrl: 'new-game.component.html',
-	styleUrls: [ './new-game.component.scss' ]
+	styleUrls: [ './new-game.component.css' ]
 } )
 export class ModalNewGameComponent {
 	constructor(

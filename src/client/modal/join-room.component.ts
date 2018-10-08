@@ -6,7 +6,7 @@ import { roomPasswordRules } from 'src/validation';
 @Component( {
 	selector: 'modal-join-room',
 	templateUrl: 'join-room.component.html',
-	styleUrls: [ './join-room.component.scss' ]
+	styleUrls: [ './join-room.component.css' ]
 } )
 export class ModalJoinRoomComponent {
 	constructor(

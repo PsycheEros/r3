@@ -55,7 +55,7 @@ function drawRect(
 @Component( {
 	selector: 'board',
 	templateUrl: './board.component.html',
-	styleUrls: [ './board.component.scss' ]
+	styleUrls: [ './board.component.css' ]
 } )
 export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnInit {
 	public ngAfterViewInit() {

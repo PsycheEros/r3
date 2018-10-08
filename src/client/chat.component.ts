@@ -10,7 +10,7 @@ import { observeOn } from 'rxjs/operators';
 @Component( {
 	selector: 'chat',
 	templateUrl: './chat.component.html',
-	styleUrls: [ './chat.component.scss' ],
+	styleUrls: [ './chat.component.css' ],
 	animations: [
 		trigger( 'message', [
 

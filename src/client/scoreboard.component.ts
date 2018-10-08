@@ -24,7 +24,7 @@ interface Score {
 @Component( {
 	selector: 'scoreboard',
 	templateUrl: './scoreboard.component.html',
-	styleUrls: [ './scoreboard.component.scss' ]
+	styleUrls: [ './scoreboard.component.css' ]
 } )
 export class ScoreboardComponent implements OnInit, OnDestroy {
 	constructor(

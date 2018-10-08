@@ -42,7 +42,7 @@ options:
     - '@babel/plugin-syntax-dynamic-import'
     sourceMap: true
   css:
-    importLoaders: 2
+    importLoaders: 1
     sourceMap: true
   html:
     attrs: false
@@ -69,14 +69,9 @@ options:
     name: 'assets/[name]-[hash].[ext]'
   postcss:
     plugins:
+      postcss-import: {}
       postcss-preset-env:
         browsers: *browserSpec
-    sourceMap: true
-  sass:
-    outputStyle: compact
-    precision: 12
-    includePaths:
-    - node_modules
     sourceMap: true
   typescript:
     configFileName: tsconfig.server.json

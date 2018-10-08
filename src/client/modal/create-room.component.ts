@@ -6,7 +6,7 @@ import { roomNameRules, roomPasswordRules } from 'src/validation';
 @Component( {
 	selector: 'modal-create-room',
 	templateUrl: 'create-room.component.html',
-	styleUrls: [ './create-room.component.scss' ]
+	styleUrls: [ './create-room.component.css' ]
 } )
 export class ModalCreateRoomComponent {
 	constructor(

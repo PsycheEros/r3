@@ -8,7 +8,7 @@ import { ModalJoinRoomComponent } from './modal/join-room.component';
 @Component( {
 	selector: 'lobby',
 	templateUrl: './lobby.component.html',
-	styleUrls: [ './lobby.component.scss' ]
+	styleUrls: [ './lobby.component.css' ]
 } )
 export class LobbyComponent implements OnInit, OnDestroy {
 	constructor(
