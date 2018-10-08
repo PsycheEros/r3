@@ -1,7 +1,7 @@
 nav { border-bottom: 1px solid #dee2e6;
-	.nav-tabs { margin-bottom: -1px;
-		.nav-link { overflow: hidden; height: 42px;
-			.text-truncate { display: inline-block; max-width: 160px; }
+	& .nav-tabs { margin-bottom: -1px;
+		& .nav-link { overflow: hidden; height: 42px;
+			& .text-truncate { display: inline-block; max-width: 160px; }
 		}
 	}
 }
