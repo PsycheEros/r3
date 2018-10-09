@@ -1,4 +1,4 @@
-declare interface Point {
-	x: number;
-	y: number;
+declare interface Point<T = number> {
+	x: T;
+	y: T;
 }

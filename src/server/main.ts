@@ -1,28 +1,29 @@
 import './error-handler';
 import './polyfills';
 
-import { take, takeUntil, share, exhaustMap, filter, debounceTime, map, switchMap, mergeMap, shareReplay, startWith } from 'rxjs/operators';
+import { take, takeUntil, share, exhaustMap, switchMap, mergeMap } from 'rxjs/operators';
 import { fromNodeEvent } from './rxjs';
 import { promisify } from 'util';
 import { isValidRoomName, isValidNick, isValidUserPassword } from 'src/validation';
-import { mapMap, trackInserts, trackDeletes, mapFilter, switchMapMap, mergeMapMap, tapLog } from 'src/operators';
 import { ruleSetMap } from 'src/rule-sets';
 import { io, handleMessage } from './socket';
 import { colors } from 'data/colors.yaml';
 import { hashPassword, checkPassword } from './security';
-import { Int32 } from 'bson';
 import _ from 'lodash';
 import { uuid, uuidStr } from './uuid';
-import { s2cRoom, s2cGame, s2cSession, s2cRoomSession } from './server-to-client';
+import { s2cRoom, s2cGame, s2cRoomSession } from './server-to-client';
 import { s2mGame } from './server-to-mongo';
 import { connectMongodb } from './mongodb';
 import { Binary } from 'mongodb';
+import { Int32 } from 'bson';
 import { snoozeExpiry } from './cleanup';
 import { timer } from 'rxjs';
 import { localBus } from './bus';
 import { c2sGameState } from './client-to-server';
 import { c2mGameState } from 'server/client-to-mongo';
-import { clientSession$, clientRoom$, clientRoomSession$, clientSessionDelete$, clientSessionInsert$, serverSessionDelete$ } from 'server/reactive-data';
+import { clientSession$, clientRoom$, clientRoomSession$, serverSessionDelete$ } from 'server/reactive-data';
+import { m2cGame } from './mongo-to-client';
+import { m2sGame } from './mongo-to-server';
 
 clientRoom$.pipe(
 	switchMap( async data => {
@@ -88,8 +89,8 @@ clientRoomSession$.pipe(
 
 				const gameIds = ( await collections.rooms.find( { _id: { $in: roomIds } } ).project( { _id: 0, gameId: 1 } ).toArray() ).map( r => r.gameId );
 				const games = await collections.games.find( { _id: { $in: gameIds } } ).toArray();
-				for( const game of games ) {
-					io.to( sessionIdStr ).send( { type: 'update', data: s2cGame( game ) } );
+				for( const game of games.map( m2cGame ) ) {
+					io.to( sessionIdStr ).send( { type: 'update', data: game } );
 				}
 			}
 
@@ -120,7 +121,7 @@ clientRoomSession$.pipe(
 					ruleSet
 				};
 				await collections.games.insertOne( s2mGame( game ) );
-				await collections.rooms.updateOne( { _id: roomId }, { $set: { gameId } } as Partial<ServerRoom> );
+				await collections.rooms.updateOne( { _id: { $eq: roomId } }, { $set: { gameId } } );
 				localBus.next( { type: BusMessageType.UpdateRoom, data: {} } );
 				const roomIdStr = uuidStr( roomId );
 				io.to( roomIdStr ).send( { type: 'update', data: s2cGame( game ) } );
@@ -174,7 +175,7 @@ clientRoomSession$.pipe(
 				if( room.gameId ) {
 					const game = await collections.games.findOne( { _id: room.gameId } );
 					if( game ) {
-						await io.to( sessionIdStr ).send( { type: 'update', data: s2cGame( game ) } );
+						await io.to( sessionIdStr ).send( { type: 'update', data: m2cGame( game ) } );
 					}
 				}
 				localBus.next( { type: BusMessageType.UpdateSession, data: {} } );
@@ -226,7 +227,7 @@ clientRoomSession$.pipe(
 
 			handleMessage( socket, 'stand', async ( { roomId: roomIdStr, seat } ) => {
 				const roomId = uuid( roomIdStr );
-				const { modifiedCount } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: new Int32( seat ) } } );
+				const { modifiedCount } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: { $where: new Int32( seat ) } } } );
 				if( modifiedCount === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };
@@ -264,14 +265,6 @@ clientRoomSession$.pipe(
 				if( !isValidNick( nick ) ) throw new Error( 'Invalid nick.' );
 				if( !isValidUserPassword( password ) ) throw new Error( 'Invalid password.' );
 				const userId = uuid();
-				const { result } = await collections.users.updateOne( { nick }, {
-					$setOnInsert: {
-						_id: userId,
-						nick,
-						passwordHash: await hashPassword( password ),
-						roles: []
-					}
-				}, { upsert: true } );
 				await collections.sessions.updateMany( {
 					nick,
 					userId: { $ne: userId }
@@ -308,7 +301,7 @@ clientRoomSession$.pipe(
 				const room = await collections.rooms.findOne( { _id: roomId } );
 				if( !room ) throw new Error( 'Room not found.' );
 				const gameId = room.gameId;
-				const serverGame = await collections.games.findOne( { _id: gameId } );
+				const serverGame = m2sGame( await collections.games.findOne( { _id: gameId } ) );
 				if( !serverGame ) throw new Error( 'Game not found.' );
 				const game = s2cGame( serverGame );
 				const rules = ruleSetMap.get( game.ruleSet );

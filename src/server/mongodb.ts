@@ -5,12 +5,12 @@ import schema from 'data/server.schema.yaml';
 
 let connection: Promise<{
 	collections: {
-		expirations: Collection<ServerExpiration>;
-		games: Collection<ServerGame>;
-		rooms: Collection<ServerRoom>;
-		roomSessions: Collection<ServerRoomSession>;
-		sessions: Collection<ServerSession>;
-		users: Collection<ServerUser>;
+		expirations: Collection<MongoExpiration>;
+		games: Collection<MongoGame>;
+		rooms: Collection<MongoRoom>;
+		roomSessions: Collection<MongoRoomSession>;
+		sessions: Collection<MongoSession>;
+		users: Collection<MongoUser>;
 	},
 	client: MongoClient,
 	db: Db

@@ -1,10 +1,11 @@
 import { localBus } from './bus';
 import { mapMap, trackInserts, trackDeletes } from 'src/operators';
-import { filter, startWith, debounceTime, switchMap, shareReplay, mergeMap, takeUntil } from 'rxjs/operators';
+import { filter, startWith, debounceTime, switchMap, shareReplay, mergeMap, takeUntil, map } from 'rxjs/operators';
 import { s2cRoom, s2cSession, s2cRoomSession } from './server-to-client';
 import { ReplaySubject } from 'rxjs';
 import { connectMongodb } from './mongodb';
 import { shuttingDown } from 'server/shut-down';
+import { m2sRoom, m2sSession, m2sRoomSession } from './mongo-to-server';
 
 export const serverRoom$ = new ReplaySubject<ReadonlyArray<ServerRoom>>( 1 );
 export const serverSession$ = new ReplaySubject<ReadonlyArray<ServerSession>>( 1 );
@@ -41,6 +42,7 @@ export const clientRoomSession$ = serverRoomSession$.pipe( mapMap( s2cRoomSessio
 		startWith( { type: BusMessageType.UpdateRoom, data: {} } ),
 		debounceTime( 10 ),
 		switchMap( () => collections.rooms.find( {} ).toArray() ),
+		map( r => r.map( r => m2sRoom( r ) ) ),
 		shareReplay( 1 ),
 		takeUntil( shuttingDown )
 	).subscribe( serverRoom$ );
@@ -50,6 +52,7 @@ export const clientRoomSession$ = serverRoomSession$.pipe( mapMap( s2cRoomSessio
 		startWith( { type: BusMessageType.UpdateSession, data: {} } ),
 		debounceTime( 10 ),
 		switchMap( () => collections.sessions.find( {} ).toArray() ),
+		map( r => r.map( r => m2sSession( r ) ) ),
 		shareReplay( 1 ),
 		takeUntil( shuttingDown )
 	).subscribe( serverSession$ );
@@ -59,6 +62,7 @@ export const clientRoomSession$ = serverRoomSession$.pipe( mapMap( s2cRoomSessio
 		startWith( { type: BusMessageType.UpdateRoomSession, data: {} } ),
 		debounceTime( 10 ),
 		switchMap( () => collections.roomSessions.find( {} ).toArray() ),
+		map( r => r.map( r => m2sRoomSession( r ) ) ),
 		shareReplay( 1 ),
 		takeUntil( shuttingDown )
 	).subscribe( serverRoomSession$ );
