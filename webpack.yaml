@@ -70,8 +70,10 @@ options:
   postcss:
     plugins:
       postcss-import: {}
+      postcss-nesting: {}
       postcss-preset-env:
         browsers: *browserSpec
+      cssnano: {}
     sourceMap: true
   typescript:
     configFileName: tsconfig.server.json

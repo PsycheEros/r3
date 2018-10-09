@@ -227,7 +227,7 @@ clientRoomSession$.pipe(
 
 			handleMessage( socket, 'stand', async ( { roomId: roomIdStr, seat } ) => {
 				const roomId = uuid( roomIdStr );
-				const { modifiedCount } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: { $where: new Int32( seat ) } } } );
+				const { modifiedCount } = await collections.roomSessions.updateOne( { roomId, sessionId, seats: { $elemMatch: { $eq: seat } } }, { $pull: { seats: new Int32( seat ) as any } } );
 				if( modifiedCount === 0 ) return;
 				localBus.next( { type: BusMessageType.UpdateRoomSession, data: {} } );
 				const { gameId } = ( await collections.rooms.findOne( { _id: roomId, gameId: { $ne: null } }, { projection: { _id: 0, gameId: 1 } } ) ) || { gameId: null };

@@ -54,6 +54,7 @@ const loader = {
 	babelClient: { loader: 'babel-loader' },
 	babelServer: { loader: 'babel-loader' },
 	css: { loader: 'css-loader' },
+	debug: { loader: 'debug-loader' },
 	file: { loader: 'file-loader' },
 	html: { loader: 'html-loader' },
 	raw: { loader: 'raw-loader' },
