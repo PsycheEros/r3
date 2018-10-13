@@ -95,7 +95,6 @@ export class GameComponent implements OnInit, OnDestroy {
 	public onMouseMove( { square }: BoardMouseEvent ) {
 		if( !square ) return;
 		const { canMove, gameState } = this;
-
 		document.documentElement.style.cursor =
 			( rules.isGameOver( gameState )
 		||	( canMove && rules.isValid( gameState, square.position, gameState.turn ) ) )

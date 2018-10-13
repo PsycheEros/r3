@@ -1,5 +1,4 @@
 import { Board } from './board';
-import { Square } from './square';
 
 const directions: ReadonlyArray<Point> = [
 	{ x:  0, y: -1 },
@@ -15,7 +14,7 @@ const directions: ReadonlyArray<Point> = [
 function getAffectedSquares( board: Board, position: Point, seat: number ): Square[] {
 	if( !board.boundsCheck( position ) ) { return []; }
 	const square = board.get( position );
-	if( !square || !square.empty || !square.enabled ) { return []; }
+	if( !square || ( square.color != null ) || !square.enabled ) { return []; }
 	function direction( { x, y }: Point, delta: Point ): Square[] {
 		const squares = [] as Square[];
 		for( ; ; ) {
@@ -23,7 +22,7 @@ function getAffectedSquares( board: Board, position: Point, seat: number ): Squa
 			y += delta.y;
 			if( !board.boundsCheck( { x, y } ) ) { return []; }
 			const square = board.get( { x, y } );
-			if( !square || square.empty || !square.enabled ) { return []; }
+			if( !square || ( square.color == null ) || !square.enabled ) { return []; }
 			if( square.color === seat ) { return squares; }
 			squares.push( square );
 		}
