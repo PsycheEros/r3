@@ -1,13 +1,12 @@
 import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
-import { screenToCanvas } from './canvas';
-import { Subject, animationFrameScheduler, range, fromEvent, fromEventPattern, Observable, BehaviorSubject, combineLatest } from 'rxjs';
-import { observeOn, take, takeUntil, distinctUntilChanged, map, filter, switchMap, scan, mapTo, share } from 'rxjs/operators';
+import { fromEvent, Observable, BehaviorSubject, combineLatest } from 'rxjs';
+import { map, filter, switchMap, mapTo, share } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 
-import { Engine, Scene, PointLight, Mesh, Vector3, StandardMaterial, TargetCamera, PickingInfo, PointerInfo, Observable as BabylonObservable, PointerEventTypes, Color3, AbstractMesh, SpotLight } from 'babylonjs';
+import { Engine, Scene, Mesh, Vector3, StandardMaterial, TargetCamera, PickingInfo, PointerInfo, Observable as BabylonObservable, PointerEventTypes, Color3, AbstractMesh, SpotLight } from 'babylonjs';
 
-function hslToRgb( h: number, s: number, l: number ) {
+function hslToRgb( h: number, s: number, l: number ): [ number, number, number ] {
 	s /= 100;
 	l /= 100;
 	const c = ( 1 - Math.abs( 2 * l - 1 ) ) * s;
@@ -50,7 +49,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	private readonly engine = new BehaviorSubject<Engine>( null );
 	private readonly scene = new BehaviorSubject<Scene>( null );
 	private readonly gameState = new BehaviorSubject<ClientGameState>( null );
-	private mesh: Mesh;
 
 	public ngOnInit() {
 		this.canvas
@@ -85,9 +83,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const pieceMap =
 				new Map(
 					Object.entries( colors )
-					.map( ( [ key, { color } ] ) => {
+					.map( ( [ key, { color: [ h, s, l ] } ] ) => {
 						const material = new StandardMaterial( `material_${key}`, scene );
-						material.diffuseColor = new Color3( ...hslToRgb( ...color ) );
+						material.diffuseColor = new Color3( ...hslToRgb( h, s, l ) );
 						const piece = Mesh.CreateCylinder( `piece_${key}`, pieceDepth, pieceDiameter, pieceDiameter, 32, 1, scene, false, Mesh.FRONTSIDE );
 						piece.isPickable = false;
 						piece.setEnabled( false );
