@@ -46,7 +46,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			shininess: 0
 		} );
 
-		const pieceDepth = .3;
+		const pieceDepth = .1;
 		const pieceRadius = .45;
 		const pieceGeometry = new CylinderGeometry(
 			pieceRadius,
@@ -123,7 +123,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						raycaster.setFromCamera( point, camera );
 						const [ square ] =
 							raycaster
-							.intersectObjects( scene.children )
+							.intersectObjects( scene.children, true )
 							.map( i => boardMap.get( i.object ) )
 							.filter( e => !!e ) || null;
 
@@ -144,7 +144,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		} );
 
 		mouseEvents
-		.pipe( filter( e => e.type === 'click' ) )
+		.pipe( filter( e => [ 'touchend', 'click' ].includes( e.type ) ) )
 		.subscribe( ( { square } ) => {
 			this.click.emit( { square } );
 		} );
@@ -157,48 +157,56 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			camera.bottom = gameState.size.height;
 			camera.position.set( 0, 0, 5 );
 			camera.updateProjectionMatrix();
-			const ambientLight = new AmbientLight( new Color( 1, 1, 1 ), 0.25 );
+			const boardRoot = new Object3D;
+			scene.add( boardRoot );
+			boardRoot.position.set( 0, 0, 0 );
+			const boardCenter = new Object3D;
+			boardRoot.add( boardCenter );
+			boardCenter.position.set( gameState.size.width * .5, gameState.size.height * .5, 0 );
+			const ambientLight = new AmbientLight( new Color( 1, 1, 1 ), 0.02 );
 			scene.add( ambientLight );
-			const light = new SpotLight( new Color( 1, 1, 1 ), 1, 20, Math.PI * .25 );
+			const light = new SpotLight( new Color( 1, 1, 1 ), 1, 20 );
 			light.decay = 1;
 			light.intensity = 1.6;
 			light.penumbra = 0.05;
-			light.position.set( gameState.size.width * -.5, gameState.size.height * -.5, 5 );
 			light.castShadow = true;
-			light.target.position.set( 0, 0, 0 );
-			light.target.updateMatrix();
 			const { shadow } = light;
 			shadow.mapSize.width = 1024;
 			shadow.mapSize.height = 1024;
 			shadow.camera.near = 1;
 			shadow.camera.far = 50;
 			shadow.camera.fov = 30;
+			light.target = boardCenter;
 			scene.add( light );
+			light.position.set( 0, 0, -5 );
 			const board = Board.fromGameState( gameState );
 
 			for( let y = 0; y < gameState.size.height; ++y )
 			for( let x = 0; x < gameState.size.width; ++x ) {
 				const square = board.get( { x, y } );
 				if( !square.enabled ) continue;
+				const squareObject = new Object3D;
+				squareObject.name = `square_${x}_${y}`;
+				boardRoot.add( squareObject );
+				squareObject.position.set( x, y, 0 );
 				if( square.color != null ) {
 					const pieceMaterial = pieceMaterialMap.get( this.colors[ square.color ] );
 					const pieceMesh = new Mesh( pieceGeometry, pieceMaterial );
+					pieceMesh.rotateX( Math.PI * .5 );
 					pieceMesh.name = `piece_${x}_${y}`;
 					pieceMesh.castShadow = true;
 					pieceMesh.receiveShadow = true;
-					pieceMesh.rotateX( Math.PI * .5 );
-					pieceMesh.position.set( x + pieceRadius, y + pieceRadius, pieceDepth );
-					scene.add( pieceMesh );
+					pieceMesh.position.set( pieceRadius, pieceRadius, pieceDepth );
+					squareObject.add( pieceMesh );
 				}
 				const boardMesh = new Mesh( boardGeometry, boardMaterial );
 				boardMesh.name = `board_${x}_${y}`;
 				boardMesh.castShadow = false;
 				boardMesh.receiveShadow = true;
-				boardMesh.rotateX( Math.PI );
-				boardMesh.position.set( x + .5, y + .5, 0 );
+				boardMesh.position.set( .5, .5, 0 );
 				boardMesh.layers.enable( boardLayer );
 				boardMap.set( boardMesh, square );
-				scene.add( boardMesh );
+				squareObject.add( boardMesh );
 			}
 			return scene;
 		} ) )
