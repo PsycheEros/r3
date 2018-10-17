@@ -4,7 +4,7 @@ import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEve
 import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 
-import { Scene, Mesh, OrthographicCamera, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, MeshMaterialType, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D } from 'three';
+import { Scene, Mesh, OrthographicCamera, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, Material, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D } from 'three';
 
 function hslToRgb( h: number, s: number, l: number ): [ number, number, number ] {
 	s /= 100;
@@ -67,7 +67,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						shininess: 100,
 						specular: new Color( .5, .5, .5 )
 					} );
-					return [ key, material ] as [ string, MeshMaterialType ];
+					return [ key, material ] as [ string, Material ];
 				} )
 			);
 
