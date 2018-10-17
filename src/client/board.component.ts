@@ -92,7 +92,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				const { domElement: canvas } = renderer;
 				const layerMask = new Layers;
 				layerMask.set( boardLayer );
-	
 				return merge(
 					of( 'mousemove', 'click' )
 					.pipe(
@@ -150,7 +149,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			this.click.emit( { square } );
 		} );
 
-		const buildScene = ( gameState: ClientGameState ) => {
+		this.gameState
+		.pipe( map( ( gameState ) => {
 			const scene = new Scene;
 			if( !gameState ) return scene;
 			camera.right = gameState.size.width;
@@ -184,7 +184,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					const pieceMaterial = pieceMaterialMap.get( this.colors[ square.color ] );
 					const pieceMesh = new Mesh( pieceGeometry, pieceMaterial );
 					pieceMesh.name = `piece_${x}_${y}`;
-					pieceMesh.layers
 					pieceMesh.castShadow = true;
 					pieceMesh.receiveShadow = true;
 					pieceMesh.rotateX( Math.PI * .5 );
@@ -202,10 +201,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				scene.add( boardMesh );
 			}
 			return scene;
-		}
-
-		this.gameState
-		.pipe( map( buildScene ) )
+		} ) )
 		.subscribe( this.scene );
 	}
 
