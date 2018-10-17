@@ -1,10 +1,10 @@
 import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
-import { fromEvent, Observable, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, filter, switchMap, mapTo, share } from 'rxjs/operators';
+import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of } from 'rxjs';
+import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 
-import { Engine, Scene, Mesh, Vector3, StandardMaterial, TargetCamera, PickingInfo, PointerInfo, Observable as BabylonObservable, PointerEventTypes, Color3, AbstractMesh, SpotLight } from 'babylonjs';
+import { Scene, Mesh, OrthographicCamera, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, MeshMaterialType, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D } from 'three';
 
 function hslToRgb( h: number, s: number, l: number ): [ number, number, number ] {
 	s /= 100;
@@ -28,157 +28,209 @@ function hslToRgb( h: number, s: number, l: number ): [ number, number, number ]
 	];
 }
 
-function adaptObservable<T>( observable: BabylonObservable<T>, mask?: number, insertFirst?: boolean, scope?: any, unregisterOnFirstCall?: boolean ): Observable<T> {
-	return new Observable<T>( observer => {
-		const o = observable.add( e => {
-			observer.next( e );
-		}, mask, insertFirst, scope, unregisterOnFirstCall );
-		return () => {
-			observable.remove( o );
-		};
-	} );
-}
-
 @Component( {
 	selector: 'board',
 	templateUrl: './board.component.html',
 	styleUrls: [ './board.component.css' ]
 } )
 export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnInit {
-	private readonly canvas = new BehaviorSubject<HTMLCanvasElement>( null );
-	private readonly engine = new BehaviorSubject<Engine>( null );
-	private readonly scene = new BehaviorSubject<Scene>( null );
-	private readonly gameState = new BehaviorSubject<ClientGameState>( null );
+	private readonly renderer = new Subject<Renderer>();
+	private readonly scene = new Subject<Scene>();
+	private readonly gameState = new ReplaySubject<ClientGameState>( 1 );
 
 	public ngOnInit() {
-		this.canvas
-		.subscribe( canvas => {
-			const engine = this.engine.value;
-			if( engine ) engine.stopRenderLoop();
-			this.engine.next( canvas && new Engine( canvas, true, { preserveDrawingBuffer: true, stencil: true } ) );
+		const boardLayer = 1;
+		const boardMaterial = new MeshPhongMaterial( {
+			color: new Color( 0, 1, 0 ),
+			dithering: true,
+			shininess: 0
 		} );
 
-		const meshMap = new WeakMap<AbstractMesh, Square>();
+		const pieceDepth = .3;
+		const pieceRadius = .45;
+		const pieceGeometry = new CylinderGeometry(
+			pieceRadius,
+			pieceRadius,
+			pieceDepth,
+			36,
+			2,
+			false
+		);
+		const boardGeometry = new BoxGeometry( 1, 1, 1, 1, 1, 1 );
+		const pieceMaterialMap =
+			new Map(
+				Object.entries( colors )
+				.map( ( [ key, { color: [ h, s, l ] } ] ) => {
+					const material = new MeshPhongMaterial( {
+						color: new Color( ...hslToRgb( h, s, l ) ),
+						dithering: true,
+						shininess: 100,
+						specular: new Color( .5, .5, .5 )
+					} );
+					return [ key, material ] as [ string, MeshMaterialType ];
+				} )
+			);
 
-		combineLatest( this.engine, this.gameState )
-		.subscribe( ( [ engine, gameState ] ) => {
-			if( !engine || !gameState ) return;
-			const mid = { x: gameState.size.width * -.5, y: gameState.size.height * -.5 };
+		const camera = new OrthographicCamera( 0, 0, 0, 0, 0, 10 );
 
-			engine.stopRenderLoop();
-			const scene = new Scene( engine );
-			const camera = new TargetCamera( 'camera1', new Vector3( 0, 0, -10 ), scene, true );
+		combineLatest( this.renderer, this.scene )
+		.pipe(
+			filter( e => e.every( e => !!e ) ),
+			observeOn( animationFrameScheduler )
+		)
+		.subscribe( ( [ renderer, scene ] ) => {
+			renderer.render( scene, camera );
+		} );
 
-			camera.setTarget( Vector3.Zero() );
-			const light = new SpotLight( 'light1', new Vector3( 0, 0, -5 ), Vector3.Forward(), Math.PI * .75, 0.1, scene );
-			light.intensity = 0.5;
+		const boardMap = new WeakMap<Object3D, Square>();
 
+		const mouseEvents =
+		combineLatest( this.scene, this.renderer )
+		.pipe(
+			filter( e => e.every( e => !!e ) ),
+			switchMap( ( [ scene, renderer ] ) => {
+				const { domElement: canvas } = renderer;
+				const layerMask = new Layers;
+				layerMask.set( boardLayer );
+	
+				return merge(
+					of( 'mousemove', 'click' )
+					.pipe(
+						mergeMap( type =>
+							fromEvent<MouseEvent>( canvas, type )
+							.pipe(
+								map( ( { clientX, clientY } ) => ( { type, clientX, clientY } ) )
+							)
+						)
+					),
+					of( 'touchend' )
+					.pipe(
+						mergeMap( type =>
+							fromEvent<TouchEvent>( canvas, type )
+							.pipe(
+								mergeMap( ( { touches } ) => touches ),
+								map( ( { clientX, clientY } ) => ( { type, clientX, clientY } ) )
+							)
+						)
+					)
+				)
+				.pipe(
+					map( ( { clientX, clientY, type } ) => {
+						const bounds = canvas.getBoundingClientRect();
+						const x = clientX - bounds.left;
+						const y = clientY - bounds.top;
+						const point = { x: ( x / bounds.width * 2 - 1 ), y: -( y / bounds.height ) * 2 + 1 };
+						const raycaster = new Raycaster;
+						raycaster.setFromCamera( point, camera );
+						const [ square ] =
+							raycaster
+							.intersectObjects( scene.children )
+							.map( i => boardMap.get( i.object ) )
+							.filter( e => !!e ) || null;
 
-			const boardMaterial = new StandardMaterial( 'board', scene );
-			boardMaterial.diffuseColor = new Color3( 0, 1, 0 );
-
-			const pieceDepth = .2;
-			const pieceRadius = .45;
-			const pieceDiameter = pieceRadius * 2;
-			const pieceMap =
-				new Map(
-					Object.entries( colors )
-					.map( ( [ key, { color: [ h, s, l ] } ] ) => {
-						const material = new StandardMaterial( `material_${key}`, scene );
-						material.diffuseColor = new Color3( ...hslToRgb( h, s, l ) );
-						const piece = Mesh.CreateCylinder( `piece_${key}`, pieceDepth, pieceDiameter, pieceDiameter, 32, 1, scene, false, Mesh.FRONTSIDE );
-						piece.isPickable = false;
-						piece.setEnabled( false );
-						piece.material = material;
-						piece.rotate( Vector3.Right(), Math.PI * -.5 );
-						return [ key, piece ] as [ string, Mesh ];
+						return {
+							type,
+							point,
+							square
+						};
 					} )
 				);
+			} )
+		);
 
+		mouseEvents
+		.pipe( filter( e => e.type === 'mousemove' ) )
+		.subscribe( ( { square } ) => {
+			this.mousemove.emit( { square } );
+		} );
+
+		mouseEvents
+		.pipe( filter( e => e.type === 'click' ) )
+		.subscribe( ( { square } ) => {
+			this.click.emit( { square } );
+		} );
+
+		const buildScene = ( gameState: ClientGameState ) => {
+			const scene = new Scene;
+			if( !gameState ) return scene;
+			camera.right = gameState.size.width;
+			camera.bottom = gameState.size.height;
+			camera.position.set( 0, 0, 5 );
+			camera.updateProjectionMatrix();
+			const ambientLight = new AmbientLight( new Color( 1, 1, 1 ), 0.25 );
+			scene.add( ambientLight );
+			const light = new SpotLight( new Color( 1, 1, 1 ), 1, 20, Math.PI * .25 );
+			light.decay = 1;
+			light.intensity = 1.6;
+			light.penumbra = 0.05;
+			light.position.set( gameState.size.width * -.5, gameState.size.height * -.5, 5 );
+			light.castShadow = true;
+			light.target.position.set( 0, 0, 0 );
+			light.target.updateMatrix();
+			const { shadow } = light;
+			shadow.mapSize.width = 1024;
+			shadow.mapSize.height = 1024;
+			shadow.camera.near = 1;
+			shadow.camera.far = 50;
+			shadow.camera.fov = 30;
+			scene.add( light );
 			const board = Board.fromGameState( gameState );
-
-			const groundProto = Mesh.CreateGround( 'ground', 1, 1, 2, scene, false );
-			groundProto.material = ( () => {
-				const material = new StandardMaterial( 'material_ground', scene );
-				material.diffuseColor = new Color3( 0, 1, 0 );
-				return material;
-			} )();
-			groundProto.rotate( Vector3.Right(), Math.PI * -.5 );
-			groundProto.setEnabled( false );
-
 
 			for( let y = 0; y < gameState.size.height; ++y )
 			for( let x = 0; x < gameState.size.width; ++x ) {
 				const square = board.get( { x, y } );
 				if( !square.enabled ) continue;
 				if( square.color != null ) {
-					const piece = pieceMap.get( this.colors[ square.color ] ).createInstance( `piece_${x}_${y}` );
-					piece.position = new Vector3( x + mid.x + pieceRadius, y + mid.y + pieceRadius, 0 );
+					const pieceMaterial = pieceMaterialMap.get( this.colors[ square.color ] );
+					const pieceMesh = new Mesh( pieceGeometry, pieceMaterial );
+					pieceMesh.name = `piece_${x}_${y}`;
+					pieceMesh.layers
+					pieceMesh.castShadow = true;
+					pieceMesh.receiveShadow = true;
+					pieceMesh.rotateX( Math.PI * .5 );
+					pieceMesh.position.set( x + pieceRadius, y + pieceRadius, pieceDepth );
+					scene.add( pieceMesh );
 				}
-				const ground = groundProto.createInstance( `ground_${x}_${y}` );
-				ground.position = new Vector3( x + mid.x + 0.5, y + mid.y + 0.5, pieceDepth );
-				meshMap.set( ground, square );
+				const boardMesh = new Mesh( boardGeometry, boardMaterial );
+				boardMesh.name = `board_${x}_${y}`;
+				boardMesh.castShadow = false;
+				boardMesh.receiveShadow = true;
+				boardMesh.rotateX( Math.PI );
+				boardMesh.position.set( x + .5, y + .5, 0 );
+				boardMesh.layers.enable( boardLayer );
+				boardMap.set( boardMesh, square );
+				scene.add( boardMesh );
 			}
+			return scene;
+		}
 
-			engine.runRenderLoop( () => { scene.render(); } );
-			this.scene.next( scene );
-		} );
-
-		this.engine
-		.pipe(
-			switchMap( engine =>
-				fromEvent( window, 'resize' )
-				.pipe( mapTo( engine ) )
-			)
-		)
-		.subscribe( engine => {
-			if( engine ) engine.resize();
-		} );
-
-		const pointerEvents =
-			this.scene
-			.pipe(
-				filter( e => !!e ),
-				switchMap( scene =>
-					adaptObservable( scene.onPointerObservable ).pipe(
-						map( e => [ e, scene.pickWithRay( e.pickInfo.ray ) ] as [ PointerInfo, PickingInfo ] )
-					)
-				),
-				share()
-			);
-
-		pointerEvents
-		.pipe( filter( ( [ { type } ] ) => type === PointerEventTypes.POINTERMOVE ) )
-		.subscribe( ( [ , rayCast ] ) => {
-			const square = meshMap.get( rayCast.pickedMesh ) || null;
-			this.mousemove.emit( { square } );
-		} );
-
-		pointerEvents
-		.pipe( filter( ( [ { type } ] ) => type === PointerEventTypes.POINTERPICK ) )
-		.subscribe( ( [ , rayCast ] ) => {
-			const square = meshMap.get( rayCast.pickedMesh ) || null;
-			this.click.emit( { square } );
-		} );
+		this.gameState
+		.pipe( map( buildScene ) )
+		.subscribe( this.scene );
 	}
 
 	public ngAfterViewInit() {
-		this.canvas.next( this.canvasElementRef.nativeElement );
-	}
+		const canvas = this.canvasElementRef.nativeElement;
+		const renderer = new WebGLRenderer( {
+			antialias: true,
+			canvas,
+			stencil: true
+		} );
+		renderer.gammaInput = true;
+		renderer.gammaOutput = true;
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = PCFSoftShadowMap;
+		this.renderer.next( renderer );
+}
 
 	public ngOnChanges() {
 		this.gameState.next( this.gameStateValue );
 	}
 
 	public ngOnDestroy() {
-		const scene = this.scene.value;
-		this.canvas.next( null );
-		this.canvas.complete();
-		this.scene.complete();
-		this.engine.complete();
+		this.renderer.complete();
 		this.scene.complete();
 		this.gameState.complete();
-		if( scene ) scene.dispose();
 	}
 
 	@ViewChild( 'canvasElement' )
@@ -188,7 +240,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public colors: string[] = [];
 
 	public board: null|Board = null;
-
 
 	@Input( 'gameState' )
 	public gameStateValue: null|ClientGameState = null;
