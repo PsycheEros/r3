@@ -3,10 +3,11 @@ import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChang
 import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of } from 'rxjs';
 import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
+import boardSettings from 'data/board.yaml';
 
-import { Scene, Mesh, OrthographicCamera, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, Material, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D } from 'three';
+import { Scene, Mesh, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, Material, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight } from 'three';
 
-function hslToRgb( h: number, s: number, l: number ): [ number, number, number ] {
+function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
 	s /= 100;
 	l /= 100;
 	const c = ( 1 - Math.abs( 2 * l - 1 ) ) * s;
@@ -21,11 +22,11 @@ function hslToRgb( h: number, s: number, l: number ): [ number, number, number ]
 	else if( hp <= 5 ) rgb1 = [ x, 0, c ];
 	else if( hp <= 6 ) rgb1 = [ c, 0, x ];
 	const m = l - c * 0.5;
-	return [
+	return new Color(
 		rgb1[ 0 ] + m,
 		rgb1[ 1 ] + m,
 		rgb1[ 2 ] + m
-	];
+	);
 }
 
 @Component( {
@@ -41,37 +42,37 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public ngOnInit() {
 		const boardLayer = 1;
 		const boardMaterial = new MeshPhongMaterial( {
-			color: new Color( 0, 1, 0 ),
-			dithering: true,
-			shininess: 0
+			color: hslToColor( boardSettings.board.material.color ),
+			dithering: boardSettings.board.material.dithering,
+			shininess: boardSettings.board.material.shininess
 		} );
 
-		const pieceDepth = .1;
-		const pieceRadius = .45;
+		const pieceDepth = boardSettings.piece.depth;
+		const pieceRadius = boardSettings.piece.radius;
 		const pieceGeometry = new CylinderGeometry(
 			pieceRadius,
 			pieceRadius,
 			pieceDepth,
-			36,
+			boardSettings.piece.segments,
 			2,
 			false
 		);
-		const boardGeometry = new BoxGeometry( 1, 1, 1, 1, 1, 1 );
+		const boardGeometry = new BoxGeometry( 1, 1, 0.1, 1, 1, 1 );
 		const pieceMaterialMap =
 			new Map(
 				Object.entries( colors )
-				.map( ( [ key, { color: [ h, s, l ] } ] ) => {
+				.map( ( [ key, { color: hsl } ] ) => {
 					const material = new MeshPhongMaterial( {
-						color: new Color( ...hslToRgb( h, s, l ) ),
-						dithering: true,
-						shininess: 100,
-						specular: new Color( .5, .5, .5 )
+						color: hslToColor( hsl ),
+						dithering: boardSettings.piece.material.dithering,
+						shininess: boardSettings.piece.material.shininess
 					} );
 					return [ key, material ] as [ string, Material ];
 				} )
 			);
 
-		const camera = new OrthographicCamera( 0, 0, 0, 0, 0, 10 );
+		const camera = new PerspectiveCamera;
+		camera.name = 'camera';
 
 		combineLatest( this.renderer, this.scene )
 		.pipe(
@@ -152,33 +153,12 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		this.gameState
 		.pipe( map( ( gameState ) => {
 			const scene = new Scene;
+			scene.name = 'scene';
 			if( !gameState ) return scene;
-			camera.right = gameState.size.width;
-			camera.bottom = gameState.size.height;
-			camera.position.set( 0, 0, 5 );
-			camera.updateProjectionMatrix();
+
 			const boardRoot = new Object3D;
+			boardRoot.name = 'board_root';
 			scene.add( boardRoot );
-			boardRoot.position.set( 0, 0, 0 );
-			const boardCenter = new Object3D;
-			boardRoot.add( boardCenter );
-			boardCenter.position.set( gameState.size.width * .5, gameState.size.height * .5, 0 );
-			const ambientLight = new AmbientLight( new Color( 1, 1, 1 ), 0.02 );
-			scene.add( ambientLight );
-			const light = new SpotLight( new Color( 1, 1, 1 ), 1, 20 );
-			light.decay = 1;
-			light.intensity = 1.6;
-			light.penumbra = 0.05;
-			light.castShadow = true;
-			const { shadow } = light;
-			shadow.mapSize.width = 1024;
-			shadow.mapSize.height = 1024;
-			shadow.camera.near = 1;
-			shadow.camera.far = 50;
-			shadow.camera.fov = 30;
-			light.target = boardCenter;
-			scene.add( light );
-			light.position.set( 0, 0, -5 );
 			const board = Board.fromGameState( gameState );
 
 			for( let y = 0; y < gameState.size.height; ++y )
@@ -192,22 +172,113 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				if( square.color != null ) {
 					const pieceMaterial = pieceMaterialMap.get( this.colors[ square.color ] );
 					const pieceMesh = new Mesh( pieceGeometry, pieceMaterial );
-					pieceMesh.rotateX( Math.PI * .5 );
-					pieceMesh.name = `piece_${x}_${y}`;
+					pieceMesh.name = `piece_${x}_${y}_${pieceMaterial.name}`;
 					pieceMesh.castShadow = true;
 					pieceMesh.receiveShadow = true;
-					pieceMesh.position.set( pieceRadius, pieceRadius, pieceDepth );
 					squareObject.add( pieceMesh );
+					pieceMesh.rotateX( Math.PI * .5 );
+					pieceMesh.position.set( pieceRadius, pieceRadius, 0 );
 				}
 				const boardMesh = new Mesh( boardGeometry, boardMaterial );
 				boardMesh.name = `board_${x}_${y}`;
 				boardMesh.castShadow = false;
 				boardMesh.receiveShadow = true;
-				boardMesh.position.set( .5, .5, 0 );
+				boardMesh.position.set( .5, .5, -pieceDepth );
 				boardMesh.layers.enable( boardLayer );
 				boardMap.set( boardMesh, square );
 				squareObject.add( boardMesh );
 			}
+
+			const boardBounds = new Box3;
+			boardBounds.setFromObject( boardRoot );
+			const boardCenter = new Vector3;
+			boardBounds.getCenter( boardCenter );
+			const boardSize = new Vector3;
+			boardBounds.getSize( boardSize );
+			const maxDim = Math.max( boardSize.x, boardSize.y, boardSize.z );
+			const fov = camera.fov * ( Math.PI / 180 );
+			const cameraZ = Math.abs( maxDim * .2 * Math.tan( fov * 2 ) );
+			camera.position.set( boardCenter.x, boardCenter.y, cameraZ );
+			const cameraToFarEdge = ( boardBounds.min.z < 0 ) ? -boardBounds.min.z + cameraZ : cameraZ - boardBounds.min.z;
+			camera.near = 1;
+			camera.far = cameraToFarEdge * 2;
+			camera.lookAt( boardCenter );
+			camera.updateMatrixWorld( false );
+			camera.updateProjectionMatrix();
+
+			let lightIndex = 0;
+			for( const light of boardSettings.lights ) {
+				if( 'ambient' in light ) {
+					const ambientLight = new AmbientLight( hslToColor( light.ambient.color ), light.ambient.intensity );
+					ambientLight.name = `light_${++lightIndex}_ambient`;
+					scene.add( ambientLight );
+				}
+				if( 'directional' in light ) {
+					const directionalLight = new DirectionalLight( hslToColor( light.directional.color ), light.directional.intensity );
+					directionalLight.name = `light_${++lightIndex}_directional`;
+					scene.add( directionalLight );
+					scene.add( directionalLight.target );
+					directionalLight.target.position.copy( boardCenter );
+				}
+				if( 'point' in light ) {
+					const pointLight = new PointLight( hslToColor( light.point.color ), light.point.intensity );
+					pointLight.name = `light_${++lightIndex}_point`;
+					pointLight.castShadow = true;
+					scene.add( pointLight );
+					pointLight.position.set( ...light.point.position );
+					pointLight.position.add( boardCenter );
+					pointLight.shadow.mapSize.width = 1024;
+					pointLight.shadow.mapSize.height = 1024;
+				}
+				if( 'spotlight' in light ) {
+					const spotLight = new SpotLight( hslToColor( light.spotlight.color ), light.spotlight.intensity, light.spotlight.distance, light.spotlight.angle );
+					spotLight.name = `light_${++lightIndex}_spotlight`;
+					spotLight.decay = light.spotlight.decay;
+					spotLight.intensity = light.spotlight.intensity;
+					spotLight.penumbra = light.spotlight.penumbra;
+					spotLight.castShadow = true;
+					scene.add( spotLight );
+					spotLight.position.set( ...light.spotlight.position );
+					spotLight.position.add( boardCenter );
+					scene.add( spotLight.target );
+					spotLight.target.position.copy( boardCenter );
+					spotLight.shadow.mapSize.width = 1024;
+					spotLight.shadow.mapSize.height = 1024;
+				}
+			}
+
+			// function debugObject( object: Object3D ) {
+			// 	function flatten( { x, y, z }: Vector3 ) {
+			// 		return [ x, y, z ]
+			// 			.map( i => i.toPrecision( 2 ) )
+			// 			.join( ', ' );
+			// 	}
+			// 	const bounds = new Box3;
+			// 	bounds.setFromObject( object );
+			// 	const center = new Vector3;
+			// 	bounds.getCenter( center );
+			// 	const size = new Vector3;
+			// 	bounds.getSize( size );
+			// 	const position = new Vector3;
+			// 	object.getWorldPosition( position );
+			// 	const direction = new Vector3;
+			// 	object.getWorldDirection( direction );
+			// 	let nameParts = [] as string[];
+			// 	for( let n = object; !!n; n = n.parent ) {
+			// 		nameParts.unshift( n.name || 'anonymous' );
+			// 	}
+			// 	return {
+			// 		name: nameParts.join( '.' ),
+			// 		position: flatten( position ),
+			// 		direction: flatten( direction ),
+			// 		center: flatten( center ),
+			// 		size: flatten( size )
+			// 	};
+			// }
+
+			// const objects = [ camera ] as Object3D[];
+			// scene.traverse( node => { objects.push( node ); } );
+			// console.table( objects.map( debugObject ) );
 			return scene;
 		} ) )
 		.subscribe( this.scene );
