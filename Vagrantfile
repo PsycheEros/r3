@@ -20,9 +20,11 @@ Vagrant.configure("2") do |config|
     sudo apt-get update
     sudo apt-get install -y --allow-unauthenticated redis-server redis-tools mongodb-org=$MONGO_VERSION mongodb-org-server=$MONGO_VERSION mongodb-org-shell=$MONGO_VERSION mongodb-org-mongos=$MONGO_VERSION mongodb-org-tools=$MONGO_VERSION
     sudo sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
-    sudo service mongod start
     sudo sed -i 's/^bind 127.0.0.1/bind 0.0.0.0/' /etc/redis/redis.conf
     sudo update-rc.d redis-server defaults
+  SHELL
+  config.vm.provision "shell", run: "always", inline: <<-SHELL
+    sudo service mongod start
     sudo service redis-server start
   SHELL
 end

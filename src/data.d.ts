@@ -38,23 +38,6 @@ type Light = {
 };
 
 declare module 'data/board.yaml' {
-	export const board: {
-		material: {
-			color: NumberTriple;
-			dithering: boolean;
-			shininess: number;
-			specular: NumberTriple;
-		};
-	};
-	export const piece: {
-		depth: number;
-		radius: number;
-		segments: number;
-		material: {
-			dithering: boolean;
-			shininess: number;
-		};
-	};
 	export const lights: Light[];
 }
 

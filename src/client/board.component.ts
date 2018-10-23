@@ -5,15 +5,43 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Mesh, MeshPhongMaterial, WebGLRenderer, Renderer, SpotLight, Color, CylinderGeometry, Material, BoxGeometry, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight } from 'three';
+import { Scene, Mesh, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip } from 'three';
+import GLTFLoader from 'three-gltf-loader';
+
+interface GltfFile {
+	animations: ReadonlyArray<AnimationClip>;
+	scene: Scene;
+	scenes: ReadonlyArray<Scene>;
+	cameras: ReadonlyArray<Camera>;
+	asset: object;
+}
+
+function loadResources( src: string ) {
+	return new Promise<Map<string, Object3D>>( ( resolve, reject ) => {
+		const loader = new GLTFLoader;
+		loader.load( src,
+			( { scene }: GltfFile ) => {
+				const map = new Map<string, Object3D>();
+				for( const child of scene.children ) {
+					if( child && child.name ) {
+						map.set( child.name, child );
+					}
+				}
+				resolve( map );
+			},
+			() => {},
+			err => { reject( new Error( err ) ); }
+		)
+	} );
+}
 
 function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
-	s /= 100;
-	l /= 100;
+	s *= .01;
+	l *= .01;
 	const c = ( 1 - Math.abs( 2 * l - 1 ) ) * s;
-	const hp = h / 60.0;
-	const x = c * ( 1 - Math.abs( ( hp % 2 ) - 1) );
-	let rgb1;
+	const hp = h / 60;
+	const x = c * ( 1 - Math.abs( ( hp % 2 ) - 1 ) );
+	let rgb1: [ number, number, number ];
 	if( isNaN( h ) ) rgb1 = [ 0, 0, 0 ];
 	else if( hp <= 1 ) rgb1 = [ c, x, 0 ];
 	else if( hp <= 2 ) rgb1 = [ x, c, 0 ];
@@ -21,7 +49,7 @@ function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
 	else if( hp <= 4 ) rgb1 = [ 0, x, c ];
 	else if( hp <= 5 ) rgb1 = [ x, 0, c ];
 	else if( hp <= 6 ) rgb1 = [ c, 0, x ];
-	const m = l - c * 0.5;
+	const m = l - c * .5;
 	return new Color(
 		rgb1[ 0 ] + m,
 		rgb1[ 1 ] + m,
@@ -41,36 +69,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 	public ngOnInit() {
 		const boardLayer = 1;
-		const boardMaterial = new MeshPhongMaterial( {
-			color: hslToColor( boardSettings.board.material.color ),
-			dithering: boardSettings.board.material.dithering,
-			shininess: boardSettings.board.material.shininess
-		} );
 
-		const pieceDepth = boardSettings.piece.depth;
-		const pieceRadius = boardSettings.piece.radius;
-		const pieceGeometry = new CylinderGeometry(
-			pieceRadius,
-			pieceRadius,
-			pieceDepth,
-			boardSettings.piece.segments,
-			2,
-			false
-		);
-		const boardGeometry = new BoxGeometry( 1, 1, 0.1, 1, 1, 1 );
-		const pieceMaterialMap =
-			new Map(
-				Object.entries( colors )
-				.map( ( [ key, { color: hsl } ] ) => {
-					const material = new MeshPhongMaterial( {
-						color: hslToColor( hsl ),
-						dithering: boardSettings.piece.material.dithering,
-						shininess: boardSettings.piece.material.shininess
-					} );
-					return [ key, material ] as [ string, Material ];
-				} )
-			);
-
+		const assetsPromise = loadResources( require( 'data/board.glb' ) );
 		const camera = new PerspectiveCamera;
 		camera.name = 'camera';
 
@@ -151,7 +151,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		} );
 
 		this.gameState
-		.pipe( map( ( gameState ) => {
+		.pipe( switchMap( async ( gameState ) => {
+			const assets = await assetsPromise;
+			const boardProto = assets.get( 'Board' );
+			const pieceProto = assets.get( 'Piece' );
 			const scene = new Scene;
 			scene.name = 'scene';
 			if( !gameState ) return scene;
@@ -169,21 +172,21 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				squareObject.name = `square_${x}_${y}`;
 				boardRoot.add( squareObject );
 				squareObject.position.set( x, y, 0 );
-				if( square.color != null ) {
-					const pieceMaterial = pieceMaterialMap.get( this.colors[ square.color ] );
-					const pieceMesh = new Mesh( pieceGeometry, pieceMaterial );
-					pieceMesh.name = `piece_${x}_${y}_${pieceMaterial.name}`;
-					pieceMesh.castShadow = true;
-					pieceMesh.receiveShadow = true;
-					squareObject.add( pieceMesh );
-					pieceMesh.rotateX( Math.PI * .5 );
-					pieceMesh.position.set( pieceRadius, pieceRadius, 0 );
+				const pieceMesh = pieceProto.clone() as Mesh;
+				pieceMesh.name = `piece_${x}_${y}`;
+				pieceMesh.castShadow = true;
+				pieceMesh.receiveShadow = true;
+				squareObject.add( pieceMesh );
+				if( square.color == null ) {
+					pieceMesh.visible = false;
+				} else {
+					pieceMesh.visible = true;
+					pieceMesh.rotateX( Math.PI * square.color );
 				}
-				const boardMesh = new Mesh( boardGeometry, boardMaterial );
+				const boardMesh = boardProto.clone();
 				boardMesh.name = `board_${x}_${y}`;
 				boardMesh.castShadow = false;
 				boardMesh.receiveShadow = true;
-				boardMesh.position.set( .5, .5, -pieceDepth );
 				boardMesh.layers.enable( boardLayer );
 				boardMap.set( boardMesh, square );
 				squareObject.add( boardMesh );

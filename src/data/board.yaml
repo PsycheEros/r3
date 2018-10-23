@@ -1,26 +1,13 @@
-board:
-  material:
-    color: [ 135, 80, 50 ]
-    dithering: true
-    shininess: 0
-    specular: [ 0, 0, 0 ]
-piece:
-  radius: 0.45
-  depth: 0.1
-  segments: 24
-  material:
-    dithering: true
-    shininess: 40
 lights:
 - ambient:
     color: [ 0, 100, 100 ]
-    intensity: 0.02
+    intensity: .1
 - spotlight:
     color: [ 0, 100, 100 ]
-    position: [ -2, 2, 5 ]
+    position: [ -2, 2, 7 ]
     decay: 1
     intensity: 1
     penumbra: 0.2
-    distance: 10
+    distance: 25
     angle: 1.4
   

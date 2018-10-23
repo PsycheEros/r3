@@ -98,6 +98,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 	module: {
 		rules: [
 			{ test: /\.ts$/i, include: [ path.resolve( __dirname, 'src', 'client' ) ], exclude: [ /\.ng\w+\./ ], enforce: 'pre', use: [ loader.tslint ] },
+			{ test: /\.glb$/i, use: [ loader.file ] },
 			{ test: /\.html$/i, use: [ loader.html ] },
 			{ test: /\.s?css$/i, include: [ path.resolve( __dirname, 'src', 'client' ) ], oneOf: [
 				{ test: angularPattern, use: [ loader.text ] },
