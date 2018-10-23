@@ -5,7 +5,7 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Mesh, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip } from 'three';
+import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -152,12 +152,15 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 		this.gameState
 		.pipe( switchMap( async ( gameState ) => {
-			const assets = await assetsPromise;
-			const boardProto = assets.get( 'Board' );
-			const pieceProto = assets.get( 'Piece' );
 			const scene = new Scene;
 			scene.name = 'scene';
 			if( !gameState ) return scene;
+			const assets = await assetsPromise;
+			const boardProto = assets.get( 'Board' );
+			const pieceProto = assets.get( 'Piece' );
+			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
+				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
+			}
 
 			const boardRoot = new Object3D;
 			boardRoot.name = 'board_root';
@@ -172,7 +175,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				squareObject.name = `square_${x}_${y}`;
 				boardRoot.add( squareObject );
 				squareObject.position.set( x, y, 0 );
-				const pieceMesh = pieceProto.clone() as Mesh;
+				const pieceMesh = pieceProto.clone();
 				pieceMesh.name = `piece_${x}_${y}`;
 				pieceMesh.castShadow = true;
 				pieceMesh.receiveShadow = true;
@@ -185,7 +188,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				}
 				const boardMesh = boardProto.clone();
 				boardMesh.name = `board_${x}_${y}`;
-				boardMesh.castShadow = false;
 				boardMesh.receiveShadow = true;
 				boardMesh.layers.enable( boardLayer );
 				boardMap.set( boardMesh, square );
@@ -250,34 +252,34 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				}
 			}
 
-			// function debugObject( object: Object3D ) {
-			// 	function flatten( { x, y, z }: Vector3 ) {
-			// 		return [ x, y, z ]
-			// 			.map( i => i.toPrecision( 2 ) )
-			// 			.join( ', ' );
-			// 	}
-			// 	const bounds = new Box3;
-			// 	bounds.setFromObject( object );
-			// 	const center = new Vector3;
-			// 	bounds.getCenter( center );
-			// 	const size = new Vector3;
-			// 	bounds.getSize( size );
-			// 	const position = new Vector3;
-			// 	object.getWorldPosition( position );
-			// 	const direction = new Vector3;
-			// 	object.getWorldDirection( direction );
-			// 	let nameParts = [] as string[];
-			// 	for( let n = object; !!n; n = n.parent ) {
-			// 		nameParts.unshift( n.name || 'anonymous' );
-			// 	}
-			// 	return {
-			// 		name: nameParts.join( '.' ),
-			// 		position: flatten( position ),
-			// 		direction: flatten( direction ),
-			// 		center: flatten( center ),
-			// 		size: flatten( size )
-			// 	};
-			// }
+			function debugObject( object: Object3D ) {
+				function flatten( { x, y, z }: Vector3 ) {
+					return [ x, y, z ]
+						.map( i => i.toPrecision( 2 ) )
+						.join( ', ' );
+				}
+				const bounds = new Box3;
+				bounds.setFromObject( object );
+				const center = new Vector3;
+				bounds.getCenter( center );
+				const size = new Vector3;
+				bounds.getSize( size );
+				const worldPosition = new Vector3;
+				object.getWorldPosition( worldPosition );
+				const worldDirection = new Vector3;
+				object.getWorldDirection( worldDirection );
+				let nameParts = [] as string[];
+				for( let n = object; !!n; n = n.parent ) {
+					nameParts.unshift( n.name || 'anonymous' );
+				}
+				return {
+					name: nameParts.join( '.' ),
+					position: flatten( object.position ),
+					worldPosition: flatten( worldPosition ),
+					center: flatten( center ),
+					size: flatten( size )
+				};
+			}
 
 			// const objects = [ camera ] as Object3D[];
 			// scene.traverse( node => { objects.push( node ); } );
