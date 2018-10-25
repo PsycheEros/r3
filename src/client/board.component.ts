@@ -5,7 +5,7 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip } from 'three';
+import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -68,10 +68,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	private readonly gameState = new ReplaySubject<ClientGameState>( 1 );
 
 	public ngOnInit() {
-		const boardLayer = 1;
-
 		const assetsPromise = loadResources( require( 'data/board.glb' ) );
-		const camera = new PerspectiveCamera;
+		// const camera = new PerspectiveCamera;
+		const camera = new OrthographicCamera( 0, 0, 0, 0, 0, 50 );
 		camera.name = 'camera';
 
 		combineLatest( this.renderer, this.scene )
@@ -83,16 +82,12 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			renderer.render( scene, camera );
 		} );
 
-		const boardMap = new WeakMap<Object3D, Square>();
-
 		const mouseEvents =
 		combineLatest( this.scene, this.renderer )
 		.pipe(
 			filter( e => e.every( e => !!e ) ),
 			switchMap( ( [ scene, renderer ] ) => {
 				const { domElement: canvas } = renderer;
-				const layerMask = new Layers;
-				layerMask.set( boardLayer );
 				return merge(
 					of( 'mousemove', 'click' )
 					.pipe(
@@ -122,11 +117,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						const point = { x: ( x / bounds.width * 2 - 1 ), y: -( y / bounds.height ) * 2 + 1 };
 						const raycaster = new Raycaster;
 						raycaster.setFromCamera( point, camera );
-						const [ square ] =
+						const [ square = null ] =
 							raycaster
 							.intersectObjects( scene.children, true )
-							.map( i => boardMap.get( i.object ) )
-							.filter( e => !!e ) || null;
+							.map( i => i.object.userData.square as Square )
+							.filter( e => !!e );
 
 						return {
 							type,
@@ -156,7 +151,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			scene.name = 'scene';
 			if( !gameState ) return scene;
 			const assets = await assetsPromise;
-			const boardProto = assets.get( 'Board' );
+			const boardProto = assets.get( 'Board' ) as Mesh;
 			const pieceProto = assets.get( 'Piece' );
 			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
 				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
@@ -184,13 +179,13 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					pieceMesh.visible = false;
 				} else {
 					pieceMesh.visible = true;
-					pieceMesh.rotateX( Math.PI * square.color );
+					pieceMesh.rotateZ( Math.PI * square.color );
 				}
 				const boardMesh = boardProto.clone();
 				boardMesh.name = `board_${x}_${y}`;
+				boardMesh.castShadow = true;
 				boardMesh.receiveShadow = true;
-				boardMesh.layers.enable( boardLayer );
-				boardMap.set( boardMesh, square );
+				boardMesh.userData.square = square;
 				squareObject.add( boardMesh );
 			}
 
@@ -200,16 +195,25 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			boardBounds.getCenter( boardCenter );
 			const boardSize = new Vector3;
 			boardBounds.getSize( boardSize );
-			const maxDim = Math.max( boardSize.x, boardSize.y, boardSize.z );
-			const fov = camera.fov * ( Math.PI / 180 );
-			const cameraZ = Math.abs( maxDim * .2 * Math.tan( fov * 2 ) );
-			camera.position.set( boardCenter.x, boardCenter.y, cameraZ );
-			const cameraToFarEdge = ( boardBounds.min.z < 0 ) ? -boardBounds.min.z + cameraZ : cameraZ - boardBounds.min.z;
-			camera.near = 1;
-			camera.far = cameraToFarEdge * 2;
-			camera.lookAt( boardCenter );
-			camera.updateMatrixWorld( false );
+
+			camera.position.x = boardCenter.x;
+			camera.position.y = boardCenter.y;
+			camera.position.z = 10;
+			camera.left = boardSize.x * -.5;
+			camera.right = boardSize.x * .5;
+			camera.top = boardSize.y * .5;
+			camera.bottom = boardSize.y * -.5;
 			camera.updateProjectionMatrix();
+			// const maxDim = Math.max( boardSize.x, boardSize.y, boardSize.z );
+			// const fov = camera.fov * ( Math.PI / 180 );
+			// const cameraZ = Math.abs( maxDim * .2 * Math.tan( fov * 2 ) );
+			// camera.position.set( boardCenter.x, boardCenter.y, cameraZ );
+			// const cameraToFarEdge = ( boardBounds.min.z < 0 ) ? -boardBounds.min.z + cameraZ : cameraZ - boardBounds.min.z;
+			// camera.near = 1;
+			// camera.far = cameraToFarEdge * 2;
+			// camera.lookAt( boardCenter );
+			// camera.updateMatrixWorld( false );
+			// camera.updateProjectionMatrix();
 
 			let lightIndex = 0;
 			for( const light of boardSettings.lights ) {
@@ -268,7 +272,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				object.getWorldPosition( worldPosition );
 				const worldDirection = new Vector3;
 				object.getWorldDirection( worldDirection );
-				let nameParts = [] as string[];
+				const nameParts = [] as string[];
 				for( let n = object; !!n; n = n.parent ) {
 					nameParts.unshift( n.name || 'anonymous' );
 				}
@@ -293,8 +297,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		const canvas = this.canvasElementRef.nativeElement;
 		const renderer = new WebGLRenderer( {
 			antialias: true,
-			canvas,
-			stencil: true
+			canvas
 		} );
 		renderer.gammaInput = true;
 		renderer.gammaOutput = true;

@@ -1,13 +1,12 @@
 lights:
 - ambient:
     color: [ 0, 100, 100 ]
-    intensity: .1
+    intensity: 0.01
 - spotlight:
     color: [ 0, 100, 100 ]
-    position: [ -2, 2, 7 ]
-    decay: 1
+    position: [ -2, 2, 10 ]
+    decay: 0.25
     intensity: 1
     penumbra: 0.2
-    distance: 25
+    distance: 20
     angle: 1.4
-  
