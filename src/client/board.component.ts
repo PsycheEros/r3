@@ -5,7 +5,7 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera } from 'three';
+import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera, MeshBasicMaterial } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -152,6 +152,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			if( !gameState ) return scene;
 			const assets = await assetsPromise;
 			const boardProto = assets.get( 'Board' ) as Mesh;
+
+			const boardMaterial = boardProto.material as MeshStandardMaterial;
+			boardMaterial.roughness = 0.5;
+			boardMaterial.metalness = 0.3;
+
 			const pieceProto = assets.get( 'Piece' );
 			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
 				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
