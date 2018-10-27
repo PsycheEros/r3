@@ -4,9 +4,10 @@ lights:
     intensity: 0.01
 - spotlight:
     color: [ 0, 100, 100 ]
-    position: [ -2, 2, 10 ]
-    decay: 0.25
-    intensity: 1
-    penumbra: 0.2
-    distance: 20
-    angle: 1.4
+    position: [ -2, 2, 15 ]
+    target: [ 2, -2, 0 ]
+    decay: 1
+    intensity: 1.25
+    penumbra: .25
+    distance: 50
+    angle: 60

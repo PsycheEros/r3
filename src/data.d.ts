@@ -30,6 +30,7 @@ type Light = {
 		color: NumberTriple;
 		intensity: number;
 		position: NumberTriple;
+		target: NumberTriple;
 		decay: number;
 		penumbra: number;
 		distance: number;
