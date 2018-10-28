@@ -50,7 +50,7 @@ interval( checkSeconds * 1000 )
 			collections.expirations.updateMany(
 				{ _id },
 				{ $setOnInsert: { _id, expires } },
-				{ upsert: true }
+				{ upsert: true, arrayFilters: undefined }
 			)
 		) );
 	} )
