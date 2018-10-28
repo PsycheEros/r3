@@ -5,7 +5,7 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera, MeshBasicMaterial, CameraHelper, SpotLightHelper, TextGeometry, FontLoader, Font } from 'three';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, BoxHelper } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -58,8 +58,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		const assetsPromise = loadResources( require( 'data/board.glb' ) );
 		const font = loadFont( require( 'data/font.json' ) );
 
-		const textMaterial = new MeshBasicMaterial( {
-			color: ( new Color ).setHSL( 3/18, 1, .5 )
+		const textMaterial = new MeshStandardMaterial( {
+			color: ( new Color ).setHSL( 3/18, 1, .5 ),
+			metalness: 1,
+			roughness: .5
 		} );
 		const orthoCamera = new OrthographicCamera( 0, 0, 0, 0, 0, 50 );
 		orthoCamera.name = 'camera';
@@ -206,7 +208,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					pieceMesh.visible = false;
 				} else {
 					pieceMesh.visible = true;
-					pieceMesh.rotateZ( Math.PI * square.color );
+					pieceMesh.rotateZ( Math.PI * ( square.color - 1 ) );
 				}
 				const boardMesh = boardProto.clone();
 				boardMesh.name = `board_${x}_${y}`;
@@ -220,7 +222,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					font,
 					size: 1,
 					height: .2,
-					curveSegments: 12
+					curveSegments: 12,
+					bevelEnabled: true,
+					bevelSegments: 2,
+					bevelSize: 0.1,
+					bevelThickness: 0.1
 				} );
 				const textMesh = new Mesh( textGeometry, textMaterial );
 				textMesh.name = `label_${symbol}`;
@@ -228,18 +234,22 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMesh.receiveShadow = true;
 				textMesh.castShadow = true;
 				boardRoot.add( textMesh );
-				textMesh.position.set( x, -1, .2 );
 				textMesh.updateMatrixWorld( false );
 				const textBounds = new Box3;
 				textBounds.setFromObject( textMesh );
 				const textSize = new Vector3;
 				textBounds.getSize( textSize );
-				textMesh.position.sub( textSize.clone().multiplyScalar( .5 ) );
+				textMesh.position.copy(
+					new Vector3(
+						x - textSize.x * .5,
+						textSize.y * -.5 - 1,
+						.1
+					)
+				);
 				const textMeshDown = textMesh.clone();
-				textMeshDown.rotateX( Math.PI );
-				textMeshDown.rotateY( Math.PI );
+				textMeshDown.rotateOnAxis( new Vector3( 1, 0, 0 ), Math.PI );
 				textMeshDown.name += '_down';
-				textMeshDown.position.add( new Vector3( .25, gameState.size.height + 1.5, 0 ) );
+				textMeshDown.position.add( new Vector3( 0, gameState.size.height + 1.5, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
 
@@ -249,7 +259,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					font,
 					size: 1,
 					height: .2,
-					curveSegments: 12
+					curveSegments: 12,
+					bevelEnabled: true,
+					bevelSegments: 2,
+					bevelSize: 0.1,
+					bevelThickness: 0.1
 				} );
 				const textMesh = new Mesh( textGeometry, textMaterial );
 				textMesh.name = `label_${symbol}`;
@@ -257,18 +271,22 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMesh.receiveShadow = true;
 				textMesh.castShadow = true;
 				boardRoot.add( textMesh );
-				textMesh.position.set( -1, y, .2 );
 				textMesh.updateMatrixWorld( false );
 				const textBounds = new Box3;
 				textBounds.setFromObject( textMesh );
 				const textSize = new Vector3;
 				textBounds.getSize( textSize );
-				textMesh.position.sub( textSize.clone().multiplyScalar( .5 ) );
+				textMesh.position.copy(
+					new Vector3(
+						textSize.x * -.5 - 1,
+						y - textSize.y * .5,
+						.1
+					)
+				);
 				const textMeshDown = textMesh.clone();
-				textMeshDown.rotateX( Math.PI );
-				textMeshDown.rotateY( Math.PI );
+				textMeshDown.rotateOnAxis( new Vector3( 0, 0, 1 ), Math.PI );
 				textMeshDown.name += '_down';
-				textMeshDown.position.add( new Vector3( gameState.size.width + 1.25, .5, 0 ) );
+				textMeshDown.position.add( new Vector3( gameState.size.width + 1.4, textSize.y, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
 
@@ -342,34 +360,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				}
 			}
 
-			function debugObject( object: Object3D ) {
-				function flatten( { x, y, z }: Vector3 ) {
-					return [ x, y, z ]
-						.map( i => i.toPrecision( 2 ) )
-						.join( ', ' );
-				}
-				const bounds = new Box3;
-				bounds.setFromObject( object );
-				const center = new Vector3;
-				bounds.getCenter( center );
-				const size = new Vector3;
-				bounds.getSize( size );
-				const worldPosition = new Vector3;
-				object.getWorldPosition( worldPosition );
-				const worldDirection = new Vector3;
-				object.getWorldDirection( worldDirection );
-				const nameParts = [] as string[];
-				for( let n = object; !!n; n = n.parent ) {
-					nameParts.unshift( n.name || 'anonymous' );
-				}
-				return {
-					name: nameParts.join( '.' ),
-					position: flatten( object.position ),
-					worldPosition: flatten( worldPosition ),
-					center: flatten( center ),
-					size: flatten( size )
-				};
-			}
 
 			// const objects = [ camera ] as Object3D[];
 			// scene.traverse( node => { objects.push( node ); } );
@@ -382,7 +372,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public ngAfterViewInit() {
 		const canvas = this.canvasElementRef.nativeElement;
 		const renderer = new WebGLRenderer( {
-			antialias: true,
 			canvas
 		} );
 		renderer.gammaInput = true;
@@ -390,7 +379,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = PCFSoftShadowMap;
 		this.renderer.next( renderer );
-}
+	}
 
 	public ngOnChanges() {
 		this.gameState.next( this.gameStateValue );

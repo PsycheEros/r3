@@ -125,7 +125,8 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		new webpack.ProvidePlugin(  {
 			jQuery: 'jquery',
 			$: 'jquery',
-			Popper: [ 'popper.js', 'default' ]
+			Popper: [ 'popper.js', 'default' ],
+			THREE: 'three'
 		} ),
 		new HtmlWebpackPlugin( {
 			inject: 'body',
