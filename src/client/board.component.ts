@@ -5,7 +5,7 @@ import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera, MeshBasicMaterial, CameraHelper, SpotLightHelper } from 'three';
+import { Scene, WebGLRenderer, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Layers, Object3D, PerspectiveCamera, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, PCFShadowMap, Mesh, MeshStandardMaterial, OrthographicCamera, MeshBasicMaterial, CameraHelper, SpotLightHelper, TextGeometry, FontLoader, Font } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -31,8 +31,13 @@ function loadResources( src: string ) {
 			},
 			() => {},
 			err => { reject( new Error( err ) ); }
-		)
+		);
 	} );
+}
+
+function loadFont( src: object ) {
+	const loader = new FontLoader;
+	return loader.parse( src );
 }
 
 function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
@@ -51,6 +56,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 	public ngOnInit() {
 		const assetsPromise = loadResources( require( 'data/board.glb' ) );
+		const font = loadFont( require( 'data/font.json' ) );
+
+		const textMaterial = new MeshBasicMaterial( {
+			color: ( new Color ).setHSL( 3/18, 1, .5 )
+		} );
 		const orthoCamera = new OrthographicCamera( 0, 0, 0, 0, 0, 50 );
 		orthoCamera.name = 'camera';
 
@@ -132,25 +142,37 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			scene.name = 'scene';
 			if( !gameState ) return scene;
 			const assets = await assetsPromise;
+			const borderProto = assets.get( 'Border' ) as Mesh;
+			borderProto.traverse( ( o: Mesh ) => {
+				o.castShadow = true;
+				o.receiveShadow = true;
+				const borderMaterial = o.material as MeshStandardMaterial;
+				if( borderMaterial ) {
+					borderMaterial.roughness = 0.7;
+					borderMaterial.metalness = 0.4;
+				}
+			} );
+
 			const boardProto = assets.get( 'Board' ) as Mesh;
 			boardProto.traverse( ( o: Mesh ) => {
 				o.castShadow = true;
 				o.receiveShadow = true;
-				const pieceMaterial = o.material as MeshStandardMaterial;
-				if( pieceMaterial ) {
-					pieceMaterial.roughness = 0.5;
-					pieceMaterial.metalness = 0.3;
+				const boardMaterial = o.material as MeshStandardMaterial;
+				if( boardMaterial ) {
+					boardMaterial.roughness = 0.6;
+					boardMaterial.metalness = 0.3;
 				}
 			} );
 
-			const boardMaterial = boardProto.material as MeshStandardMaterial;
-			boardMaterial.roughness = 0.5;
-			boardMaterial.metalness = 0.3;
-
 			const pieceProto = assets.get( 'Piece' );
-			pieceProto.traverse( o => {
+			pieceProto.traverse( ( o: Mesh ) => {
 				o.castShadow = true;
 				o.receiveShadow = true;
+				const pieceMaterial = o.material as MeshStandardMaterial;
+				if( pieceMaterial ) {
+					pieceMaterial.roughness = 0.7;
+					pieceMaterial.metalness = 0.4;
+				}
 			} );
 			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
 				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
@@ -160,6 +182,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			boardRoot.name = 'board_root';
 			scene.add( boardRoot );
 			const board = Board.fromGameState( gameState );
+
+			const border = borderProto.clone();
+			border.name = 'border';
+			boardRoot.add( border );
+			border.scale.setX( gameState.size.width + 2 );
+			border.scale.setZ( gameState.size.height + 2 );
+			border.position.setX( ( gameState.size.width - 1 ) * .5 );
+			border.position.setY( ( gameState.size.height - 1 ) * .5 );
 
 			for( let y = 0; y < gameState.size.height; ++y )
 			for( let x = 0; x < gameState.size.width; ++x ) {
@@ -184,6 +214,64 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				squareObject.add( boardMesh );
 			}
 
+			for( let x = 0; x < gameState.size.width; ++x ) {
+				const symbol = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt( x );
+				const textGeometry = new TextGeometry( symbol, {
+					font,
+					size: 1,
+					height: .2,
+					curveSegments: 12
+				} );
+				const textMesh = new Mesh( textGeometry, textMaterial );
+				textMesh.name = `label_${symbol}`;
+				textMesh.scale.setScalar( 0.5 );
+				textMesh.receiveShadow = true;
+				textMesh.castShadow = true;
+				boardRoot.add( textMesh );
+				textMesh.position.set( x, -1, .2 );
+				textMesh.updateMatrixWorld( false );
+				const textBounds = new Box3;
+				textBounds.setFromObject( textMesh );
+				const textSize = new Vector3;
+				textBounds.getSize( textSize );
+				textMesh.position.sub( textSize.clone().multiplyScalar( .5 ) );
+				const textMeshDown = textMesh.clone();
+				textMeshDown.rotateX( Math.PI );
+				textMeshDown.rotateY( Math.PI );
+				textMeshDown.name += '_down';
+				textMeshDown.position.add( new Vector3( .25, gameState.size.height + 1.5, 0 ) );
+				boardRoot.add( textMeshDown );
+			}
+
+			for( let y = 0; y < gameState.size.height; ++y ) {
+				const symbol = '1234567890'.charAt( y );
+				const textGeometry = new TextGeometry( symbol, {
+					font,
+					size: 1,
+					height: .2,
+					curveSegments: 12
+				} );
+				const textMesh = new Mesh( textGeometry, textMaterial );
+				textMesh.name = `label_${symbol}`;
+				textMesh.scale.setScalar( 0.5 );
+				textMesh.receiveShadow = true;
+				textMesh.castShadow = true;
+				boardRoot.add( textMesh );
+				textMesh.position.set( -1, y, .2 );
+				textMesh.updateMatrixWorld( false );
+				const textBounds = new Box3;
+				textBounds.setFromObject( textMesh );
+				const textSize = new Vector3;
+				textBounds.getSize( textSize );
+				textMesh.position.sub( textSize.clone().multiplyScalar( .5 ) );
+				const textMeshDown = textMesh.clone();
+				textMeshDown.rotateX( Math.PI );
+				textMeshDown.rotateY( Math.PI );
+				textMeshDown.name += '_down';
+				textMeshDown.position.add( new Vector3( gameState.size.width + 1.25, .5, 0 ) );
+				boardRoot.add( textMeshDown );
+			}
+
 			const boardBounds = new Box3;
 			boardBounds.setFromObject( boardRoot );
 			const boardCenter = new Vector3;
@@ -201,7 +289,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			orthoCamera.lookAt( boardCenter );
 			orthoCamera.updateMatrixWorld( false );
 			orthoCamera.updateProjectionMatrix();
-
 
 			let lightIndex = 0;
 			for( const light of boardSettings.lights ) {
@@ -225,7 +312,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					pointLight.position.add( boardCenter );
 					pointLight.shadow.mapSize.width = 1024;
 					pointLight.shadow.mapSize.height = 1024;
-					pointLight.add( pointLight.shadow.camera );
+					pointLight.shadow.camera.position.copy( pointLight.position );
+					pointLight.shadow.camera.lookAt( boardCenter );
+					pointLight.shadow.camera.updateMatrixWorld( false );
+					pointLight.shadow.camera.updateProjectionMatrix();
 				}
 				if( 'spotlight' in light ) {
 					const spotLight = new SpotLight( hslToColor( light.spotlight.color ), light.spotlight.intensity, light.spotlight.distance, light.spotlight.angle / 180 * Math.PI );
