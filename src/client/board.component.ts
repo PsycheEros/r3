@@ -44,6 +44,12 @@ function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
 	return ( new Color ).setHSL( h / 360, s * .01, l * .01 );
 }
 
+function enableShadows( obj: Object3D, enable = true ) {
+	obj.traverse( o => {
+		o.castShadow = o.receiveShadow = enable;
+	} );
+}
+
 @Component( {
 	selector: 'board',
 	templateUrl: './board.component.html',
@@ -145,37 +151,12 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			if( !gameState ) return scene;
 			const assets = await assetsPromise;
 			const borderProto = assets.get( 'Border' ) as Mesh;
-			borderProto.traverse( ( o: Mesh ) => {
-				o.castShadow = true;
-				o.receiveShadow = true;
-				const borderMaterial = o.material as MeshStandardMaterial;
-				if( borderMaterial ) {
-					borderMaterial.roughness = 0.7;
-					borderMaterial.metalness = 0.4;
-				}
-			} );
-
+			enableShadows( borderProto );
 			const boardProto = assets.get( 'Board' ) as Mesh;
-			boardProto.traverse( ( o: Mesh ) => {
-				o.castShadow = true;
-				o.receiveShadow = true;
-				const boardMaterial = o.material as MeshStandardMaterial;
-				if( boardMaterial ) {
-					boardMaterial.roughness = 0.6;
-					boardMaterial.metalness = 0.3;
-				}
-			} );
-
+			enableShadows( boardProto );
 			const pieceProto = assets.get( 'Piece' );
-			pieceProto.traverse( ( o: Mesh ) => {
-				o.castShadow = true;
-				o.receiveShadow = true;
-				const pieceMaterial = o.material as MeshStandardMaterial;
-				if( pieceMaterial ) {
-					pieceMaterial.roughness = 0.7;
-					pieceMaterial.metalness = 0.4;
-				}
-			} );
+			enableShadows( pieceProto );
+
 			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
 				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
 			}
@@ -231,8 +212,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				const textMesh = new Mesh( textGeometry, textMaterial );
 				textMesh.name = `label_${symbol}`;
 				textMesh.scale.setScalar( 0.5 );
-				textMesh.receiveShadow = true;
-				textMesh.castShadow = true;
+				enableShadows( textMesh );
 				boardRoot.add( textMesh );
 				textMesh.updateMatrixWorld( false );
 				const textBounds = new Box3;
@@ -243,13 +223,13 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					new Vector3(
 						x - textSize.x * .5,
 						textSize.y * -.5 - 1,
-						.1
+						0
 					)
 				);
 				const textMeshDown = textMesh.clone();
-				textMeshDown.rotateOnAxis( new Vector3( 1, 0, 0 ), Math.PI );
+				textMeshDown.rotateOnAxis( new Vector3( 0, 0, 1 ), Math.PI );
 				textMeshDown.name += '_down';
-				textMeshDown.position.add( new Vector3( 0, gameState.size.height + 1.5, 0 ) );
+				textMeshDown.position.add( new Vector3( .5, gameState.size.height + 1.5, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
 
@@ -268,8 +248,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				const textMesh = new Mesh( textGeometry, textMaterial );
 				textMesh.name = `label_${symbol}`;
 				textMesh.scale.setScalar( 0.5 );
-				textMesh.receiveShadow = true;
-				textMesh.castShadow = true;
+				enableShadows( textMesh );
 				boardRoot.add( textMesh );
 				textMesh.updateMatrixWorld( false );
 				const textBounds = new Box3;
@@ -279,8 +258,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMesh.position.copy(
 					new Vector3(
 						textSize.x * -.5 - 1,
-						y - textSize.y * .5,
-						.1
+						textSize.y * -.5 + gameState.size.height - y - 1,
+						0
 					)
 				);
 				const textMeshDown = textMesh.clone();
