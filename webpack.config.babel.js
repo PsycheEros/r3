@@ -139,7 +139,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		} ),
 		new PreloadWebpackPlugin( {
 			include: 'allAssets',
-			rel: 'preload',
+			rel: 'prefetch',
 			as( source ) {
 				if( /\.(?:mp3|opus|wav)$/i.test( source ) ) return 'audio';
 				if( /\.(?:glb|gltf)$/i.test( source ) ) return 'fetch';
