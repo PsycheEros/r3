@@ -74,6 +74,8 @@ clientRoomSession$.pipe(
 			const sessionId = uuid( socket.id );
 			const sessionIdStr = socket.id;
 
+			io.to( sessionIdStr ).send( { type: 'build', data: BUILD_ID } );
+
 			{
 				const roomIds = await collections.roomSessions.find( { sessionId } ).project( { _id: 0, roomId: 1 } ).map( r => r.roomId ).toArray();
 				for( const roomId of roomIds ) {

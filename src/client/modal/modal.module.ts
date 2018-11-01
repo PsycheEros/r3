@@ -8,8 +8,7 @@ import { ModalHeaderComponent } from './header.component';
 import { ModalNewGameComponent } from './new-game.component';
 import { ModalJoinRoomComponent } from './join-room.component';
 import { ModalSignInComponent } from './sign-in.component';
-import { ModalModule as NgxModalModule } from 'ngx-bootstrap';
-import { ComponentLoaderFactory } from 'ngx-bootstrap/component-loader';
+import { ComponentLoaderFactory, ModalModule as NgxModalModule } from 'ngx-bootstrap';
 import { ValidatorModule } from 'client/validator/validator.module';
 
 @NgModule( {

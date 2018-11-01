@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import nodeExternals from 'webpack-node-externals';
@@ -11,7 +12,9 @@ import SriPlugin from 'webpack-subresource-integrity';
 import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import CleanObsoleteChunksPlugin from 'webpack-clean-obsolete-chunks';
+import PreloadWebpackPlugin from 'preload-webpack-plugin';
 import yargs from 'yargs';
+import uuid from 'uuid/v4';
 
 import yaml from 'js-yaml';
 
@@ -87,7 +90,8 @@ const angularPattern = /\.(?:ng)?(?:component|directive|factory|pipe|module|serv
 
 const env = {
 	'process.env.DEBUG': JSON.stringify( devMode ),
-	'process.env.NODE_ENV': JSON.stringify( mode )
+	'process.env.NODE_ENV': JSON.stringify( mode ),
+	BUILD_ID: JSON.stringify( crypto.createHash('md5').update(uuid()).digest('base64').replace( /=+$/, '' ) )
 };
 
 /** @type {webpack.Configuration} */
@@ -133,6 +137,19 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			inlineSource: /^runtime~/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
 			templateParameters: config.templateParameters
+		} ),
+		new PreloadWebpackPlugin( {
+			include: 'allAssets',
+			rel: 'preload',
+			as( source ) {
+				if( /\.(?:mp3|opus|wav)$/i.test( source ) ) return 'audio';
+				if( /\.(?:glb|gltf)$/i.test( source ) ) return 'fetch';
+				if( /\.(?:eof|otf|ttf|woff\d*)$/i.test( source ) ) return 'font';
+				if( /\.(?:gif|jpe?g|png)$/i.test( source ) ) return 'image';
+				if( /\.(?:js)$/i.test( source ) ) return 'script';
+				if( /\.(?:css)$/i.test( source ) ) return 'style';
+				return null;
+			}
 		} ),
 		new ScriptExtHtmlWebpackPlugin( {
 			defaultAttribute: 'async'

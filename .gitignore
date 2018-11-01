@@ -6,6 +6,7 @@
 *.orig
 *.log
 !.circleci
+!.*.yaml
 node_modules/
 dist/
 stats/

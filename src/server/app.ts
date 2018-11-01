@@ -13,7 +13,21 @@ if( process.env.PORT ) appSettings[ 'port' ] = parseInt( process.env.PORT, 10 );
 for( const [ key, value ] of Object.entries( appSettings ) ) {
 	app.set( key, value );
 }
-app.use( compression(), express.static( path.join( __dirname, 'www' ) ) );
+
+app.use(
+	( req, res, next ) => {
+		if( /[-._\/][0-9a-f]{20,32}\./.test( req.url ) ) {
+			res.header( 'Cache-Control', 'public, only-if-cached, immutable' );
+		}
+		next();
+	}
+);
+
+app.use(
+	compression(),
+	express.static( path.join( __dirname, 'www' ) )
+);
+
 csp.extend( app, cspPolicy );
 
 app.post( '/debug/resetAll', async ( req, res, next ) => {

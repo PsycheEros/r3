@@ -1,5 +1,5 @@
 import { Subject, SchedulerLike, combineLatest, BehaviorSubject } from 'rxjs';
-import { observeOn, map, shareReplay, takeUntil } from 'rxjs/operators';
+import { filter, observeOn, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
 import { Inject, Injectable, OnDestroy } from '@angular/core';
 import { toArrayMap, toMap } from 'src/operators';
@@ -14,6 +14,15 @@ export class SessionService implements OnDestroy {
 		private readonly scheduler: SchedulerLike
 	) {
 		const { destroyed } = this;
+
+		socketService.getMessages<string>( 'build' )
+		.pipe(
+			filter( s => s !== BUILD_ID ),
+			takeUntil( destroyed )
+		)
+		.subscribe( () => {
+			location.reload();
+		} );
 
 		socketService.getMessages<ClientRoomSession[]>( 'roomSessions' )
 		.pipe(

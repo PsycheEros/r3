@@ -1,0 +1,4 @@
+hooks:
+  post-merge: yarnhook
+  post-checkout: yarnhook
+  post-rewrite: yarnhook
