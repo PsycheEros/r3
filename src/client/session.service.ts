@@ -21,7 +21,7 @@ export class SessionService implements OnDestroy {
 			takeUntil( destroyed )
 		)
 		.subscribe( () => {
-			location.reload();
+			location.reload( true );
 		} );
 
 		socketService.getMessages<ClientRoomSession[]>( 'roomSessions' )
