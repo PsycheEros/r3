@@ -8,7 +8,6 @@ import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
-import SriPlugin from 'webpack-subresource-integrity';
 import HtmlWebpackInlineSourcePlugin from 'html-webpack-inline-source-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import CleanObsoleteChunksPlugin from 'webpack-clean-obsolete-chunks';
@@ -161,10 +160,6 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			new BundleAnalyzerPlugin( {
 				analyzerMode: 'static',
 				reportFilename: path.resolve( __dirname, 'stats', 'client.html' )
-			} ),
-			new SriPlugin( {
-				hashFuncNames: [ 'sha256' ],
-				enabled: true
 			} )
 		] )
 	]
