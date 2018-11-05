@@ -13,7 +13,7 @@
     "url": "https://github.com/errorx666/r3/issues"
   },
   "engines": {
-    "node": "10.12.0",
+    "node": "11.1.0",
     "yarn": ">=1.9.4"
   },
   "devDependencies": {
