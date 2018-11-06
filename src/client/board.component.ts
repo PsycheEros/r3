@@ -47,7 +47,7 @@ function hslToColor( [ h, s, l ]: [ number, number, number ] ) {
 function enableShadows( obj: Object3D, enable = true ) {
 	obj.traverse( o => {
 		if( o instanceof Mesh ) o.castShadow = o.receiveShadow = enable;
-		else if( o instanceof Light ) o.castShadow = enable;
+		else if( ( o instanceof PointLight ) || ( o instanceof SpotLight ) ) o.castShadow = enable;
 	} );
 }
 
@@ -155,6 +155,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const assets = await assetsPromise;
 			const borderProto = assets.get( 'Border' ) as Mesh;
 			const boardProto = assets.get( 'Board' ) as Mesh;
+			const markerProto = assets.get( 'Marker' ) as Mesh;
 			const pieceProto = assets.get( 'Piece' );
 
 			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
@@ -173,6 +174,16 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			border.scale.setZ( gameState.size.height + 2 );
 			border.position.setX( ( gameState.size.width - 1 ) * .5 );
 			border.position.setY( ( gameState.size.height - 1 ) * .5 );
+
+			const marker = markerProto.clone();
+			marker.name = 'marker';
+			boardRoot.add( marker );
+			if( gameState.lastMove ) {
+				marker.visible = true;
+				marker.position.add( new Vector3( gameState.lastMove.x, gameState.lastMove.y, 0 ) );
+			} else {
+				marker.visible = false;
+			}
 
 			for( let y = 0; y < gameState.size.height; ++y )
 			for( let x = 0; x < gameState.size.width; ++x ) {
@@ -215,7 +226,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMesh.scale.setScalar( 0.5 );
 				boardRoot.add( textMesh );
 				textMesh.updateMatrixWorld( false );
-				const center = new Vector3( x, -1, 0 );				
+				const center = new Vector3( x, -1, 0 );
 				textMesh.position.copy( center );
 				const textMeshDown = textMesh.clone();
 				textMeshDown.rotateOnAxis( new Vector3( 0, 0, 1 ), Math.PI );
@@ -250,7 +261,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMeshDown.position.add( new Vector3( gameState.size.width + 1, 0, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
-	
+
 			const boardBounds = new Box3;
 			boardBounds.setFromObject( boardRoot );
 			const boardCenter = new Vector3;
