@@ -11,6 +11,7 @@ import { map, observeOn, takeUntil } from 'rxjs/operators';
 import { ModalNewGameComponent } from './modal/new-game.component';
 import { colors } from 'data/colors.yaml';
 import { SessionService } from 'client/session.service';
+import { Board } from 'src/board';
 
 const rules = rulesStandard;
 
@@ -92,23 +93,22 @@ export class GameComponent implements OnInit, OnDestroy {
 
 	private readonly destroyed = new Subject<true>();
 
-	public onMouseMove( { square }: BoardMouseEvent ) {
-		if( !square ) return;
+	public onMouseMove( { position }: BoardMouseEvent ) {
+		if( !position ) return;
 		const { canMove, gameState } = this;
 		document.documentElement.style.cursor =
 			( rules.isGameOver( gameState )
-		||	( canMove && rules.isValid( gameState, square.position, gameState.turn ) ) )
-		?   'pointer'
-			: null;
+			||	( canMove && rules.isValid( gameState, position, gameState.turn ) )
+			) ? 'pointer' : null;
 	}
 
-	public onClick( { square }: BoardMouseEvent ) {
-		if( !square ) return;
+	public onClick( { position }: BoardMouseEvent ) {
+		if( !position ) return;
 		const { canMove, roomId, gameState, gameService, newGameModal } = this;
 		if( rules.isGameOver( gameState ) ) {
 			newGameModal.show( roomId );
-		} else if( canMove && rules.isValid( gameState, square.position, gameState.turn ) ) {
-			gameService.makeMove( roomId, square.position );
+		} else if( canMove && rules.isValid( gameState, position, gameState.turn ) ) {
+			gameService.makeMove( roomId, position );
 		}
 	}
 }

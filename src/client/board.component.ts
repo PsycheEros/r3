@@ -1,11 +1,11 @@
 import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
-import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of } from 'rxjs';
-import { map, filter, switchMap, observeOn, mergeMap } from 'rxjs/operators';
+import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of, range } from 'rxjs';
+import { map, filter, switchMap, mergeMap, takeUntil, mapTo, reduce, scan, ignoreElements } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, PointsMaterial, Color, PCFSoftShadowMap, AmbientLight, Light, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, BoxHelper, Points, BufferGeometry, MeshBasicMaterial } from 'three';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, Material, MixOperation } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -16,23 +16,42 @@ interface GltfFile {
 	asset: object;
 }
 
+interface LoadedResources {
+	animations: Map<string, AnimationClip>;
+	objects: Map<string, Object3D>;
+}
+
 function loadResources( src: string ) {
-	return new Promise<Map<string, Object3D>>( ( resolve, reject ) => {
+	return new Promise<LoadedResources>( ( resolve, reject ) => {
 		const loader = new GLTFLoader;
 		loader.load( src,
-			( { scene }: GltfFile ) => {
-				const map = new Map<string, Object3D>();
-				for( const child of scene.children ) {
-					if( child && child.name ) {
-						map.set( child.name, child );
+			( file: GltfFile ) => {
+				const animations = new Map<string, AnimationClip>();
+				for( const animation of file.animations ) {
+					if( animation && animation.name ) {
+						animations.set( animation.name, animation );
 					}
 				}
-				resolve( map );
+				const objects = new Map<string, Object3D>();
+				for( const child of file.scene.children ) {
+					if( child && child.name ) {
+						objects.set( child.name, child );
+					}
+				}
+				resolve( { animations, objects } );
 			},
 			() => {},
 			err => { reject( new Error( err ) ); }
 		);
 	} );
+}
+
+function findObject<T extends Object3D>( root: Object3D, name: string ): T {
+	let retval: T;
+	root.traverse( o => {
+		if( o.name === name ) retval = o as T;
+	} );
+	return retval;
 }
 
 function loadFont( src: object ) {
@@ -60,10 +79,13 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	private readonly renderer = new Subject<Renderer>();
 	private readonly scene = new Subject<Scene>();
 	private readonly gameState = new ReplaySubject<ClientGameState>( 1 );
+	private readonly destroyed = new Subject<true>();
 
 	public ngOnInit() {
 		const assetsPromise = loadResources( require( 'data/board.glb' ) );
 		const font = loadFont( require( 'data/font.json' ) );
+
+		const clock = new Clock;
 
 		const textMaterial = new MeshStandardMaterial( {
 			color: ( new Color ).setHSL( 3/18, 1, .5 ),
@@ -74,12 +96,28 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		const orthoCamera = new OrthographicCamera( 0, 0, 0, 0, 0, 50 );
 		orthoCamera.name = 'camera';
 
+		const actions = [] as AnimationAction[];
+
 		combineLatest( this.renderer, this.scene )
 		.pipe(
 			filter( e => e.every( e => !!e ) ),
-			observeOn( animationFrameScheduler )
+			switchMap( ( [ renderer, scene ] ) =>
+				range( 0, Infinity, animationFrameScheduler )
+				.pipe( mapTo( { renderer, scene } ) )
+			),
+			takeUntil( this.destroyed )
 		)
-		.subscribe( ( [ renderer, scene ] ) => {
+		.subscribe( ( { renderer, scene } ) => {
+			const delta = clock.getDelta();
+			const mixers =
+				new Set(
+					actions
+					.filter( a => a.isRunning() )
+					.map( a => a.getMixer() )
+				);
+			for( const mixer of mixers ) {
+				mixer.update( delta );
+			}
 			renderer.render( scene, orthoCamera );
 		} );
 
@@ -118,16 +156,16 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						const point = { x: ( x / bounds.width * 2 - 1 ), y: ( y / bounds.height ) * -2 + 1 };
 						const raycaster = new Raycaster;
 						raycaster.setFromCamera( point, orthoCamera );
-						const [ square = null ] =
+						const [ position = null ] =
 							raycaster
 							.intersectObjects( scene.children, true )
-							.map( i => i.object.userData.square as Square )
+							.map( i => i.object.userData.position as Point )
 							.filter( e => !!e );
 
 						return {
 							type,
 							point,
-							square
+							position
 						};
 					} )
 				);
@@ -136,79 +174,57 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 		mouseEvents
 		.pipe( filter( e => e.type === 'mousemove' ) )
-		.subscribe( ( { square } ) => {
-			this.mousemove.emit( { square } );
+		.subscribe( ( { position } ) => {
+			this.mousemove.emit( { position } );
 		} );
 
 		mouseEvents
 		.pipe( filter( e => [ 'touchend', 'click' ].includes( e.type ) ) )
-		.subscribe( ( { square } ) => {
-			this.click.emit( { square } );
+		.subscribe( ( { position } ) => {
+			this.click.emit( { position } );
 		} );
 
-		this.gameState
-		.pipe( switchMap( async ( gameState ) => {
+		function getScene( { height, width }: Size, { objects }: LoadedResources ) {
 			const scene = new Scene;
 			scene.name = 'scene';
-			if( !gameState ) return scene;
 
-			const assets = await assetsPromise;
-			const borderProto = assets.get( 'Border' ) as Mesh;
-			const boardProto = assets.get( 'Board' ) as Mesh;
-			const markerProto = assets.get( 'Marker' ) as Mesh;
-			const pieceProto = assets.get( 'Piece' );
-
-			for( const [ colorIndex, colorKey ] of Object.entries( this.colors ) ) {
-				( pieceProto.children[ colorIndex ] as any ).material.color = hslToColor( colors[ colorKey ].color );
-			}
+			const borderProto = objects.get( 'Border' ) as Mesh;
+			const boardProto = objects.get( 'Board' ) as Mesh;
+			const markerProto = objects.get( 'Marker' ) as Mesh;
+			const pieceProto = objects.get( 'Piece' );
 
 			const boardRoot = new Object3D;
 			boardRoot.name = 'board_root';
 			scene.add( boardRoot );
-			const board = Board.fromGameState( gameState );
-
 			const border = borderProto.clone();
 			border.name = 'border';
 			boardRoot.add( border );
-			border.scale.setX( gameState.size.width + 2 );
-			border.scale.setZ( gameState.size.height + 2 );
-			border.position.setX( ( gameState.size.width - 1 ) * .5 );
-			border.position.setY( ( gameState.size.height - 1 ) * .5 );
+			border.scale.setX( width + 2 );
+			border.scale.setZ( height + 2 );
+			border.position.setX( ( width - 1 ) * .5 );
+			border.position.setY( ( height - 1 ) * .5 );
 
 			const marker = markerProto.clone();
 			marker.name = 'marker';
 			boardRoot.add( marker );
-			if( gameState.lastMove ) {
-				marker.visible = true;
-				marker.position.add( new Vector3( gameState.lastMove.x, gameState.lastMove.y, 0 ) );
-			} else {
-				marker.visible = false;
+
+			for( let y = 0; y < height; ++y )
+			for( let x = 0; x < width; ++x ) {
+				const square = new Object3D;
+				square.name = `square_${x}_${y}`;
+				boardRoot.add( square );
+				square.position.set( x, y, 0 );
+				const piece = pieceProto.clone();
+				piece.rotateX( Math.PI );
+				piece.name = `piece_${x}_${y}`;
+				square.add( piece );
+				const board = boardProto.clone();
+				board.name = `board_${x}_${y}`;
+				board.userData.position = { x, y };
+				square.add( board );
 			}
 
-			for( let y = 0; y < gameState.size.height; ++y )
-			for( let x = 0; x < gameState.size.width; ++x ) {
-				const square = board.get( { x, y } );
-				if( !square.enabled ) continue;
-				const squareObject = new Object3D;
-				squareObject.name = `square_${x}_${y}`;
-				boardRoot.add( squareObject );
-				squareObject.position.set( x, y, 0 );
-				const pieceMesh = pieceProto.clone();
-				pieceMesh.name = `piece_${x}_${y}`;
-				squareObject.add( pieceMesh );
-				if( square.color == null ) {
-					pieceMesh.visible = false;
-				} else {
-					pieceMesh.visible = true;
-					pieceMesh.rotateZ( Math.PI * ( square.color - 1 ) );
-				}
-				const boardMesh = boardProto.clone();
-				boardMesh.name = `board_${x}_${y}`;
-				boardMesh.userData.square = square;
-				squareObject.add( boardMesh );
-			}
-
-		for( let x = 0; x < gameState.size.width; ++x ) {
+		for( let x = 0; x < width; ++x ) {
 				const symbol = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.charAt( x );
 				const textGeometry = new TextGeometry( symbol, {
 					font,
@@ -231,11 +247,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				const textMeshDown = textMesh.clone();
 				textMeshDown.rotateOnAxis( new Vector3( 0, 0, 1 ), Math.PI );
 				textMeshDown.name += '_down';
-				textMeshDown.position.add( new Vector3( 0, gameState.size.height + 1, 0 ) );
+				textMeshDown.position.add( new Vector3( 0, height + 1, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
 
-			for( let y = 0; y < gameState.size.height; ++y ) {
+			for( let y = 0; y < height; ++y ) {
 				const symbol = '1234567890'.charAt( y );
 				const textGeometry = new TextGeometry( symbol, {
 					font,
@@ -253,12 +269,12 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				textMesh.scale.setScalar( 0.5 );
 				boardRoot.add( textMesh );
 				textMesh.updateMatrixWorld( false );
-				const center = new Vector3( -1, gameState.size.height - y - 1, 0 );
+				const center = new Vector3( -1, height - y - 1, 0 );
 				textMesh.position.copy( center );
 				const textMeshDown = textMesh.clone();
 				textMeshDown.rotateOnAxis( new Vector3( 0, 0, 1 ), Math.PI );
 				textMeshDown.name += '_down';
-				textMeshDown.position.add( new Vector3( gameState.size.width + 1, 0, 0 ) );
+				textMeshDown.position.add( new Vector3( width + 1, 0, 0 ) );
 				boardRoot.add( textMeshDown );
 			}
 
@@ -332,14 +348,76 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				}
 			}
 
-
-			// const objects = [ camera ] as Object3D[];
-			// scene.traverse( node => { objects.push( node ); } );
-			// console.table( objects.map( debugObject ) );
-
 			enableShadows( scene );
 			return scene;
-		} ) )
+		}
+
+		function setColor( mesh: Mesh, color: Color ) {
+			const material = ( mesh.material as MeshStandardMaterial ).clone();
+			material.color = color;
+			mesh.material = material;
+		}
+
+		this.gameState
+		.pipe(
+			switchMap( async ( gameState ) => ( { gameState, assets: await assetsPromise } ) ),
+			scan<{ gameState: ClientGameState, assets: LoadedResources }, { board: Board, scene: Scene }>(
+				( { board: oldBoard, scene }, { gameState, assets } ) => {
+					const board = Board.fromGameState( gameState );
+					if( !scene || !oldBoard || board.width !== oldBoard.width || board.height !== oldBoard.height ) {
+						oldBoard = null;
+						scene = getScene( gameState.size, assets );
+					}
+					const { lastMove, size: { width, height } } = gameState;
+					const { animations } = assets;
+					const flipClip = animations.get( 'Flip' );
+
+
+					const marker = findObject( scene, 'marker' );
+					if( lastMove ) {
+						marker.visible = true;
+						marker.position.add( new Vector3( lastMove.x, lastMove.y, 0 ) );
+					} else {
+						marker.visible = false;
+					}
+
+					for( const action of actions ) {
+						action.stop();
+					}
+					actions.splice( 0, actions.length );
+
+					for( let y = 0; y < height; ++y )
+					for( let x = 0; x < width; ++x ) {
+						const square = board.get( { x, y } );
+						const oldSquare = oldBoard && oldBoard.get( { x, y } );
+
+						const squareObj = findObject( scene, `square_${x}_${y}` );
+						squareObj.visible = square.enabled;
+						const pieceObj = findObject( scene, `piece_${x}_${y}` );
+
+						if( square.color == null ) {
+							pieceObj.visible = false;
+						} else {
+							pieceObj.visible = true;
+							const [ top, bottom ] = pieceObj.children as Mesh[];
+							setColor( top, hslToColor( colors[ this.colors[ square.color ] ].color ) );
+
+							if( oldSquare && ( oldSquare.color != null ) && ( oldSquare.color !== square.color ) ) {
+								setColor( bottom, hslToColor( colors[ this.colors[ oldSquare.color ] ].color ) );
+								const mixer = new AnimationMixer( pieceObj );
+								const action = mixer.clipAction( flipClip );
+								action.repetitions = 1;
+								action.play();
+								actions.push( action );
+							}
+						}
+					}
+
+					return { board, scene };
+				}, { board: null, scene: null }
+			),
+			map( ( { scene } ) => scene )
+		)
 		.subscribe( this.scene );
 	}
 
@@ -363,6 +441,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		this.renderer.complete();
 		this.scene.complete();
 		this.gameState.complete();
+		this.destroyed.next( true );
+		this.destroyed.complete();
 	}
 
 	@ViewChild( 'canvasElement' )
