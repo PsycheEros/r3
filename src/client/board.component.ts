@@ -204,7 +204,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			border.position.setX( ( width - 1 ) * .5 );
 			border.position.setY( ( height - 1 ) * .5 );
 
-			const marker = markerProto.clone();
+			const marker = new Object3D;
+			marker.add( markerProto.clone() );
 			marker.name = 'marker';
 			boardRoot.add( marker );
 
@@ -372,11 +373,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					const { animations } = assets;
 					const flipClip = animations.get( 'Flip' );
 
-
 					const marker = findObject( scene, 'marker' );
 					if( lastMove ) {
 						marker.visible = true;
-						marker.position.add( new Vector3( lastMove.x, lastMove.y, 0 ) );
+						marker.position.set( lastMove.x, lastMove.y, 0 );
 					} else {
 						marker.visible = false;
 					}
