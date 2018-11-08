@@ -1,11 +1,11 @@
 import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
 import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of, range } from 'rxjs';
-import { map, filter, switchMap, mergeMap, takeUntil, mapTo, reduce, scan, ignoreElements } from 'rxjs/operators';
+import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhen } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, Material, MixOperation } from 'three';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -84,6 +84,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public ngOnInit() {
 		const assetsPromise = loadResources( require( 'data/board.glb' ) );
 		const font = loadFont( require( 'data/font.json' ) );
+		let dirty = true;
 
 		const clock = new Clock;
 
@@ -102,10 +103,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		.pipe(
 			filter( e => e.every( e => !!e ) ),
 			switchMap( ( [ renderer, scene ] ) =>
-				range( 0, Infinity, animationFrameScheduler )
-				.pipe( mapTo( { renderer, scene } ) )
+				of( { renderer, scene } )
+				.pipe( repeatWhen( () => range( 0, Infinity, animationFrameScheduler ) ) )
 			),
-			takeUntil( this.destroyed )
+			takeUntil( this.destroyed ),
+			observeOn( animationFrameScheduler )
 		)
 		.subscribe( ( { renderer, scene } ) => {
 			const delta = clock.getDelta();
@@ -117,8 +119,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				);
 			for( const mixer of mixers ) {
 				mixer.update( delta );
+				dirty = true;
+			}
+			if( !dirty ) {
+				actions.splice( 0, actions.length );
+				return;
 			}
 			renderer.render( scene, orthoCamera );
+			dirty = false;
 		} );
 
 		const mouseEvents =
@@ -184,7 +192,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			this.click.emit( { position } );
 		} );
 
-		function getScene( { height, width }: Size, { objects }: LoadedResources ) {
+		function getScene( { height, width }: Size, { animations, objects }: LoadedResources ) {
 			const scene = new Scene;
 			scene.name = 'scene';
 
@@ -192,6 +200,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const boardProto = objects.get( 'Board' ) as Mesh;
 			const markerProto = objects.get( 'Marker' ) as Mesh;
 			const pieceProto = objects.get( 'Piece' );
+			const flipClip = animations.get( 'Flip' );
 
 			const boardRoot = new Object3D;
 			boardRoot.name = 'board_root';
@@ -216,6 +225,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				boardRoot.add( square );
 				square.position.set( x, y, 0 );
 				const piece = pieceProto.clone();
+				piece.userData.flipAction = new AnimationMixer( piece ).clipAction( flipClip ).setLoop( LoopOnce, 1 );
 				piece.rotateX( Math.PI );
 				piece.name = `piece_${x}_${y}`;
 				square.add( piece );
@@ -354,9 +364,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		}
 
 		function setColor( mesh: Mesh, color: Color ) {
-			const material = ( mesh.material as MeshStandardMaterial ).clone();
-			material.color = color;
-			mesh.material = material;
+			const oldMaterial = ( mesh.material as MeshStandardMaterial );
+			if( oldMaterial.color.equals( color ) ) return;
+			const newMaterial = oldMaterial.clone();
+			newMaterial.color = color;
+			mesh.material = newMaterial;
 		}
 
 		this.gameState
@@ -370,8 +382,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						scene = getScene( gameState.size, assets );
 					}
 					const { lastMove, size: { width, height } } = gameState;
-					const { animations } = assets;
-					const flipClip = animations.get( 'Flip' );
 
 					const marker = findObject( scene, 'marker' );
 					if( lastMove ) {
@@ -404,15 +414,13 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 							if( oldSquare && ( oldSquare.color != null ) && ( oldSquare.color !== square.color ) ) {
 								setColor( bottom, hslToColor( colors[ this.colors[ oldSquare.color ] ].color ) );
-								const mixer = new AnimationMixer( pieceObj );
-								const action = mixer.clipAction( flipClip );
-								action.repetitions = 1;
-								action.play();
+								const action = pieceObj.userData.flipAction as AnimationAction;
+								action.stop().play();
 								actions.push( action );
 							}
 						}
 					}
-
+					dirty = true;
 					return { board, scene };
 				}, { board: null, scene: null }
 			),
