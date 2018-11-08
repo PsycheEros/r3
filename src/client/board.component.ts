@@ -5,7 +5,7 @@ import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhe
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, KeyframeTrack, NumberKeyframeTrack, InterpolateSmooth } from 'three';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, KeyframeTrack, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -203,7 +203,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const pieceProto = objects.get( 'Piece' );
 			const flipClip = animations.get( 'Flip' );
 			const fadeInClip = new AnimationClip( 'FadeIn', 1, [
-				new NumberKeyframeTrack( '.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth )
+				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, 1 ], [ true, false ] ),
+				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, 1 ], [ true, false ] )
 			] );
 
 			const boardRoot = new Object3D;
@@ -233,10 +236,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				piece.name = `piece_${x}_${y}`;
 				piece.userData.flipAction = mixer.clipAction( flipClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeInAction = mixer.clipAction( fadeInClip, piece ).setLoop( LoopOnce, 1 );
+				piece.userData.fadeInAction.clampWhenFinished = true;
 				piece.traverse( o => {
 					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
 						o.material = o.material.clone();
-						o.material.transparent = true;
 					}
 				} );
 
@@ -419,7 +422,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 							if( oldSquare && ( oldSquare.color !== square.color ) ) {
 								let action: AnimationAction;
 								if( oldSquare.color == null ) {
-									action = pieceObj.userData.appearAction;
+									action = pieceObj.userData.fadeInAction;
 								} else {
 									( bottom.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ oldSquare.color ] ].color );
 									action = pieceObj.userData.flipAction;

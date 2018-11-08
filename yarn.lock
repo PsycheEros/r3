@@ -2,20 +2,20 @@
 # yarn lockfile v1
 
 
-"@angular-devkit/build-optimizer@^0.10.4":
-  version "0.10.4"
-  resolved "https://registry.yarnpkg.com/@angular-devkit/build-optimizer/-/build-optimizer-0.10.4.tgz#900e9221bf4033bd28b67dc3fedf1c05b4f8b13a"
-  integrity sha512-vnXQjpPW2ZFyvwLd2HLWz8JDgpagnF7f8IDHKH6s38r0TP4DTqEAwAfLmOMuz/mjO8l4BMEOFVFVxad/eCRNeA==
+"@angular-devkit/build-optimizer@^0.10.5":
+  version "0.10.5"
+  resolved "https://registry.yarnpkg.com/@angular-devkit/build-optimizer/-/build-optimizer-0.10.5.tgz#7509e61461d3040d2efd503383f9d8a29879d046"
+  integrity sha512-jhiD/ct7ngzNjT0yNUTT4TUjRzH9ZXdMm3Z4wbTFtKhXfr3bZgvLGKEoq0pIGlnlWq7lrGb8Doue4xcbRKTgmw==
   dependencies:
     loader-utils "1.1.0"
     source-map "0.5.6"
-    typescript "3.1.3"
+    typescript "3.1.6"
     webpack-sources "1.2.0"
 
-"@angular-devkit/core@7.0.4":
-  version "7.0.4"
-  resolved "https://registry.yarnpkg.com/@angular-devkit/core/-/core-7.0.4.tgz#b64c3c36d2bcaf3e42eb27ee2dbbc65373255a7c"
-  integrity sha512-LzMXoUPLFAPJUCcTeaYrJZNao0otH15RtrpMRTOcgR9TqnnptQqIiRty4T2xQnl4ud33yHOVZ5FoANwDq1rQvQ==
+"@angular-devkit/core@7.0.5":
+  version "7.0.5"
+  resolved "https://registry.yarnpkg.com/@angular-devkit/core/-/core-7.0.5.tgz#60866c0a2367cea44b436a359ac9be99a138e180"
+  integrity sha512-QaORf9NCnwlHEuMs45Vb/KBf5eO2m+hIdNdIK0MnTaK9SrvhQhg0AFjo2KCPtOjI9eCcvsDz/O7W28CHJrG1iA==
   dependencies:
     ajv "6.5.3"
     chokidar "2.0.4"
@@ -922,12 +922,12 @@
   dependencies:
     tslib "^1.9.0"
 
-"@ngtools/webpack@^7.0.4":
-  version "7.0.4"
-  resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-7.0.4.tgz#24453a7ac2218f4d901f3f9d84053f81a39c5a80"
-  integrity sha512-hnysOG286kpz0lwmTaAdGDhxiBFPEwHzVl5IGE/5yZnnzZxmKfXbqJQzpoWxZROsPUxMY76UAy4BWHc3lRpO/Q==
+"@ngtools/webpack@^7.0.5":
+  version "7.0.5"
+  resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-7.0.5.tgz#af7139cdd3c46774b80a09753cb4e51c27d18fc4"
+  integrity sha512-KARXUp1SCg6TNGHaXOITiOfbGBJAd7gkdo0OKWF77ARqWb/pSN4rwFV4kxm0CB2kkmJ40JQCQG+TiltX+3Jnqg==
   dependencies:
-    "@angular-devkit/core" "7.0.4"
+    "@angular-devkit/core" "7.0.5"
     enhanced-resolve "4.1.0"
     rxjs "6.3.3"
     tree-kill "1.2.0"
@@ -9578,7 +9578,7 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@3.1.3, typescript@^3.1.6:
+typescript@3.1.6, typescript@^3.1.6:
   version "3.1.6"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.1.6.tgz#b6543a83cfc8c2befb3f4c8fba6896f5b0c9be68"
   integrity sha512-tDMYfVtvpb96msS1lDX9MEdHrW4yOuZ4Kdc4Him9oU796XldPYF/t2+uKoX0BBa0hXXwDlqYQbXY5Rzjzc5hBA==
