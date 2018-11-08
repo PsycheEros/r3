@@ -111,16 +111,15 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		)
 		.subscribe( ( { renderer, scene } ) => {
 			const delta = clock.getDelta();
-			const mixers =
-				new Set(
-					actions
-					.filter( a => a.isRunning() )
-					.map( a => a.getMixer() )
-				);
-			for( const mixer of mixers ) {
+
+			if( actions.some( a => a.isRunning() ) ) {
+				const mixer = scene.userData.mixer as AnimationMixer;
 				mixer.update( delta );
 				dirty = true;
+			} else if( actions.length > 0 ) {
+				actions.splice( 0, actions.length );
 			}
+
 			if( !dirty ) {
 				actions.splice( 0, actions.length );
 				return;
@@ -195,6 +194,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		function getScene( { height, width }: Size, { animations, objects }: LoadedResources ) {
 			const scene = new Scene;
 			scene.name = 'scene';
+			const mixer = new AnimationMixer( scene );
+			scene.userData.mixer = mixer;
 
 			const borderProto = objects.get( 'Border' ) as Mesh;
 			const boardProto = objects.get( 'Board' ) as Mesh;
@@ -225,9 +226,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				boardRoot.add( square );
 				square.position.set( x, y, 0 );
 				const piece = pieceProto.clone();
-				piece.userData.flipAction = new AnimationMixer( piece ).clipAction( flipClip ).setLoop( LoopOnce, 1 );
 				piece.rotateX( Math.PI );
 				piece.name = `piece_${x}_${y}`;
+				piece.userData.flipAction = mixer.clipAction( flipClip, piece ).setLoop( LoopOnce, 1 );
 				square.add( piece );
 				const board = boardProto.clone();
 				board.name = `board_${x}_${y}`;
