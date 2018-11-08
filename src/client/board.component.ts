@@ -5,7 +5,7 @@ import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhe
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce } from 'three';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, KeyframeTrack, NumberKeyframeTrack, InterpolateSmooth } from 'three';
 import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
@@ -202,6 +202,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const markerProto = objects.get( 'Marker' ) as Mesh;
 			const pieceProto = objects.get( 'Piece' );
 			const flipClip = animations.get( 'Flip' );
+			const fadeInClip = new AnimationClip( 'FadeIn', 1, [
+				new NumberKeyframeTrack( '.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth )
+			] );
 
 			const boardRoot = new Object3D;
 			boardRoot.name = 'board_root';
@@ -229,6 +232,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				piece.rotateX( Math.PI );
 				piece.name = `piece_${x}_${y}`;
 				piece.userData.flipAction = mixer.clipAction( flipClip, piece ).setLoop( LoopOnce, 1 );
+				piece.userData.fadeInAction = mixer.clipAction( fadeInClip, piece ).setLoop( LoopOnce, 1 );
+				piece.traverse( o => {
+					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
+						o.material = o.material.clone();
+						o.material.transparent = true;
+					}
+				} );
+
 				square.add( piece );
 				const board = boardProto.clone();
 				board.name = `board_${x}_${y}`;
@@ -364,14 +375,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			return scene;
 		}
 
-		function setColor( mesh: Mesh, color: Color ) {
-			const oldMaterial = ( mesh.material as MeshStandardMaterial );
-			if( oldMaterial.color.equals( color ) ) return;
-			const newMaterial = oldMaterial.clone();
-			newMaterial.color = color;
-			mesh.material = newMaterial;
-		}
-
 		this.gameState
 		.pipe(
 			switchMap( async ( gameState ) => ( { gameState, assets: await assetsPromise } ) ),
@@ -411,13 +414,19 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						} else {
 							pieceObj.visible = true;
 							const [ top, bottom ] = pieceObj.children as Mesh[];
-							setColor( top, hslToColor( colors[ this.colors[ square.color ] ].color ) );
+							( top.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ square.color ] ].color );
 
-							if( oldSquare && ( oldSquare.color != null ) && ( oldSquare.color !== square.color ) ) {
-								setColor( bottom, hslToColor( colors[ this.colors[ oldSquare.color ] ].color ) );
-								const action = pieceObj.userData.flipAction as AnimationAction;
-								action.stop().play();
-								actions.push( action );
+							if( oldSquare && ( oldSquare.color !== square.color ) ) {
+								let action: AnimationAction;
+								if( oldSquare.color == null ) {
+									action = pieceObj.userData.appearAction;
+								} else {
+									( bottom.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ oldSquare.color ] ].color );
+									action = pieceObj.userData.flipAction;
+								}
+								if( action ) {
+									actions.push( action.stop().play() );
+								}
 							}
 						}
 					}
@@ -433,7 +442,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public ngAfterViewInit() {
 		const canvas = this.canvasElementRef.nativeElement;
 		const renderer = new WebGLRenderer( {
-			canvas
+			canvas,
+			antialias: true
 		} );
 		renderer.gammaInput = true;
 		renderer.gammaOutput = true;
