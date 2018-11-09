@@ -6,6 +6,7 @@ import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
 import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack } from 'three';import GLTFLoader from 'three-gltf-loader';
+import { Grid } from 'src/grid';
 
 interface GltfFile {
 	animations: ReadonlyArray<AnimationClip>;
@@ -18,6 +19,12 @@ interface GltfFile {
 interface LoadedResources {
 	animations: Map<string, AnimationClip>;
 	objects: Map<string, Object3D>;
+}
+
+interface SquareObjects {
+	board: Object3D;
+	piece: Object3D;
+	square: Object3D;
 }
 
 function loadResources( src: string ) {
@@ -43,14 +50,6 @@ function loadResources( src: string ) {
 			err => { reject( new Error( err ) ); }
 		);
 	} );
-}
-
-function findObject<T extends Object3D>( root: Object3D, name: string ): T {
-	let retval: T;
-	root.traverse( o => {
-		if( o.name === name ) retval = o as T;
-	} );
-	return retval;
 }
 
 function loadFont( src: object ) {
@@ -203,12 +202,22 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const flipClip = animations.get( 'Flip' );
 			const flipDuration = flipClip.duration;
 			const fadeInClip = new AnimationClip( 'FadeIn', flipDuration, [
+				new BooleanKeyframeTrack( '.visible', [ 0 ], [ true ] ),
 				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
 				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, flipDuration ], [ true, false ] ),
 				new BooleanKeyframeTrack( 'Cylinder_0.castShadow', [ 0, flipDuration * .4 ], [ false, true ] ),
 				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
 				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, flipDuration ], [ true, false ] ),
 				new BooleanKeyframeTrack( 'Cylinder_1.castShadow', [ 0, flipDuration * .4 ], [ false, true ] )
+			] );
+			const fadeOutClip = new AnimationClip( 'FadeOut', flipDuration, [
+				new BooleanKeyframeTrack( '.visible', [ 0, 1 ], [ true, false ] ),
+				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, flipDuration ], [ 1, 0 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, flipDuration ], [ true, false ] ),
+				new BooleanKeyframeTrack( 'Cylinder_0.castShadow', [ 0, flipDuration * .6 ], [ true, false ] ),
+				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, flipDuration ], [ 1, 0 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, flipDuration ], [ true, false ] ),
+				new BooleanKeyframeTrack( 'Cylinder_1.castShadow', [ 0, flipDuration * .6 ], [ true, false ] )
 			] );
 
 			const boardRoot = new Object3D;
@@ -222,11 +231,12 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			border.position.setX( ( width - 1 ) * .5 );
 			border.position.setY( ( height - 1 ) * .5 );
 
-			const marker = new Object3D;
+			const marker = scene.userData.marker = new Object3D;
 			marker.add( markerProto.clone() );
 			marker.name = 'marker';
 			boardRoot.add( marker );
 
+			const squareObjects = scene.userData.squareObjects = new Grid<SquareObjects>( width, height );
 			for( let y = 0; y < height; ++y )
 			for( let x = 0; x < width; ++x ) {
 				const square = new Object3D;
@@ -239,6 +249,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				piece.userData.flipAction = mixer.clipAction( flipClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeInAction = mixer.clipAction( fadeInClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeInAction.clampWhenFinished = true;
+				piece.userData.fadeOutAction = mixer.clipAction( fadeOutClip, piece ).setLoop( LoopOnce, 1 );
+				piece.userData.fadeOutAction.clampWhenFinished = true;
 				piece.traverse( o => {
 					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
 						o.material = o.material.clone();
@@ -250,6 +262,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				board.name = `board_${x}_${y}`;
 				board.userData.position = { x, y };
 				square.add( board );
+
+				squareObjects.set( { x, y }, { board, square, piece } );
 			}
 
 		for( let x = 0; x < width; ++x ) {
@@ -393,7 +407,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					}
 					const { lastMove, size: { width, height } } = gameState;
 
-					const marker = findObject( scene, 'marker' );
+					const marker = scene.userData.marker as Mesh;;
 					if( lastMove ) {
 						marker.visible = true;
 						marker.position.set( lastMove.x, lastMove.y, 0 );
@@ -401,17 +415,21 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						marker.visible = false;
 					}
 
+					const squareObjects = scene.userData.squareObjects as Grid<SquareObjects>;
+
 					for( let y = 0; y < height; ++y )
 					for( let x = 0; x < width; ++x ) {
+						const { piece: pieceObj, square: squareObj } = squareObjects.get( { x, y } );
 						const square = board.get( { x, y } );
 						const oldSquare = oldBoard && oldBoard.get( { x, y } );
 
-						const squareObj = findObject( scene, `square_${x}_${y}` );
-						squareObj.visible = square.enabled;
-						const pieceObj = findObject( scene, `piece_${x}_${y}` );
-
 						if( square.color == null ) {
-							pieceObj.visible = false;
+							if( oldSquare && ( oldSquare.color != null ) ) {
+								const action = pieceObj.userData.fadeOutAction as AnimationAction;
+								actions.push( action.stop().play() );
+							} else {
+								pieceObj.visible = false;
+							}
 						} else {
 							pieceObj.visible = true;
 							const [ top, bottom ] = pieceObj.children as Mesh[];
