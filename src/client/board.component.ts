@@ -1,12 +1,11 @@
 import { Board } from 'src/board';
 import { AfterViewInit, Component, ViewChild, ElementRef, Input, Output, OnChanges, EventEmitter, OnDestroy, OnInit } from '@angular/core';
 import { ReplaySubject, Subject, animationFrameScheduler, combineLatest, fromEvent, merge, of, range } from 'rxjs';
-import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhen } from 'rxjs/operators';
+import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhen, distinctUntilChanged } from 'rxjs/operators';
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, KeyframeTrack, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack } from 'three';
-import GLTFLoader from 'three-gltf-loader';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack } from 'three';import GLTFLoader from 'three-gltf-loader';
 
 interface GltfFile {
 	animations: ReadonlyArray<AnimationClip>;
@@ -202,11 +201,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const markerProto = objects.get( 'Marker' ) as Mesh;
 			const pieceProto = objects.get( 'Piece' );
 			const flipClip = animations.get( 'Flip' );
-			const fadeInClip = new AnimationClip( 'FadeIn', 1, [
-				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, 1 ], [ true, false ] ),
-				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, 1 ], [ 0, 1 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, 1 ], [ true, false ] )
+			const flipDuration = flipClip.duration;
+			const fadeInClip = new AnimationClip( 'FadeIn', flipDuration, [
+				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, flipDuration ], [ true, false ] ),
+				new BooleanKeyframeTrack( 'Cylinder_0.castShadow', [ 0, flipDuration * .4 ], [ false, true ] ),
+				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, flipDuration ], [ true, false ] ),
+				new BooleanKeyframeTrack( 'Cylinder_1.castShadow', [ 0, flipDuration * .4 ], [ false, true ] )
 			] );
 
 			const boardRoot = new Object3D;
@@ -380,6 +382,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 
 		this.gameState
 		.pipe(
+			distinctUntilChanged(),
 			switchMap( async ( gameState ) => ( { gameState, assets: await assetsPromise } ) ),
 			scan<{ gameState: ClientGameState, assets: LoadedResources }, { board: Board, scene: Scene }>(
 				( { board: oldBoard, scene }, { gameState, assets } ) => {
@@ -397,11 +400,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					} else {
 						marker.visible = false;
 					}
-
-					for( const action of actions ) {
-						action.stop();
-					}
-					actions.splice( 0, actions.length );
 
 					for( let y = 0; y < height; ++y )
 					for( let x = 0; x < width; ++x ) {
@@ -445,8 +443,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 	public ngAfterViewInit() {
 		const canvas = this.canvasElementRef.nativeElement;
 		const renderer = new WebGLRenderer( {
-			canvas,
-			antialias: true
+			antialias: true,
+			canvas
 		} );
 		renderer.gammaInput = true;
 		renderer.gammaOutput = true;
