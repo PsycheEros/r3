@@ -143,12 +143,12 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			rel: 'prefetch',
 			fileBlacklist: [ /icons-/, /\.(?:json|map|xml)/ ],
 			as: source =>
-				/\.(?:mp3|opus|wav)$/i.test( source ) ? 'audio'
-			:	/\.(?:glb|gltf)$/i.test( source ) ? 'fetch'
-			:	/\.(?:eof|otf|ttf|woff\d*)$/i.test( source ) ? 'font'
-			:	/\.(?:gif|jpe?g|png)$/i.test( source ) ? 'image'
-			:	/\.(?:js)$/i.test( source ) ? 'script'
-			:	/\.(?:css)$/i.test( source ) ? 'style'
+				/\.(?:mp3|opus|wav)/i.test( source ) ? 'audio'
+			:	/\.(?:glb|gltf)/i.test( source ) ? 'fetch'
+			:	/\.(?:eof|otf|ttf|woff\d*)/i.test( source ) ? 'font'
+			:	/\.(?:gif|jpe?g|png)/i.test( source ) ? 'image'
+			:	/\.(?:js)/i.test( source ) ? 'script'
+			:	/\.(?:css)/i.test( source ) ? 'style'
 			:	null
 		} ),
 		new ScriptExtHtmlWebpackPlugin( {
