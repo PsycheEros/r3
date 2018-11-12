@@ -407,7 +407,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					}
 					const { lastMove, size: { width, height } } = gameState;
 
-					const marker = scene.userData.marker as Mesh;;
+					const marker = scene.userData.marker as Mesh;
 					if( lastMove ) {
 						marker.visible = true;
 						marker.position.set( lastMove.x, lastMove.y, 0 );

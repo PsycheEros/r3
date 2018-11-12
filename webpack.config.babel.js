@@ -132,6 +132,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			THREE: 'three'
 		} ),
 		new HtmlWebpackPlugin( {
+			favicon: path.resolve( __dirname, 'assets', 'logo.png' ),
 			inject: 'body',
 			inlineSource: /^runtime~/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
@@ -140,15 +141,15 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		new PreloadWebpackPlugin( {
 			include: 'allAssets',
 			rel: 'prefetch',
-			as( source ) {
-				if( /\.(?:mp3|opus|wav)$/i.test( source ) ) return 'audio';
-				if( /\.(?:glb|gltf)$/i.test( source ) ) return 'fetch';
-				if( /\.(?:eof|otf|ttf|woff\d*)$/i.test( source ) ) return 'font';
-				if( /\.(?:gif|jpe?g|png)$/i.test( source ) ) return 'image';
-				if( /\.(?:js)$/i.test( source ) ) return 'script';
-				if( /\.(?:css)$/i.test( source ) ) return 'style';
-				return null;
-			}
+			fileBlacklist: [ /icons-/, /\.(?:json|map|xml)/ ],
+			as: source =>
+				/\.(?:mp3|opus|wav)$/i.test( source ) ? 'audio'
+			:	/\.(?:glb|gltf)$/i.test( source ) ? 'fetch'
+			:	/\.(?:eof|otf|ttf|woff\d*)$/i.test( source ) ? 'font'
+			:	/\.(?:gif|jpe?g|png)$/i.test( source ) ? 'image'
+			:	/\.(?:js)$/i.test( source ) ? 'script'
+			:	/\.(?:css)$/i.test( source ) ? 'style'
+			:	null
 		} ),
 		new ScriptExtHtmlWebpackPlugin( {
 			defaultAttribute: 'async'
