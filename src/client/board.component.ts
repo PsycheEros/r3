@@ -23,6 +23,7 @@ interface LoadedResources {
 
 interface SquareObjects {
 	board: Object3D;
+	marker: Object3D;
 	piece: Object3D;
 	square: Object3D;
 }
@@ -118,14 +119,34 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		const orthoCamera = new OrthographicCamera( 0, 0, 0, 0, 0, 50 );
 		orthoCamera.name = 'camera';
 
-		const actions = [] as AnimationAction[];
+		const actions = new Set<AnimationAction>();
+		function fadeObj( obj: Object3D, firstRun: boolean, wasVisible: boolean, isVisible: boolean ) {
+			const fadeInAction = obj.userData.fadeInAction as AnimationAction;
+			const fadeOutAction = obj.userData.fadeOutAction as AnimationAction;
+			if( fadeInAction.isRunning() ) actions.add( fadeInAction.stop() );
+			if( fadeOutAction.isRunning() ) actions.add( fadeOutAction.stop() );
+			if( firstRun || ( isVisible === wasVisible ) ) {
+				obj.visible = isVisible;
+				return;
+			}
+		
+			const action = isVisible ? fadeInAction : fadeOutAction;
+			actions.add( action.play() );
+		}
+		
 
 		combineLatest( this.renderer, this.scene )
 		.pipe(
 			filter( e => e.every( e => !!e ) ),
 			switchMap( ( [ renderer, scene ] ) =>
 				of( { renderer, scene } )
-				.pipe( repeatWhen( () => range( 0, Infinity, animationFrameScheduler ) ) )
+				.pipe(
+					repeatWhen( () =>
+						range( 0, Infinity, animationFrameScheduler )
+						// fake animation lag
+						// .pipe( switchMap( () => timer( Math.random() * 1000 ) ) )
+					)
+				)
 			),
 			takeUntil( this.destroyed ),
 			observeOn( animationFrameScheduler )
@@ -133,18 +154,17 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		.subscribe( ( { renderer, scene } ) => {
 			const delta = clock.getDelta();
 
-			if( actions.some( a => a.isRunning() ) ) {
+			const a = [ ...actions.values() ];
+
+			if( a.some( a => a.isRunning() ) ) {
 				const mixer = scene.userData.mixer as AnimationMixer;
 				mixer.update( delta );
 				dirty = true;
-			} else if( actions.length > 0 ) {
-				actions.splice( 0, actions.length );
+			} else {
+				actions.clear();
 			}
 
-			if( !dirty ) {
-				actions.splice( 0, actions.length );
-				return;
-			}
+			if( !dirty ) return;
 			renderer.render( scene, orthoCamera );
 			dirty = false;
 		} );
@@ -240,21 +260,17 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			border.position.setX( ( width - 1 ) * .5 );
 			border.position.setY( ( height - 1 ) * .5 );
 
-			const marker = scene.userData.marker = new Object3D;
-			marker.add( markerProto.clone() );
-			marker.name = 'marker';
-			marker.userData.fadeInAction = mixer.clipAction( markerFadeInClip, marker.children[ 0 ] ).setLoop( LoopOnce, 1 );
-			marker.userData.fadeInAction.clampWhenFinished = true;
-			marker.userData.fadeOutAction = mixer.clipAction( markerFadeOutClip, marker.children[ 0 ] ).setLoop( LoopOnce, 1 );
-			marker.userData.fadeOutAction.clampWhenFinished = true;
-			boardRoot.add( marker );
-
 			const squareObjects = scene.userData.squareObjects = new Grid<SquareObjects>( width, height );
 			for( let y = 0; y < height; ++y )
 			for( let x = 0; x < width; ++x ) {
 				const square = new Object3D;
 				square.name = `square_${x}_${y}`;
-				boardRoot.add( square );
+
+				const board = boardProto.clone();
+				board.name = `board_${x}_${y}`;
+				board.userData.position = { x, y };
+				square.add( board );
+
 				square.position.set( x, y, 0 );
 				const piece = pieceProto.clone();
 				piece.rotateX( Math.PI );
@@ -269,14 +285,19 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						o.material = o.material.clone();
 					}
 				} );
-
 				square.add( piece );
-				const board = boardProto.clone();
-				board.name = `board_${x}_${y}`;
-				board.userData.position = { x, y };
-				square.add( board );
 
-				squareObjects.set( { x, y }, { board, square, piece } );
+				const marker = markerProto.clone();
+				square.add( marker );
+				marker.name = `marker_${x}_${y}`;
+				marker.userData.fadeInAction = mixer.clipAction( markerFadeInClip, marker ).setLoop( LoopOnce, 1 );
+				marker.userData.fadeInAction.clampWhenFinished = true;
+				marker.userData.fadeOutAction = mixer.clipAction( markerFadeOutClip, marker ).setLoop( LoopOnce, 1 );
+				marker.userData.fadeOutAction.clampWhenFinished = true;
+
+				boardRoot.add( square );
+
+				squareObjects.set( { x, y }, { board, marker, piece, square } );
 			}
 
 		for( let x = 0; x < width; ++x ) {
@@ -421,55 +442,36 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 					const oldBoard = oldGameState && Board.fromGameState( oldGameState );
 					const { lastMove, size: { width, height } } = gameState;
 
-					const marker = scene.userData.marker as Mesh;
-					if( lastMove ) {
-						marker.visible = true;
-						marker.position.set( lastMove.x, lastMove.y, 0 );
-						if( oldGameState && !oldGameState.lastMove ) {
-							const action = marker.userData.fadeInAction as AnimationAction;
-							actions.push( action.stop().play() );
-						}
-					} else {
-						if( oldGameState && oldGameState.lastMove ) {
-							marker.visible = true;
-							const action = marker.userData.fadeOutAction as AnimationAction;
-							actions.push( action.stop().play() );
-						} else {
-							marker.visible = false;
-						}
-					}
-
 					const squareObjects = scene.userData.squareObjects as Grid<SquareObjects>;
 
 					for( let y = 0; y < height; ++y )
 					for( let x = 0; x < width; ++x ) {
-						const { piece: pieceObj, square: squareObj } = squareObjects.get( { x, y } );
+						const { piece: pieceObj, marker: markerObj } = squareObjects.get( { x, y } );
 						const square = board.get( { x, y } );
 						const oldSquare = oldBoard && oldBoard.get( { x, y } );
 
-						if( square.color == null ) {
-							if( oldSquare && ( oldSquare.color != null ) ) {
-								const action = pieceObj.userData.fadeOutAction as AnimationAction;
-								actions.push( action.stop().play() );
-							} else {
-								pieceObj.visible = false;
-							}
-						} else {
-							pieceObj.visible = true;
+						fadeObj(
+							markerObj,
+							!oldGameState,
+							oldGameState && oldGameState.lastMove && ( oldGameState.lastMove.x === x ) && ( oldGameState.lastMove.y === y ),
+							lastMove && ( lastMove.x === x && lastMove.y === y )
+						);
+
+						fadeObj(
+							pieceObj,
+							!oldGameState,
+							oldSquare && oldSquare.color != null,
+							square.color != null
+						);
+
+						if( square.color != null ) {
 							const [ top, bottom ] = pieceObj.children as Mesh[];
 							( top.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ square.color ] ].color );
 
-							if( oldSquare && ( oldSquare.color !== square.color ) ) {
-								let action: AnimationAction;
-								if( oldSquare.color == null ) {
-									action = pieceObj.userData.fadeInAction;
-								} else {
-									( bottom.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ oldSquare.color ] ].color );
-									action = pieceObj.userData.flipAction;
-								}
-								if( action ) {
-									actions.push( action.stop().play() );
-								}
+							if( oldSquare && ( oldSquare.color != null ) && ( oldSquare.color !== square.color ) ) {
+								( bottom.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ oldSquare.color ] ].color );
+								const action = pieceObj.userData.flipAction as AnimationAction;
+								actions.add( action.stop().play() );
 							}
 						}
 					}
