@@ -87,10 +87,12 @@ const resolve = {
 
 const angularPattern = /\.(?:ng)?(?:component|directive|factory|pipe|module|service|style)\./i
 
+const buildId = crypto.createHash('md5').update(uuid()).digest('base64').replace( /=+$/, '' );
+
 const env = {
 	'process.env.DEBUG': JSON.stringify( devMode ),
 	'process.env.NODE_ENV': JSON.stringify( mode ),
-	BUILD_ID: JSON.stringify( crypto.createHash('md5').update(uuid()).digest('base64').replace( /=+$/, '' ) )
+	BUILD_ID: JSON.stringify( buildId )
 };
 
 /** @type {webpack.Configuration} */
@@ -136,7 +138,10 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			inject: 'body',
 			inlineSource: /^runtime~/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
-			templateParameters: config.templateParameters
+			templateParameters: {
+				...config.templateParameters,
+				buildId
+			}
 		} ),
 		new PreloadWebpackPlugin( {
 			include: 'allAssets',

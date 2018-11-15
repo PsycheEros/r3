@@ -112,3 +112,6 @@ configuration:
     target: node
 templateParameters:
   trackingId: UA-99571233-2
+  title: r³
+  description: Free online multiplayer Reversi game
+  baseUrl: https://r3.jovalent.com
