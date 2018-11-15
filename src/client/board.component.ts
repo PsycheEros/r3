@@ -5,7 +5,7 @@ import { map, filter, switchMap, mergeMap, takeUntil, scan, observeOn, repeatWhe
 import { colors } from 'data/colors.yaml';
 import boardSettings from 'data/board.yaml';
 
-import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack } from 'three';import GLTFLoader from 'three-gltf-loader';
+import { Scene, Renderer, SpotLight, Color, PCFSoftShadowMap, AmbientLight, Raycaster, Object3D, Box3, Vector3, DirectionalLight, PointLight, Camera, AnimationClip, Mesh, MeshStandardMaterial, OrthographicCamera, TextGeometry, FontLoader, WebGLRenderer, AnimationMixer, Clock, AnimationAction, LoopOnce, NumberKeyframeTrack, InterpolateSmooth, BooleanKeyframeTrack, KeyframeTrack } from 'three';import GLTFLoader from 'three-gltf-loader';
 import { Grid } from 'src/grid';
 
 interface GltfFile {
@@ -66,6 +66,29 @@ function enableShadows( obj: Object3D, enable = true ) {
 		if( o instanceof Mesh ) o.castShadow = o.receiveShadow = enable;
 		else if( ( o instanceof PointLight ) || ( o instanceof SpotLight ) ) o.castShadow = enable;
 	} );
+}
+
+function generateFade( obj: Object3D, duration: number, visible: boolean ) {
+	const tracks = [
+		new BooleanKeyframeTrack( '.visible', [ 0, duration ], [ true, visible ] )
+	] as KeyframeTrack[];
+
+	function traverse( o: Object3D, name = '' ) {
+		if( o instanceof Mesh ) {
+			tracks.push(
+				new BooleanKeyframeTrack( `${name}.castShadow`, [ 0, duration * ( visible ? .4 : .6 ) ], [ !visible, visible ] ),
+				new NumberKeyframeTrack( `${name}.material.opacity`, [ 0, duration ], [ visible ? 0 : 1, visible ? 1 : 0 ], InterpolateSmooth ),
+				new BooleanKeyframeTrack( `${name}.material.transparent`, [ 0, duration ], [ true, false ] )
+			);
+		}
+		for( const child of o.children ) {
+			traverse( child, ( name ? ( name + '.' ) : '' ) + child.name );
+		}
+	}
+
+	traverse( obj );
+
+	return new AnimationClip( `${obj.name}Fade${visible?'In':'Out'}`, duration, tracks );
 }
 
 @Component( {
@@ -201,24 +224,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const pieceProto = objects.get( 'Piece' );
 			const flipClip = animations.get( 'Flip' );
 			const flipDuration = flipClip.duration;
-			const fadeInClip = new AnimationClip( 'FadeIn', flipDuration, [
-				new BooleanKeyframeTrack( '.visible', [ 0 ], [ true ] ),
-				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, flipDuration ], [ true, false ] ),
-				new BooleanKeyframeTrack( 'Cylinder_0.castShadow', [ 0, flipDuration * .4 ], [ false, true ] ),
-				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, flipDuration ], [ 0, 1 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, flipDuration ], [ true, false ] ),
-				new BooleanKeyframeTrack( 'Cylinder_1.castShadow', [ 0, flipDuration * .4 ], [ false, true ] )
-			] );
-			const fadeOutClip = new AnimationClip( 'FadeOut', flipDuration, [
-				new BooleanKeyframeTrack( '.visible', [ 0, 1 ], [ true, false ] ),
-				new NumberKeyframeTrack( 'Cylinder_0.material.opacity', [ 0, flipDuration ], [ 1, 0 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_0.material.transparent', [ 0, flipDuration ], [ true, false ] ),
-				new BooleanKeyframeTrack( 'Cylinder_0.castShadow', [ 0, flipDuration * .6 ], [ true, false ] ),
-				new NumberKeyframeTrack( 'Cylinder_1.material.opacity', [ 0, flipDuration ], [ 1, 0 ], InterpolateSmooth ),
-				new BooleanKeyframeTrack( 'Cylinder_1.material.transparent', [ 0, flipDuration ], [ true, false ] ),
-				new BooleanKeyframeTrack( 'Cylinder_1.castShadow', [ 0, flipDuration * .6 ], [ true, false ] )
-			] );
+			const pieceFadeInClip = generateFade( pieceProto, flipDuration, true );
+			const pieceFadeOutClip = generateFade( pieceProto, flipDuration, false );
+			const markerFadeInClip = generateFade( markerProto, flipDuration, true );
+			const markerFadeOutClip = generateFade( markerProto, flipDuration, false );
 
 			const boardRoot = new Object3D;
 			boardRoot.name = 'board_root';
@@ -234,6 +243,10 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const marker = scene.userData.marker = new Object3D;
 			marker.add( markerProto.clone() );
 			marker.name = 'marker';
+			marker.userData.fadeInAction = mixer.clipAction( markerFadeInClip, marker.children[ 0 ] ).setLoop( LoopOnce, 1 );
+			marker.userData.fadeInAction.clampWhenFinished = true;
+			marker.userData.fadeOutAction = mixer.clipAction( markerFadeOutClip, marker.children[ 0 ] ).setLoop( LoopOnce, 1 );
+			marker.userData.fadeOutAction.clampWhenFinished = true;
 			boardRoot.add( marker );
 
 			const squareObjects = scene.userData.squareObjects = new Grid<SquareObjects>( width, height );
@@ -247,9 +260,9 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				piece.rotateX( Math.PI );
 				piece.name = `piece_${x}_${y}`;
 				piece.userData.flipAction = mixer.clipAction( flipClip, piece ).setLoop( LoopOnce, 1 );
-				piece.userData.fadeInAction = mixer.clipAction( fadeInClip, piece ).setLoop( LoopOnce, 1 );
+				piece.userData.fadeInAction = mixer.clipAction( pieceFadeInClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeInAction.clampWhenFinished = true;
-				piece.userData.fadeOutAction = mixer.clipAction( fadeOutClip, piece ).setLoop( LoopOnce, 1 );
+				piece.userData.fadeOutAction = mixer.clipAction( pieceFadeOutClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeOutAction.clampWhenFinished = true;
 				piece.traverse( o => {
 					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
@@ -398,21 +411,32 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		.pipe(
 			distinctUntilChanged(),
 			switchMap( async ( gameState ) => ( { gameState, assets: await assetsPromise } ) ),
-			scan<{ gameState: ClientGameState, assets: LoadedResources }, { board: Board, scene: Scene }>(
-				( { board: oldBoard, scene }, { gameState, assets } ) => {
-					const board = Board.fromGameState( gameState );
-					if( !scene || !oldBoard || board.width !== oldBoard.width || board.height !== oldBoard.height ) {
-						oldBoard = null;
+			scan<{ gameState: ClientGameState, assets: LoadedResources }, { gameState: ClientGameState|null, scene: Scene|null }>(
+				( { gameState: oldGameState, scene }, { gameState, assets } ) => {
+					if( !scene || !oldGameState || gameState.size.width !== oldGameState.size.width || gameState.size.height !== oldGameState.size.height ) {
+						oldGameState = null;
 						scene = getScene( gameState.size, assets );
 					}
+					const board = Board.fromGameState( gameState );
+					const oldBoard = oldGameState && Board.fromGameState( oldGameState );
 					const { lastMove, size: { width, height } } = gameState;
 
 					const marker = scene.userData.marker as Mesh;
 					if( lastMove ) {
 						marker.visible = true;
 						marker.position.set( lastMove.x, lastMove.y, 0 );
+						if( oldGameState && !oldGameState.lastMove ) {
+							const action = marker.userData.fadeInAction as AnimationAction;
+							actions.push( action.stop().play() );
+						}
 					} else {
-						marker.visible = false;
+						if( oldGameState && oldGameState.lastMove ) {
+							marker.visible = true;
+							const action = marker.userData.fadeOutAction as AnimationAction;
+							actions.push( action.stop().play() );
+						} else {
+							marker.visible = false;
+						}
 					}
 
 					const squareObjects = scene.userData.squareObjects as Grid<SquareObjects>;
@@ -450,8 +474,8 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						}
 					}
 					dirty = true;
-					return { board, scene };
-				}, { board: null, scene: null }
+					return { gameState, scene };
+				}, { gameState: null, scene: null }
 			),
 			map( ( { scene } ) => scene )
 		)
