@@ -82,7 +82,7 @@ function generateFade( obj: Object3D, duration: number, visible: boolean ) {
 			);
 		}
 		for( const child of o.children ) {
-			traverse( child, ( name ? ( name + '.' ) : '' ) + child.name );
+			traverse( child, ( name ? ( `.${name}` ) : '' ) + child.name );
 		}
 	}
 
