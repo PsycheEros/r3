@@ -83,7 +83,7 @@ function generateFade( obj: Object3D, duration: number, visible: boolean ) {
 			);
 		}
 		for( const child of o.children ) {
-			traverse( child, ( name ? ( `.${name}` ) : '' ) + child.name );
+			traverse( child, ( name ? `.${name}` : '' ) + child.name );
 		}
 	}
 
@@ -123,17 +123,32 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 		function fadeObj( obj: Object3D, firstRun: boolean, wasVisible: boolean, isVisible: boolean ) {
 			const fadeInAction = obj.userData.fadeInAction as AnimationAction;
 			const fadeOutAction = obj.userData.fadeOutAction as AnimationAction;
-			if( fadeInAction.isRunning() ) actions.add( fadeInAction.stop() );
-			if( fadeOutAction.isRunning() ) actions.add( fadeOutAction.stop() );
+			if( fadeInAction.isRunning() ) fadeInAction.stop();
+			if( fadeOutAction.isRunning() ) fadeOutAction.stop();
 			if( firstRun || ( isVisible === wasVisible ) ) {
-				obj.visible = isVisible;
-				return;
+				obj.traverse( o => {
+					o.visible = isVisible;
+					o.castShadow = isVisible;
+					if( o instanceof Mesh ) {
+						const material = o.material as MeshStandardMaterial;
+						material.transparent = false;
+						material.opacity = isVisible ? 1 : 0;
+					}
+				} );
+			} else {
+				obj.traverse( o => {
+					o.visible = true;
+					o.castShadow = wasVisible;
+					if( o instanceof Mesh ) {
+						const material = o.material as MeshStandardMaterial;
+						material.transparent = true;
+						material.opacity = wasVisible ? 1 : 0;
+					}
+				} );
+				const nextAction = isVisible ? fadeInAction : fadeOutAction;
+				actions.add( nextAction.reset().play() );
 			}
-		
-			const action = isVisible ? fadeInAction : fadeOutAction;
-			actions.add( action.play() );
 		}
-		
 
 		combineLatest( this.renderer, this.scene )
 		.pipe(
@@ -155,13 +170,18 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 			const delta = clock.getDelta();
 
 			const a = [ ...actions.values() ];
+			const hasActions = a.length > 0;
 
 			if( a.some( a => a.isRunning() ) ) {
+				dirty = true;
+			} else if( actions.size > 0 ) {
+				actions.clear();
+				dirty = true;
+			}
+
+			if( hasActions ) {
 				const mixer = scene.userData.mixer as AnimationMixer;
 				mixer.update( delta );
-				dirty = true;
-			} else {
-				actions.clear();
 			}
 
 			if( !dirty ) return;
@@ -280,11 +300,6 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				piece.userData.fadeInAction.clampWhenFinished = true;
 				piece.userData.fadeOutAction = mixer.clipAction( pieceFadeOutClip, piece ).setLoop( LoopOnce, 1 );
 				piece.userData.fadeOutAction.clampWhenFinished = true;
-				piece.traverse( o => {
-					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
-						o.material = o.material.clone();
-					}
-				} );
 				square.add( piece );
 
 				const marker = markerProto.clone();
@@ -295,6 +310,11 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 				marker.userData.fadeOutAction = mixer.clipAction( markerFadeOutClip, marker ).setLoop( LoopOnce, 1 );
 				marker.userData.fadeOutAction.clampWhenFinished = true;
 
+				square.traverse( o => {
+					if( o instanceof Mesh && o.material instanceof MeshStandardMaterial ) {
+						o.material = o.material.clone();
+					}
+				} );
 				boardRoot.add( square );
 
 				squareObjects.set( { x, y }, { board, marker, piece, square } );
@@ -453,14 +473,14 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 						fadeObj(
 							markerObj,
 							!oldGameState,
-							oldGameState && oldGameState.lastMove && ( oldGameState.lastMove.x === x ) && ( oldGameState.lastMove.y === y ),
-							lastMove && ( lastMove.x === x && lastMove.y === y )
+							!!( oldGameState && oldGameState.lastMove && ( oldGameState.lastMove.x === x ) && ( oldGameState.lastMove.y === y ) ),
+							!!( lastMove && ( lastMove.x === x ) && ( lastMove.y === y ) )
 						);
 
 						fadeObj(
 							pieceObj,
 							!oldGameState,
-							oldSquare && oldSquare.color != null,
+							!!( oldSquare && ( oldSquare.color != null ) ),
 							square.color != null
 						);
 
@@ -471,7 +491,7 @@ export class BoardComponent implements AfterViewInit, OnChanges, OnDestroy, OnIn
 							if( oldSquare && ( oldSquare.color != null ) && ( oldSquare.color !== square.color ) ) {
 								( bottom.material as MeshStandardMaterial ).color = hslToColor( colors[ this.colors[ oldSquare.color ] ].color );
 								const action = pieceObj.userData.flipAction as AnimationAction;
-								actions.add( action.stop().play() );
+								actions.add( action.reset().play() );
 							}
 						}
 					}
