@@ -16,7 +16,7 @@ for( const [ key, value ] of Object.entries( appSettings ) ) {
 
 app.use(
 	( req, res, next ) => {
-		if( /[-._\/][0-9a-f]{20,32}[-._\/]/.test( req.url ) ) {
+		if( /[-._\/\?][0-9a-f]{20,32}(?:[-._\/]|$)/.test( req.url ) ) {
 			res.header( 'Cache-Control', 'public, only-if-cached, immutable' );
 		}
 		next();

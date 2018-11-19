@@ -140,7 +140,11 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
 			templateParameters: {
 				...config.templateParameters,
-				buildId
+				buildId,
+				hash: file =>
+					crypto.createHash( 'md5' )
+					.update( fs.readFileSync( path.join( __dirname, file ) ) )
+					.digest( 'hex' )
 			}
 		} ),
 		new PreloadWebpackPlugin( {
