@@ -90,10 +90,11 @@ configuration:
     optimization:
       splitChunks:
         chunks: all
-      runtimeChunk: true
+      runtimeChunk: single
     output:
       crossOriginLoading: anonymous
       filename: '[hash].js'
+      chunkFilename: '[id].[chunkhash].js'
       path: [ dist, www ]
     performance:
       maxAssetSize: 2097152 # 2MiB

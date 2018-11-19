@@ -130,13 +130,14 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		new webpack.ProvidePlugin(  {
 			jQuery: 'jquery',
 			$: 'jquery',
+			_: 'lodash',
 			Popper: [ 'popper.js', 'default' ],
 			THREE: 'three'
 		} ),
 		new HtmlWebpackPlugin( {
 			favicon: path.resolve( __dirname, 'assets', 'logo.png' ),
 			inject: 'body',
-			inlineSource: /^runtime~/,
+			inlineSource: /(?:^[a-f0-9]{20}\.js|\.css)/,
 			template: path.resolve( __dirname, 'src', 'client', 'index.ejs' ),
 			templateParameters: {
 				...config.templateParameters,
@@ -150,7 +151,7 @@ export const clientConfig = merge( {}, config.configuration.client, { mode, reso
 		new PreloadWebpackPlugin( {
 			include: 'allAssets',
 			rel: 'prefetch',
-			fileBlacklist: [ /icons-/, /\.(?:json|map|xml)/ ],
+			fileBlacklist: [ /icons-/, /\.(?:css|json|map|xml)/, /^[a-f0-9]{20}\.js/ ],
 			as: source =>
 				/\.(?:mp3|opus|wav)/i.test( source ) ? 'audio'
 			:	/\.(?:glb|gltf)/i.test( source ) ? 'fetch'
