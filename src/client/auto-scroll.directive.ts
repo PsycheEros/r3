@@ -85,6 +85,11 @@ export class AutoScrollDirective implements AfterViewInit, OnChanges, OnDestroy 
 		this.scrolling = this.deadZone > Math.abs( offset );
 	}
 
+	@HostListener( 'window:resize' )
+	private onResize() {
+		this.updateScrollPosition();
+	}
+
 	@HostListener( 'scroll' )
 	private onScroll() {
 		this.updateScrolling();
