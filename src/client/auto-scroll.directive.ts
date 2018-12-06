@@ -23,14 +23,13 @@ export class AutoScrollDirective implements AfterViewInit, OnChanges, OnDestroy 
 	private readonly destroyed = new Subject<true>();
 
 	public ngAfterViewInit() {
-		new Observable<MutationRecord>( observer => {
-			const mutationObserver = new MutationObserver( records => {
-				for( const record of records ) {
-					observer.next( record );
-				}
+		new Observable<void>( observer => {
+			const mutationObserver = new MutationObserver( () => {
+				observer.next();
 			} );
 			mutationObserver.observe( this.elementRef.nativeElement, {
-				attributes: false,
+				attributes: true,
+				attributeFilter: [ 'class', 'style' ],
 				childList: true,
 				subtree: true
 			} );
@@ -49,7 +48,7 @@ export class AutoScrollDirective implements AfterViewInit, OnChanges, OnDestroy 
 
 	public ngOnChanges() {
 		if( this.scrolling ) {
-			setTimeout( () => { this.updateScrollPosition(); }, 0 );
+			this.updateScrollPosition();
 		} else {
 			this.updateScrolling();
 		}

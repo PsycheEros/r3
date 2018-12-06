@@ -1,4 +1,6 @@
 import 'bootstrap';
 import './font-awesome';
 import Breakpoints from 'breakpoints-js';
-Breakpoints();
+import { breakpoints } from 'data/responsive.yaml';
+
+Breakpoints( breakpoints );
