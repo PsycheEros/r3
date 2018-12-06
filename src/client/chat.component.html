@@ -20,7 +20,10 @@
 		</form>
 	</div>
 	<div class="col-12">
-		<div class="list-group" ngx-auto-scroll>
+		<div class="list-group" auto-scroll
+			[scroll-direction]="scrollDirection"
+			[class.flex-column-reverse]="scrollDirection === 'up'"
+		>
 			<div class="list-group-item" *ngFor="let message of messages">
 				<h4 class="list-group-item-heading text-muted" *ngIf="message.user">{{message.user}}</h4>
 				<div class="list-group-item-text" [innerHtml]="message.message | markdown"></div>

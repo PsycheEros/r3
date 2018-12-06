@@ -1,11 +1,13 @@
-import { combineLatest, SchedulerLike } from 'rxjs';
-import { Component, ViewChild, Inject, ElementRef } from '@angular/core';
+import { combineLatest, SchedulerLike, Subject } from 'rxjs';
+import { Component, ViewChild, Inject, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 import { RoomService } from './room.service';
 import { chatMessageRules, commandRules } from 'src/validation';
 import { NgForm } from '@angular/forms';
 import { ZoneScheduler } from 'ngx-zone-scheduler';
-import { observeOn } from 'rxjs/operators';
+import { observeOn, takeUntil } from 'rxjs/operators';
+import { AutoScrollDirection } from './auto-scroll.directive';
+import { ResponsiveService } from './responsive.service';
 
 @Component( {
 	selector: 'chat',
@@ -17,17 +19,29 @@ import { observeOn } from 'rxjs/operators';
 		] )
 	]
 } )
-export class ChatComponent {
+export class ChatComponent implements OnInit, OnDestroy {
 	constructor(
+		private readonly responsiveService: ResponsiveService,
 		private readonly roomService: RoomService,
 		@Inject(ZoneScheduler)
 		private readonly scheduler: SchedulerLike
 	) {}
 
-	protected ngOnInit() {
-		const { roomService, scheduler } = this,
+	public ngOnInit() {
+		const { destroyed, responsiveService, roomService, scheduler } = this,
 			currentRoomId = roomService.getCurrentRoomId(),
 			allMessages = roomService.getMessages();
+
+		responsiveService
+		.getBreakpoint()
+		.pipe(
+			takeUntil( destroyed ),
+			observeOn( scheduler )
+		)
+		.subscribe( breakpoint => {
+			this.scrollDirection = ( breakpoint === ResponsiveBreakpoint.Xs ) ? AutoScrollDirection.Up : AutoScrollDirection.Down;
+		} );
+
 		currentRoomId.subscribe( roomId => {
 			this.roomId = roomId;
 		} );
@@ -36,11 +50,21 @@ export class ChatComponent {
 			? messages.filter( message => message.roomId === roomId )
 			: []
 		)
-		.pipe( observeOn( scheduler ) )
+		.pipe(
+			takeUntil( destroyed ),
+			observeOn( scheduler )
+		)
 		.subscribe( messages => {
 			this.messages = messages;
 		} );
 	}
+
+	public ngOnDestroy() {
+		this.destroyed.next( true );
+		this.destroyed.complete();
+	}
+
+	private readonly destroyed = new Subject<true>();
 
 	@ViewChild( 'messageForm' )
 	private messageForm: NgForm;
@@ -57,6 +81,8 @@ export class ChatComponent {
 
 	public readonly chatMessageRules = chatMessageRules;
 	public readonly commandRules = commandRules;
+
+	public scrollDirection = AutoScrollDirection.Down;
 
 	public async sendMessage() {
 		const { messageForm, roomService, roomId, text: message, textbox } = this;
