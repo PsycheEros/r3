@@ -1,7 +1,7 @@
 import { Injectable,  OnDestroy } from '@angular/core';
 
 import { Subject, Observable, fromEvent } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { breakpoints } from 'data/responsive.yaml';
 
 @Injectable()
@@ -13,6 +13,7 @@ export class ResponsiveService implements OnDestroy {
 		this.width =
 			fromEvent( window, 'resize', { passive: true } )
 			.pipe(
+				takeUntil( this.destroyed ),
 				map( () => window.innerWidth ),
 				shareReplay( 1 )
 			);
