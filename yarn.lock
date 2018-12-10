@@ -6257,10 +6257,10 @@ ngx-bootstrap@^3.1.2:
   resolved "https://registry.yarnpkg.com/ngx-bootstrap/-/ngx-bootstrap-3.1.2.tgz#f466f6290b456806dac2a9b95a12f9dc4979782f"
   integrity sha512-ULooVAtHBir96PDOz8aDP+slkoY+YX3EWeYV7rwkwMQooc6MaFc+EFBBrAkQf1n0N/rJ4Z9GGccRS5vk/1JFog==
 
-ngx-zone-scheduler@^2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/ngx-zone-scheduler/-/ngx-zone-scheduler-2.2.0.tgz#12a5ec3dc4b816373cac9373a85ba2b9dbce7302"
-  integrity sha512-+RUPsson0Sl47ZC47wZ5mxp/1gfFqSs1rHp4dq2CdQk0TAiblyxDdHsyiHI1CUQeYdTe6bbarr55r/QxsQ5vPA==
+ngx-zone-scheduler@^2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/ngx-zone-scheduler/-/ngx-zone-scheduler-2.2.1.tgz#eb8061c2907ecae87a7bea01564238e4fa225d89"
+  integrity sha512-upFKKOFAU34VKDMbt43JvCjzqGkVCVpmO3Au441UpsRKRQbzdGCIIAseD8hiY3mogKjV21aqinS5bOacvaRcxg==
 
 nice-try@^1.0.4:
   version "1.0.4"
