@@ -5,12 +5,12 @@
   "main": "server/js/start.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/errorx666/r3.git"
+    "url": "git+https://github.com/Jovalent/r3.git"
   },
   "author": "error <error@error-unlimited.net",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/errorx666/r3/issues"
+    "url": "https://github.com/Jovalent/r3/issues"
   },
   "engines": {
     "node": "11.x",
