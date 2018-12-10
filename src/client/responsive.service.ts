@@ -1,32 +1,36 @@
 import { Injectable,  OnDestroy } from '@angular/core';
 
-import Breakpoints from 'breakpoints-js';
-import { ReplaySubject } from 'rxjs';
-import { distinctUntilChanged } from 'rxjs/operators';
+import { Subject, Observable, fromEvent } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
+import { breakpoints } from 'data/responsive.yaml';
 
 @Injectable()
 export class ResponsiveService implements OnDestroy {
+	private readonly width: Observable<number>;
+	private readonly destroyed = new Subject<true>();
+
 	public constructor() {
-		Breakpoints.on( 'change', this.onChange );
-		this.updateBreakpoint();
-	}
-
-	private breakpointSubject = new ReplaySubject<ResponsiveBreakpoint>( 1 );
-
-	private readonly onChange = () => { this.updateBreakpoint(); }
-
-	private updateBreakpoint() {
-		this.breakpointSubject.next( Breakpoints.current().name );
+		this.width =
+			fromEvent( window, 'resize', { passive: true } )
+			.pipe(
+				map( () => window.innerWidth ),
+				shareReplay( 1 )
+			);
 	}
 
 	public getBreakpoint() {
-		return this.breakpointSubject.pipe(
+		return this.width.pipe(
+			map( width => {
+				for( const [ key, max ] of Object.entries( breakpoints ) ) {
+					if( width < max ) return key as ResponsiveBreakpoint;
+				}
+			} ),
 			distinctUntilChanged()
 		);
 	}
 
 	public ngOnDestroy() {
-		Breakpoints.off( 'change', this.onChange );
-		this.breakpointSubject.complete();
+		this.destroyed.next( true );
+		this.destroyed.complete();
 	}
 }

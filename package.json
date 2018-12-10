@@ -60,7 +60,6 @@
     "awesome-typescript-loader": "^5.2.1",
     "babel-loader": "^8.0.4",
     "bootstrap": "^4.1.3",
-    "breakpoints-js": "^1.0.6",
     "browser-sync": "^2.26.3",
     "css-loader": "^2.0.0",
     "cssnano": "^4.1.7",
