@@ -29,7 +29,7 @@ export class ResponsiveService implements OnDestroy {
 				for( const [ key, max ] of Object.entries( breakpoints ) ) {
 					if( width < max ) return key as ResponsiveBreakpoint;
 				}
-			},
+			} ),
 			distinctUntilChanged(),
 			observeOn( this.scheduler )
 		);
