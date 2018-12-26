@@ -11,5 +11,6 @@ require( '@babel/register' )( {
 			useBuiltIns: 'usage'
 		} ]
 	],
-	sourceMap: true
+	sourceMap: true,
+	only: [ '**/*.babel.js' ]
 } );

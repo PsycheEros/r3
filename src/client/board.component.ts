@@ -48,7 +48,7 @@ function loadResources( src: string ) {
 				resolve( { animations, objects } );
 			},
 			() => {},
-			err => { reject( new Error( err ) ); }
+			( { error } ) => { reject( new Error( error ) ); }
 		);
 	} );
 }
